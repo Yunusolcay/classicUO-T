@@ -252,6 +252,8 @@ namespace ClassicUO.Configuration
         public bool AnimatedWaterEffect { get; set; } = false;
         // fork: livelier grass colors and wind sway for plants and trees (client-side only)
         public bool NatureEffects { get; set; }
+        // fork: smooth pixel art (xBR) on the world while zoomed in
+        public bool ZoomPixelArtFilter { get; set; }
 
         public bool PartyAura { get; set; }
 

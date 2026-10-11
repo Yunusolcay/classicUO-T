@@ -26,6 +26,17 @@ namespace ClassicUO.Renderer
         public RenderTarget2D LightRenderTarget { get => _lightRenderTarget; }
         public RenderTarget2D WorldRenderTarget { get => _worldRenderTarget; }
 
+        private RenderTarget2D _lowResWorldRenderTarget;
+
+        // World drawn at 1:1 pixel art scale while zoomed in, before being upscaled into
+        // WorldRenderTarget by a pixel art filter (see GameScene). Has its own depth buffer.
+        public RenderTarget2D GetLowResWorldRenderTarget(GraphicsDevice graphicsDevice, int width, int height)
+        {
+            EnsureSize(graphicsDevice, ref _lowResWorldRenderTarget, width, height);
+
+            return _lowResWorldRenderTarget;
+        }
+
         public void SetLightsConfiguration(Func<BlendState> lightsBlendState, Func<Vector3> lightsHue)
         {
             _lightsBlendState = lightsBlendState;

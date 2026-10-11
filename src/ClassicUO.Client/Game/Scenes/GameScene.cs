@@ -946,16 +946,98 @@ namespace ClassicUO.Game.Scenes
             can_draw_lights = PrepareLightsRendering(batcher, ref matrix, renderTargets);
             batcher.GraphicsDevice.Viewport = camera_viewport;
 
-            DrawWorld(batcher, ref matrix, renderTargets);
+            RenderTarget2D worldTarget = renderTargets.WorldRenderTarget;
+            float zoomScale = 1f / Camera.Zoom;
+
+            if (ProfileManager.CurrentProfile.ZoomPixelArtFilter && zoomScale >= ZOOM_FILTER_MIN_SCALE && worldTarget != null
+                && EnsureXbrEffect(batcher.GraphicsDevice))
+            {
+                // Pixel art filter while zoomed in: draw the same view at 1:1 art scale into a
+                // smaller target, then let xBR upscale it by the zoom factor. Culling, mouse
+                // picking, lights and world texts are computed separately and do not change.
+                int lowWidth = (int)Math.Ceiling(worldTarget.Width / zoomScale);
+                int lowHeight = (int)Math.Ceiling(worldTarget.Height / zoomScale);
+                RenderTarget2D lowTarget = renderTargets.GetLowResWorldRenderTarget(batcher.GraphicsDevice, lowWidth, lowHeight);
+                Matrix lowMatrix = matrix * Matrix.CreateScale(1f / zoomScale, 1f / zoomScale, 1f);
+
+                _worldRenderScale = zoomScale;
+                DrawWorld(batcher, ref lowMatrix, renderTargets, lowTarget);
+                _worldRenderScale = 1f;
+
+                UpscaleWorld(batcher, lowTarget, worldTarget, zoomScale);
+            }
+            else
+            {
+                DrawWorld(batcher, ref matrix, renderTargets, worldTarget);
+            }
 
             batcher.GraphicsDevice.Viewport = r_viewport;
 
             return base.Draw(batcher, renderTargets);
         }
 
-        private void DrawWorld(UltimaBatcher2D batcher, ref Matrix matrix, RenderTargets renderTargets)
+        // Below this magnification (1 / Camera.Zoom) the filter has too little room to add detail
+        private const float ZOOM_FILTER_MIN_SCALE = 1.25f;
+        private XBREffect _xbrEffect;
+        // > 1 while the world is drawn at 1:1 art scale for the zoom pixel art filter
+        private float _worldRenderScale = 1f;
+
+        private bool EnsureXbrEffect(GraphicsDevice device)
         {
-            batcher.GraphicsDevice.SetRenderTarget(renderTargets.WorldRenderTarget);
+            if (_xbrEffect != null)
+            {
+                return true;
+            }
+
+            try
+            {
+                _xbrEffect = new XBREffect(device);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                // a shader the current graphics backend cannot load must not take the game down
+                Log.Error($"Zoom pixel art filter disabled, xBR shader failed to load: {ex.Message}");
+                ProfileManager.CurrentProfile.ZoomPixelArtFilter = false;
+
+                return false;
+            }
+        }
+
+        private void UpscaleWorld(UltimaBatcher2D batcher, RenderTarget2D source, RenderTarget2D target, float scale)
+        {
+            GraphicsDevice device = batcher.GraphicsDevice;
+
+            _xbrEffect.TextureSize.SetValue(new Vector2(source.Width, source.Height));
+            _xbrEffect.MatrixTransform.SetValue(
+                Matrix.CreateOrthographicOffCenter(0, target.Width, target.Height, 0, short.MinValue, short.MaxValue)
+            );
+
+            device.SetRenderTarget(target);
+            device.Clear(Color.Black);
+
+            batcher.Begin(_xbrEffect, Matrix.Identity);
+            batcher.SetSampler(SamplerState.PointClamp);
+            // xBR decides per output pixel from its position inside the source pixel, so any
+            // (also fractional) zoom factor works
+            batcher.Draw(source, Vector2.Zero, null, Vector3.UnitZ, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
+            batcher.SetSampler(null);
+            batcher.End();
+
+            device.SetRenderTarget(null);
+        }
+
+        private void DrawWorld(UltimaBatcher2D batcher, ref Matrix matrix, RenderTargets renderTargets, RenderTarget2D target)
+        {
+            batcher.GraphicsDevice.SetRenderTarget(target);
+
+            if (_worldRenderScale != 1f)
+            {
+                // own target: clear color and depth explicitly
+                batcher.GraphicsDevice.Clear(Color.Black);
+            }
+
             SelectedObject.Object = null;
             Profiler.EnterContext(Profiler.ProfilerContext.RENDER_FRAME_WORLD_PREPARE);
             FillGameObjectList();
@@ -1010,7 +1092,7 @@ namespace ClassicUO.Game.Scenes
                 && ProfileManager.CurrentProfile.CircleOfTransparencyType != 1) // gradient mode uses CPU alpha, not shader
             {
                 batcher.SetCircleOfTransparencyRadius(
-                    (float)ProfileManager.CurrentProfile.CircleOfTransparencyRadius / Camera.Zoom
+                    (float)ProfileManager.CurrentProfile.CircleOfTransparencyRadius / Camera.Zoom / _worldRenderScale
                 );
             }
             else
