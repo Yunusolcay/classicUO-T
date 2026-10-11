@@ -15,6 +15,17 @@ files; it is never committed to this repository or published in its releases.**
    Writes `texmaps/` (each texture tiled 3x3), `land/<kind>/`, `statics/ground|nature|other/` and
    `manifest.json`. Identical images are written once.
 
+   Optional: there are ~42,000 images, but a small part covers most of the world. This counts how
+   often each image appears on the maps (all land, slopes and statics) and copies the most used
+   ones, 95% of all appearances per group (~1,400 images), into a batch folder to upscale first:
+
+   ```
+   python rank_world.py --uo "C:/Games/Ultima Online Classic" --src D:/uo-hd/world \
+       --out D:/uo-hd/world_batch1 --coverage 0.95
+   ```
+
+   A later batch with `--coverage 0.98 --skip D:/uo-hd/world_batch1` takes the next ones.
+
 2. Upscale every PNG to exactly 2x with the tool of your choice into a second folder with the same
    sub folders and file names (keep transparency, keep gray areas neutral gray, keep tile edges).
 
