@@ -28,6 +28,20 @@ namespace ClassicUO.UnitTests.Launcher
         }
 
         [Fact]
+        public void Aes_Fallback_Round_Trips_Unicode_And_Detects_Tampering()
+        {
+            // the Linux/macOS path; runs on every OS
+            string stored = PasswordProtector.ProtectAes(System.Text.Encoding.UTF8.GetBytes("pässwörd ğış"));
+
+            Assert.StartsWith("aes:", stored);
+            Assert.Equal("pässwörd ğış", PasswordProtector.Unprotect(stored));
+
+            byte[] blob = System.Convert.FromBase64String(stored.Substring(4));
+            blob[^1] ^= 0xFF;
+            Assert.Equal(string.Empty, PasswordProtector.Unprotect("aes:" + System.Convert.ToBase64String(blob)));
+        }
+
+        [Fact]
         public void Merge_Keeps_ClassicUO_Own_Settings()
         {
             const string existing = """{ "fps": 144, "window_size": "1280,720", "ip": "old", "username": "keep", "password": "1-ABCD", "saveaccount": true }""";

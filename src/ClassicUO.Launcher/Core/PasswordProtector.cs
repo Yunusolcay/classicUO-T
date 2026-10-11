@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: BSD-2-Clause
 
 using System;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
 namespace ClassicUO.Launcher.Core
 {
-    // Passwords saved by the launcher. On Windows they are bound to the user account with DPAPI,
-    // so copying launcher.json to another machine or account does not reveal them. Other systems
-    // fall back to the same machine-bound obfuscation ClassicUO uses for its own settings.json.
+    // Passwords saved by the launcher, so copying launcher.json to another machine or account does
+    // not reveal them. Windows binds them to the user account with DPAPI; Linux/macOS use AES-GCM
+    // with a random per-user key stored outside the launcher folder, readable only by that user.
     internal static class PasswordProtector
     {
         private const string DPAPI_PREFIX = "dpapi:";
+        private const string AES_PREFIX = "aes:";
         private const string CUO_PREFIX = "cuo:";
         private static readonly byte[] _entropy = Encoding.UTF8.GetBytes("classicUO-T.launcher");
 
@@ -22,14 +24,81 @@ namespace ClassicUO.Launcher.Core
                 return string.Empty;
             }
 
+            byte[] plain = Encoding.UTF8.GetBytes(password);
+
             if (OperatingSystem.IsWindows())
             {
-                byte[] data = ProtectedData.Protect(Encoding.UTF8.GetBytes(password), _entropy, DataProtectionScope.CurrentUser);
+                byte[] data = ProtectedData.Protect(plain, _entropy, DataProtectionScope.CurrentUser);
 
                 return DPAPI_PREFIX + Convert.ToBase64String(data);
             }
 
-            return CUO_PREFIX + ClassicUOCrypter.Encrypt(password);
+            return ProtectAes(plain);
+        }
+
+        internal static string ProtectAes(byte[] plain)
+        {
+            byte[] nonce = RandomNumberGenerator.GetBytes(AesGcm.NonceByteSizes.MaxSize);
+            byte[] tag = new byte[AesGcm.TagByteSizes.MaxSize];
+            byte[] cipher = new byte[plain.Length];
+
+            using (var aes = new AesGcm(GetUserKey(), tag.Length))
+            {
+                aes.Encrypt(nonce, plain, cipher, tag, _entropy);
+            }
+
+            return AES_PREFIX + Convert.ToBase64String([.. nonce, .. tag, .. cipher]);
+        }
+
+        private static byte[] DecryptAes(byte[] blob)
+        {
+            int nonceSize = AesGcm.NonceByteSizes.MaxSize;
+            int tagSize = AesGcm.TagByteSizes.MaxSize;
+
+            if (blob.Length < nonceSize + tagSize)
+            {
+                throw new CryptographicException("Saved password is truncated");
+            }
+
+            byte[] plain = new byte[blob.Length - nonceSize - tagSize];
+
+            using var aes = new AesGcm(GetUserKey(), tagSize);
+            aes.Decrypt(blob.AsSpan(0, nonceSize), blob.AsSpan(nonceSize + tagSize), blob.AsSpan(nonceSize, tagSize), plain, _entropy);
+
+            return plain;
+        }
+
+        private static byte[] GetUserKey()
+        {
+            string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "classicUO-T");
+            string path = Path.Combine(dir, "launcher.key");
+
+            if (File.Exists(path))
+            {
+                byte[] existing = File.ReadAllBytes(path);
+
+                if (existing.Length == 32)
+                {
+                    return existing;
+                }
+            }
+
+            Directory.CreateDirectory(dir);
+            byte[] key = RandomNumberGenerator.GetBytes(32);
+
+            var options = new FileStreamOptions { Mode = FileMode.Create, Access = FileAccess.Write };
+
+            if (!OperatingSystem.IsWindows())
+            {
+                options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+            }
+
+            using (var fs = new FileStream(path, options))
+            {
+                fs.Write(key);
+            }
+
+            return key;
         }
 
         public static string Unprotect(string value)
@@ -48,6 +117,12 @@ namespace ClassicUO.Launcher.Core
                     return Encoding.UTF8.GetString(data);
                 }
 
+                if (value.StartsWith(AES_PREFIX, StringComparison.Ordinal))
+                {
+                    return Encoding.UTF8.GetString(DecryptAes(Convert.FromBase64String(value.Substring(AES_PREFIX.Length))));
+                }
+
+                // older launcher builds on Linux/macOS
                 if (value.StartsWith(CUO_PREFIX, StringComparison.Ordinal))
                 {
                     return ClassicUOCrypter.Decrypt(value.Substring(CUO_PREFIX.Length));

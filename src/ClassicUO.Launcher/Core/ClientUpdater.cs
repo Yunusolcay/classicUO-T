@@ -203,7 +203,8 @@ namespace ClassicUO.Launcher.Core
         internal static string ResolveInside(string root, string relativePath)
         {
             string fullRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
-            string full = Path.GetFullPath(Path.Combine(fullRoot, relativePath));
+            // normalize first: on Linux/macOS "..\x" is otherwise a plain file name, not an escape
+            string full = Path.GetFullPath(Path.Combine(fullRoot, NormalizeRelativePath(relativePath)));
             StringComparison cmp = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
             if (!full.StartsWith(fullRoot, cmp))
