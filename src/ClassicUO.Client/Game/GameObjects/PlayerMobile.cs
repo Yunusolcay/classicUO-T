@@ -8,6 +8,7 @@ using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Network;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -39,6 +40,18 @@ namespace ClassicUO.Game.GameObjects
         public ref Ability SecondaryAbility => ref Abilities[1];
         protected override bool IsWalking => LastStepTime > Time.Ticks - Constants.PLAYER_WALKING_DELAY;
 
+        protected override bool KeepWalkAnimation =>
+            ProfileManager.CurrentProfile.MovementKeepLegsMoving
+            && _lastWalkIntentTime != 0
+            && Time.Ticks - _lastWalkIntentTime < Constants.WALK_INTENT_GRACE;
+
+        // Last time the player asked to keep moving and was only held back by the turn/step
+        // delay, never by a blocked tile or a full queue of unconfirmed steps.
+        private uint _lastWalkIntentTime;
+        // Whether the previous request was a tile step (not a turn) sent on schedule; only then
+        // may the next one use cadence credit.
+        private bool _lastRequestWasStep;
+
         internal WalkerManager Walker { get; }
         public Pathfinder Pathfinder { get; }
 
@@ -63,6 +76,8 @@ namespace ClassicUO.Game.GameObjects
         internal void SyncServerDirection()
         {
             _serverDirection = Direction;
+            // the walk was reset: the next request starts a new cadence
+            _lastRequestWasStep = false;
         }
 
         public short ColdResistance;
@@ -522,10 +537,28 @@ namespace ClassicUO.Game.GameObjects
 
         public bool Walk(Direction direction, bool run)
         {
-            if (Walker.WalkingFailed || Walker.LastStepRequestTime > Time.Ticks || Walker.StepsCount >= Constants.MAX_STEP_COUNT || Client.Game.UO.Version >= ClientVersion.CV_60142 && IsParalyzed)
+            if (Walker.WalkingFailed || Client.Game.UO.Version >= ClientVersion.CV_60142 && IsParalyzed)
             {
                 return false;
             }
+
+            if (Walker.StepsCount >= Constants.MAX_STEP_COUNT)
+            {
+                // waiting on server acks: the character really stands still, legs must stop too
+                return false;
+            }
+
+            if (Walker.LastStepRequestTime > Time.Ticks)
+            {
+                // only waiting on the turn/step delay: the player is still moving
+                _lastWalkIntentTime = Time.Ticks;
+
+                return false;
+            }
+
+            // How late this request is compared to when it was allowed. Measured before anything
+            // else so blocked or rejected attempts below cannot affect it.
+            long lateMs = Walker.LastStepRequestTime != 0 ? Time.Ticks - Walker.LastStepRequestTime : -1;
 
             run |= ProfileManager.CurrentProfile.AlwaysRun;
 
@@ -618,10 +651,22 @@ namespace ClassicUO.Game.GameObjects
             // Adaptive coalescing: only suppress direction-only packets when the server
             // is falling behind (3+ unconfirmed packets). This allows full-speed spinning
             // when the connection is healthy and automatically backs off under congestion.
-            if (walkTime == (ushort)MovementSpeed.TurnDelay && Walker.UnacceptedPacketsCount >= 3)
+            //
+            // Only while standing still: a skipped turn leaves _serverDirection on the old facing, so
+            // the next step has to send the turn after all and wait TurnDelay a second time. While
+            // running that turned every direction change on a slow link into a ~2x TurnDelay stop,
+            // which other players see as well because the server only broadcasts what it receives.
+            Profile profile = ProfileManager.CurrentProfile;
+            bool isStep = walkTime != (ushort)MovementSpeed.TurnDelay;
+            bool moving = !emptyStack || IsWalking;
+
+            if (!isStep && Walker.UnacceptedPacketsCount >= 3 && !(profile.MovementTurnWhileRunningFix && moving))
             {
                 Direction = direction;
                 Walker.LastStepRequestTime = Time.Ticks + walkTime;
+                _lastRequestWasStep = false;
+                _lastWalkIntentTime = Time.Ticks;
+                MovementDiagnostics.OnTurnSkipped(direction, walkTime, Walker.UnacceptedPacketsCount);
 
                 return true;
             }
@@ -635,7 +680,18 @@ namespace ClassicUO.Game.GameObjects
                     SetAnimation(0xFF);
                 }
 
-                LastStepTime = Time.Ticks;
+                // Continuing a run: the previous visual step ended at LastStepTime and this request
+                // only came a few ms later (update granularity). Keep that end time so the new step
+                // starts exactly where the previous one stopped instead of pausing for the gap.
+                bool carry = profile.MovementContinuousSteps
+                    && isStep
+                    && _lastRequestWasStep
+                    && Time.Ticks - LastStepTime <= Constants.STEP_OVERSHOOT_CARRY_MAX;
+
+                if (!carry)
+                {
+                    LastStepTime = Time.Ticks;
+                }
             }
 
             ref StepInfo step = ref Walker.StepInfos[Walker.StepsCount];
@@ -669,6 +725,21 @@ namespace ClassicUO.Game.GameObjects
 
             _serverDirection = direction;
 
+            // Step cadence: requests can only go out on an update tick, so each one is a little
+            // late. Without compensation that lateness adds up and the effective speed drops below
+            // the server speed with an uneven rhythm. Taking back at most STEP_CADENCE_MAX_CREDIT ms
+            // keeps the long-run rate exactly nominal (send_n = send_0 + n * walkTime + jitter), so
+            // speed checks on SphereNet, Source-X and ServUO see a regular, never faster walker.
+            // Only between consecutive tile steps; pauses, turns and long hitches get no credit.
+            int creditMs = profile.MovementStepCadence
+                ? MovementSpeed.StepCadenceCredit(isStep, _lastRequestWasStep, lateMs, walkTime)
+                : 0;
+
+            MovementDiagnostics.OnWalkSent(Walker.WalkSequence, direction, run, walkTime, (int)lateMs, creditMs, Walker.UnacceptedPacketsCount + 1);
+
+            _lastRequestWasStep = isStep;
+            _lastWalkIntentTime = Time.Ticks;
+
 
             if (Walker.WalkSequence == 0xFF)
             {
@@ -683,7 +754,7 @@ namespace ClassicUO.Game.GameObjects
 
             AddToTile();
 
-            Walker.LastStepRequestTime = Time.Ticks + walkTime;
+            Walker.LastStepRequestTime = Time.Ticks + walkTime - creditMs;
             GetGroupForAnimation(this, 0, true);
 
             return true;

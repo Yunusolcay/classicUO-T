@@ -82,6 +82,12 @@ namespace ClassicUO.Game.UI.Gumps
                          _alwaysRun,
                          _alwaysRunUnlessHidden,
                          _fastRotation,
+                         _movementTurnWhileRunningFix,
+                         _movementStepCadence,
+                         _movementContinuousSteps,
+                         _movementKeepLegsMoving,
+                         _movementDiagnostics,
+                         _enableVSync,
                          _showHpMobile,
                          _highlightByPoisoned,
                          _highlightByParalyzed,
@@ -531,6 +537,66 @@ namespace ClassicUO.Game.UI.Gumps
                     null,
                     "Fast rotation",
                     _currentProfile.FastRotation,
+                    startX,
+                    startY
+                )
+            );
+
+            section.Add
+            (
+                _movementTurnWhileRunningFix = AddCheckBox
+                (
+                    null,
+                    "Don't skip turns while running",
+                    _currentProfile.MovementTurnWhileRunningFix,
+                    startX,
+                    startY
+                )
+            );
+
+            section.AddRight
+            (
+                _movementStepCadence = AddCheckBox
+                (
+                    null,
+                    "Steady step timing",
+                    _currentProfile.MovementStepCadence,
+                    startX,
+                    startY
+                )
+            );
+
+            section.Add
+            (
+                _movementContinuousSteps = AddCheckBox
+                (
+                    null,
+                    "Continuous step movement",
+                    _currentProfile.MovementContinuousSteps,
+                    startX,
+                    startY
+                )
+            );
+
+            section.AddRight
+            (
+                _movementKeepLegsMoving = AddCheckBox
+                (
+                    null,
+                    "Keep legs moving while turning",
+                    _currentProfile.MovementKeepLegsMoving,
+                    startX,
+                    startY
+                )
+            );
+
+            section.Add
+            (
+                _movementDiagnostics = AddCheckBox
+                (
+                    null,
+                    "Movement diagnostics log (Logs folder)",
+                    _currentProfile.MovementDiagnostics,
                     startX,
                     startY
                 )
@@ -1601,6 +1667,17 @@ namespace ClassicUO.Game.UI.Gumps
             );
 
             startY += _reduceFPSWhenInactive.Height + 2;
+
+            _enableVSync = AddCheckBox
+            (
+                rightArea,
+                "VSync",
+                _currentProfile.EnableVSync,
+                startX,
+                startY
+            );
+
+            startY += _enableVSync.Height + 2;
 
             startX = 5;
             startY += 20;
@@ -3632,6 +3709,12 @@ namespace ClassicUO.Game.UI.Gumps
                     _holdShiftToSplitStack.IsChecked = false;
                     _enablePathfind.IsChecked = false;
                     _useShiftPathfind.IsChecked = false;
+                    _movementTurnWhileRunningFix.IsChecked = true;
+                    _movementStepCadence.IsChecked = true;
+                    _movementContinuousSteps.IsChecked = true;
+                    _movementKeepLegsMoving.IsChecked = true;
+                    _movementDiagnostics.IsChecked = false;
+                    _enableVSync.IsChecked = false;
                     _alwaysRun.IsChecked = false;
                     _alwaysRunUnlessHidden.IsChecked = false;
                     _showHpMobile.IsChecked = false;
@@ -3866,6 +3949,13 @@ namespace ClassicUO.Game.UI.Gumps
             _currentProfile.AlwaysRunUnlessHidden = _alwaysRunUnlessHidden.IsChecked;
             _currentProfile.FastRotation = _fastRotation.IsChecked;
             MovementSpeed.FastRotation = _fastRotation.IsChecked;
+            _currentProfile.MovementTurnWhileRunningFix = _movementTurnWhileRunningFix.IsChecked;
+            _currentProfile.MovementStepCadence = _movementStepCadence.IsChecked;
+            _currentProfile.MovementContinuousSteps = _movementContinuousSteps.IsChecked;
+            _currentProfile.MovementKeepLegsMoving = _movementKeepLegsMoving.IsChecked;
+            _currentProfile.MovementDiagnostics = _movementDiagnostics.IsChecked;
+            _currentProfile.EnableVSync = _enableVSync.IsChecked;
+            Client.Game.SetVSync(_enableVSync.IsChecked, true);
             _currentProfile.ShowMobilesHP = _showHpMobile.IsChecked;
             _currentProfile.HighlightMobilesByPoisoned = _highlightByPoisoned.IsChecked;
             _currentProfile.HighlightMobilesByParalize = _highlightByParalyzed.IsChecked;

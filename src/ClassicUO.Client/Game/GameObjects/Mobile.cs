@@ -521,8 +521,12 @@ namespace ClassicUO.Game.GameObjects
         private bool NoIterateAnimIndex()
         {
             return !ExecuteAnimation
-                || (LastStepTime > Time.Ticks - Constants.WALKING_DELAY && Steps.Count == 0);
+                || (LastStepTime > Time.Ticks - Constants.WALKING_DELAY && Steps.Count == 0 && !KeepWalkAnimation);
         }
+
+        // True while the step queue is momentarily empty but more movement is known to follow
+        // (e.g. the player waiting for a turn delay while still holding the movement input).
+        protected virtual bool KeepWalkAnimation => false;
 
         private void ProcessFootstepsSound()
         {
@@ -738,9 +742,15 @@ namespace ClassicUO.Game.GameObjects
                             );
                     }
 
+                    bool continuousSteps = ProfileManager.CurrentProfile != null
+                        && ProfileManager.CurrentProfile.MovementContinuousSteps;
+
+                    // The player's steps are requested exactly every walkTime ms, so the visual step
+                    // must last exactly walkTime too. Ending it half a frame early leaves the player
+                    // standing on the tile center until the next request: a tiny pause on every step.
                     int maxDelay =
                         MovementSpeed.TimeToCompleteMovement(run, mounted)
-                        - (int)Client.Game.FrameDelay[1];
+                        - (continuousSteps && Serial == World.Player ? 0 : (int)Client.Game.FrameDelay[1]);
 
                     bool removeStep = delay >= maxDelay;
                     bool directionChange = false;
@@ -864,7 +874,15 @@ namespace ClassicUO.Game.GameObjects
                             AddToTile();
                         }
 
-                        LastStepTime = Time.Ticks;
+                        // Start the next step from where this one should have ended instead of from
+                        // "now": the update that noticed the step was done may run a few ms late, and
+                        // dropping that overshoot every step makes the movement drift and stutter.
+                        int overshoot = delay - maxDelay;
+
+                        LastStepTime =
+                            continuousSteps && overshoot >= 0 && overshoot <= Constants.STEP_OVERSHOOT_CARRY_MAX
+                                ? LastStepTime + (uint)maxDelay
+                                : Time.Ticks;
                     }
 
                     UpdateTextCoordsV();

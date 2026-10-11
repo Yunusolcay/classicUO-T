@@ -18,6 +18,15 @@ namespace ClassicUO.Game
         public const int TURN_DELAY_FAST = 45;
         public const int WALKING_DELAY = 150; // 750
         public const int PLAYER_WALKING_DELAY = 150;
+
+        // Smooth movement (fork)
+        // Max ms a finished visual step may hand over to the next one (visual only, never sent to the server).
+        public const int STEP_OVERSHOOT_CARRY_MAX = 30;
+        // Max ms a walk request may be sent earlier than walkTime after the previous one to make up for
+        // the previous request being late. Long-run rate stays exactly nominal; see PlayerMobile.Walk.
+        public const int STEP_CADENCE_MAX_CREDIT = 15;
+        // How long a movement input keeps the walk animation running while the step queue is empty.
+        public const int WALK_INTENT_GRACE = 50;
         public const int DEFAULT_CHARACTER_HEIGHT = 16;
         public const int DEFAULT_BLOCK_HEIGHT = 16;
 

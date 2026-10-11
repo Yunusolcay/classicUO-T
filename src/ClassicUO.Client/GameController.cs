@@ -101,6 +101,14 @@ namespace ClassicUO
 
             GraphicManager.ApplyChanges();
 
+            // SDL3 no longer raises the Windows timer resolution like SDL2 did. Without it the
+            // Thread.Sleep(1) of the frame limiter can sleep a whole 15.6 ms scheduler tick,
+            // which makes frame times (and therefore movement) uneven below the FPS cap.
+            if (CUOEnviroment.IsWindows)
+            {
+                _timerPeriodSet = TimeBeginPeriod(1) == 0;
+            }
+
             SetRefreshRate(Settings.GlobalSettings.FPS);
             _uoSpriteBatch = new UltimaBatcher2D(GraphicsDevice);
 
@@ -200,9 +208,19 @@ namespace ClassicUO
             Scene?.Load();
         }
 
-        public void SetVSync(bool value)
+        public void SetVSync(bool value, bool apply = false)
         {
+            if (GraphicManager.SynchronizeWithVerticalRetrace == value)
+            {
+                return;
+            }
+
             GraphicManager.SynchronizeWithVerticalRetrace = value;
+
+            if (apply)
+            {
+                GraphicManager.ApplyChanges();
+            }
         }
 
         public void SetRefreshRate(int rate)
@@ -481,6 +499,8 @@ namespace ClassicUO
             Profiler.EnterContext(Profiler.ProfilerContext.RENDER_FRAME);
 
             _totalFrames++;
+
+            MovementDiagnostics.OnFrame(UO.World != null && UO.World.InGame ? UO.World.Player : null);
 
             GraphicsDevice.Clear(Color.Black);
 
@@ -929,9 +949,24 @@ namespace ClassicUO
         protected override void OnExiting(object sender, EventArgs args)
         {
             Scene?.Dispose();
+            MovementDiagnostics.Close();
+
+            if (_timerPeriodSet)
+            {
+                TimeEndPeriod(1);
+                _timerPeriodSet = false;
+            }
 
             base.OnExiting(sender, args);
         }
+
+        private bool _timerPeriodSet;
+
+        [System.Runtime.InteropServices.DllImport("winmm.dll", EntryPoint = "timeBeginPeriod")]
+        private static extern uint TimeBeginPeriod(uint period);
+
+        [System.Runtime.InteropServices.DllImport("winmm.dll", EntryPoint = "timeEndPeriod")]
+        private static extern uint TimeEndPeriod(uint period);
 
         private void TakeScreenshot()
         {
