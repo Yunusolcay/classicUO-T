@@ -163,6 +163,16 @@ namespace ClassicUO.Renderer
         public void WriteQuadAt(int index, Texture2D texture, Rectangle sourceRect, int posX, int posY,
             Vector3 hue, float depth, float uvInset = 0f)
         {
+            WriteQuadAt(index, texture, sourceRect, posX, posY, sourceRect.Width, sourceRect.Height, hue, depth, uvInset);
+        }
+
+        /// <summary>
+        /// Same, but the quad covers width x height world pixels whatever the source size is
+        /// (HD textures: a 2x source drawn at the original size).
+        /// </summary>
+        public void WriteQuadAt(int index, Texture2D texture, Rectangle sourceRect, int posX, int posY,
+            int width, int height, Vector3 hue, float depth, float uvInset = 0f)
+        {
             ref var vertex = ref Vertices[index];
 
             float sourceX = (sourceRect.X + uvInset) / (float)texture.Width;
@@ -172,12 +182,12 @@ namespace ClassicUO.Renderer
 
             vertex.Position0.X = posX;
             vertex.Position0.Y = posY;
-            vertex.Position1.X = posX + sourceRect.Width;
+            vertex.Position1.X = posX + width;
             vertex.Position1.Y = posY;
             vertex.Position2.X = posX;
-            vertex.Position2.Y = posY + sourceRect.Height;
-            vertex.Position3.X = posX + sourceRect.Width;
-            vertex.Position3.Y = posY + sourceRect.Height;
+            vertex.Position2.Y = posY + height;
+            vertex.Position3.X = posX + width;
+            vertex.Position3.Y = posY + height;
 
             vertex.Position0.Z = vertex.Position1.Z = vertex.Position2.Z = vertex.Position3.Z = depth;
 

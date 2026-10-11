@@ -643,7 +643,8 @@ namespace ClassicUO.Game.Scenes
                         continue;
 
                     // Build chunk mesh if dirty
-                    if (chunk.Mesh.IsDirty || chunk.Mesh.BuiltWithNatureEffects != Data.NatureTiles.Enabled)
+                    if (chunk.Mesh.IsDirty || chunk.Mesh.BuiltWithNatureEffects != Data.NatureTiles.Enabled
+                        || chunk.Mesh.BuiltHdGeneration != HdWorldPack.MeshGeneration)
                     {
                         chunk.Mesh.Build(chunk, _world, Client.Game.GraphicsDevice);
                     }
@@ -955,6 +956,7 @@ namespace ClassicUO.Game.Scenes
             // world filter draws at 1:1 art scale and upscales afterwards
             HdCharacterSprites.RasterScale = xbrWorld ? 1f : zoomScale;
             HdCharacterSprites.Update(batcher.GraphicsDevice);
+            HdWorldPack.Update(batcher.GraphicsDevice);
 
             if (xbrWorld)
             {

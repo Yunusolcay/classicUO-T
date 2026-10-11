@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using ClassicUO.Configuration;
 using ClassicUO.IO;
 using ClassicUO.Assets;
+using ClassicUO.Game.Managers;
 using ClassicUO.Renderer;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -123,12 +124,16 @@ namespace ClassicUO.Game.GameObjects
 
                 var pos = new Vector2(x, y);
                 var scale = Vector2.One;
+                Texture2D texture = artInfo.Texture;
+                Rectangle uv = artInfo.UV;
+                ResolveHdArt(graphic, ref texture, ref uv, ref scale);
+
                 if (isWet)
                 {
                     batcher.Draw(
-                        artInfo.Texture,
+                        texture,
                         pos,
-                        artInfo.UV,
+                        uv,
                         hue,
                         0f,
                         Vector2.Zero,
@@ -139,13 +144,13 @@ namespace ClassicUO.Game.GameObjects
 
                     var sin = (float)Math.Sin(Time.Ticks / 1000f);
                     var cos = (float)Math.Cos(Time.Ticks / 1000f);
-                    scale = new Vector2(1.1f + sin * 0.1f, 1.1f + cos * 0.5f * 0.1f);
+                    scale *= new Vector2(1.1f + sin * 0.1f, 1.1f + cos * 0.5f * 0.1f);
                 }
 
                 batcher.Draw(
-                    artInfo.Texture,
+                    texture,
                     pos,
-                    artInfo.UV,
+                    uv,
                     hue,
                     0f,
                     Vector2.Zero,
@@ -219,6 +224,17 @@ namespace ClassicUO.Game.GameObjects
             }
         }
 
+        // HD world pack: same position, 2x texture drawn at half scale
+        private static void ResolveHdArt(ushort graphic, ref Texture2D texture, ref Rectangle uv, ref Vector2 scale)
+        {
+            if (HdWorldPack.TryGet(HdWorldPack.Kind.Static, graphic, out Texture2D hd, out Rectangle hdUv))
+            {
+                texture = hd;
+                uv = hdUv;
+                scale *= 0.5f;
+            }
+        }
+
         protected static void DrawStaticAnimated(
             UltimaBatcher2D batcher,
             ushort graphic,
@@ -253,12 +269,16 @@ namespace ClassicUO.Game.GameObjects
                 }
 
                 var scale = Vector2.One;
+                Texture2D texture = artInfo.Texture;
+                Rectangle uv = artInfo.UV;
+                ResolveHdArt(graphic, ref texture, ref uv, ref scale);
+
                 if (isWet)
                 {
                     batcher.Draw(
-                        artInfo.Texture,
+                        texture,
                         pos,
-                        artInfo.UV,
+                        uv,
                         hue,
                         0f,
                         Vector2.Zero,
@@ -269,13 +289,13 @@ namespace ClassicUO.Game.GameObjects
 
                     var sin = (float)Math.Sin(Time.Ticks / 1000f);
                     var cos = (float)Math.Cos(Time.Ticks / 1000f);
-                    scale = new Vector2(1.1f + sin * 0.1f, 1.1f + cos * 0.5f * 0.1f);
+                    scale *= new Vector2(1.1f + sin * 0.1f, 1.1f + cos * 0.5f * 0.1f);
                 }
 
                 batcher.Draw(
-                    artInfo.Texture,
+                    texture,
                     pos,
-                    artInfo.UV,
+                    uv,
                     hue,
                     0f,
                     Vector2.Zero,

@@ -256,6 +256,8 @@ namespace ClassicUO.Configuration
         public bool ZoomPixelArtFilter { get; set; }
         // fork: draw characters from 2x xBR frames while zoomed in
         public bool HdCharacters { get; set; }
+        // fork: land, texmaps and statics from a local HD pack (Data/HD/world) while zoomed in
+        public bool HdWorld { get; set; }
 
         public bool PartyAura { get; set; }
 

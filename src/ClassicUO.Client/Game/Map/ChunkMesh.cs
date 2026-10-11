@@ -112,6 +112,10 @@ namespace ClassicUO.Game.Map
 
         private bool _animatedWaterEffect;
         private bool _natureEffects;
+        private bool _hdWorld;
+
+        // HdWorldPack.MeshGeneration this mesh was built with; it rebuilds when that changes
+        public int BuiltHdGeneration { get; private set; } = int.MinValue;
 
         // nature effects state the mesh was built with: wind sway is baked into the vertices,
         // so toggling the option needs a rebuild
@@ -139,6 +143,8 @@ namespace ClassicUO.Game.Map
 
             _animatedWaterEffect = profile.AnimatedWaterEffect;
             _natureEffects = profile.NatureEffects;
+            BuiltHdGeneration = HdWorldPack.MeshGeneration;
+            _hdWorld = BuiltHdGeneration >= 0;
 
             // Pass 1: count sprites per texture
             _landBuckets.Clear();
@@ -360,32 +366,8 @@ namespace ClassicUO.Game.Map
             if (_animatedWaterEffect && land.TileData.IsWet)
                 return;
 
-            Texture2D texture;
-            if (land.IsStretched)
-            {
-                ref readonly var texmapInfo = ref Client.Game.UO.Texmaps.GetTexmap(
-                    Client.Game.UO.FileManager.TileData.LandData[land.Graphic].TexID
-                );
-
-                if (texmapInfo.Texture != null)
-                    texture = texmapInfo.Texture;
-                else
-                {
-                    ref readonly var artInfo = ref Client.Game.UO.Arts.GetLand(land.Graphic);
-                    if (artInfo.Texture == null)
-                        return;
-                    texture = artInfo.Texture;
-                }
-            }
-            else
-            {
-                ref readonly var artInfo = ref Client.Game.UO.Arts.GetLand(land.Graphic);
-                if (artInfo.Texture == null)
-                    return;
-                texture = artInfo.Texture;
-            }
-
-            _landBuckets.Count(texture);
+            if (ResolveLand(land, out Texture2D texture, out _, out _))
+                _landBuckets.Count(texture);
         }
 
         private void CountStatic(Static staticObj)
@@ -412,11 +394,8 @@ namespace ClassicUO.Game.Map
             if (IsStaticExcludedFromMesh(graphic, ref itemData))
                 return;
 
-            ref readonly var artInfo = ref Client.Game.UO.Arts.GetArt(graphic);
-            if (artInfo.Texture == null)
-                return;
-
-            _staticsBuckets.Count(artInfo.Texture);
+            if (ResolveStatic(graphic, out Texture2D texture, out _, out _))
+                _staticsBuckets.Count(texture);
         }
 
         #endregion
@@ -429,6 +408,9 @@ namespace ClassicUO.Game.Map
                 return;
 
             if (_animatedWaterEffect && land.TileData.IsWet)
+                return;
+
+            if (!ResolveLand(land, out Texture2D texture, out Rectangle uv, out bool texmap))
                 return;
 
             ushort hue = land.Hue;
@@ -453,56 +435,96 @@ namespace ClassicUO.Game.Map
             int baseX = (land.X - land.Y) * 22 - 22;
             int baseY = (land.X + land.Y) * 22 - (land.Z << 2) - 22;
 
-            if (land.IsStretched)
-            {
-                ref readonly var texmapInfo = ref Client.Game.UO.Texmaps.GetTexmap(
-                    Client.Game.UO.FileManager.TileData.LandData[land.Graphic].TexID
-                );
+            int idx = _landBuckets.GetNextIndex(texture);
+            land.MeshSpriteIndex = idx;
 
-                if (texmapInfo.Texture != null)
-                {
-                    int idx = _landBuckets.GetNextIndex(texmapInfo.Texture);
-                    land.MeshSpriteIndex = idx;
-                    WriteStretchedLand(
-                        idx,
-                        texmapInfo.Texture,
-                        texmapInfo.UV,
-                        baseX,
-                        baseY + (land.Z << 2),
-                        ref land.YOffsets,
-                        ref land.NormalTop,
-                        ref land.NormalRight,
-                        ref land.NormalLeft,
-                        ref land.NormalBottom,
-                        hueVec,
-                        depth
-                    );
-                    land.InChunkMesh = true;
-                }
-                else
-                {
-                    ref readonly var artInfo = ref Client.Game.UO.Arts.GetLand(land.Graphic);
-                    if (artInfo.Texture != null)
-                    {
-                        int idx = _landBuckets.GetNextIndex(artInfo.Texture);
-                        land.MeshSpriteIndex = idx;
-                        Land.WriteQuadAt(idx, artInfo.Texture, artInfo.UV,
-                            baseX, baseY + (land.Z << 2), hueVec, depth);
-                        land.InChunkMesh = true;
-                    }
-                }
+            if (texmap)
+            {
+                // the four corners come from the tile heights, the texture only provides UVs,
+                // so an HD texmap simply replaces the original one
+                WriteStretchedLand(
+                    idx,
+                    texture,
+                    uv,
+                    baseX,
+                    baseY + (land.Z << 2),
+                    ref land.YOffsets,
+                    ref land.NormalTop,
+                    ref land.NormalRight,
+                    ref land.NormalLeft,
+                    ref land.NormalBottom,
+                    hueVec,
+                    depth
+                );
             }
             else
             {
-                ref readonly var artInfo = ref Client.Game.UO.Arts.GetLand(land.Graphic);
-                if (artInfo.Texture != null)
+                // always the 44x44 world diamond, also when the texture is the 2x HD version
+                Land.WriteQuadAt(idx, texture, uv, baseX, land.IsStretched ? baseY + (land.Z << 2) : baseY, 44, 44, hueVec, depth);
+            }
+
+            land.InChunkMesh = true;
+        }
+
+        // Texture used for a land tile, the same in the counting and the writing pass:
+        // texmap for stretched tiles (art as fallback), art otherwise; HD versions when available.
+        private bool ResolveLand(GameObjects.Land land, out Texture2D texture, out Rectangle uv, out bool texmap)
+        {
+            texmap = false;
+
+            if (land.IsStretched)
+            {
+                ushort texId = Client.Game.UO.FileManager.TileData.LandData[land.Graphic].TexID;
+                ref readonly var texmapInfo = ref Client.Game.UO.Texmaps.GetTexmap(texId);
+
+                if (texmapInfo.Texture != null)
                 {
-                    int idx = _landBuckets.GetNextIndex(artInfo.Texture);
-                    land.MeshSpriteIndex = idx;
-                    Land.WriteQuadAt(idx, artInfo.Texture, artInfo.UV, baseX, baseY, hueVec, depth);
-                    land.InChunkMesh = true;
+                    texmap = true;
+                    texture = texmapInfo.Texture;
+                    uv = texmapInfo.UV;
+
+                    if (_hdWorld && HdWorldPack.TryGet(HdWorldPack.Kind.Texmap, texId, out Texture2D hd, out Rectangle hdUv))
+                    {
+                        texture = hd;
+                        uv = hdUv;
+                    }
+
+                    return true;
                 }
             }
+
+            ref readonly var artInfo = ref Client.Game.UO.Arts.GetLand(land.Graphic);
+            texture = artInfo.Texture;
+            uv = artInfo.UV;
+
+            if (texture == null)
+                return false;
+
+            if (_hdWorld && HdWorldPack.TryGet(HdWorldPack.Kind.Land, land.Graphic, out Texture2D hdLand, out Rectangle hdLandUv))
+            {
+                texture = hdLand;
+                uv = hdLandUv;
+            }
+
+            return true;
+        }
+
+        private bool ResolveStatic(ushort graphic, out Texture2D texture, out Rectangle uv, out Rectangle originalUv)
+        {
+            ref readonly var artInfo = ref Client.Game.UO.Arts.GetArt(graphic);
+            texture = artInfo.Texture;
+            uv = originalUv = artInfo.UV;
+
+            if (texture == null)
+                return false;
+
+            if (_hdWorld && HdWorldPack.TryGet(HdWorldPack.Kind.Static, graphic, out Texture2D hd, out Rectangle hdUv))
+            {
+                texture = hd;
+                uv = hdUv;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -558,25 +580,25 @@ namespace ClassicUO.Game.Map
             int baseX = (obj.X - obj.Y) * 22 - 22;
             int baseY = (obj.X + obj.Y) * 22 - (obj.Z << 2) - 22;
 
-            ref readonly var artInfo = ref Client.Game.UO.Arts.GetArt(graphic);
-            if (artInfo.Texture == null)
+            if (!ResolveStatic(graphic, out Texture2D texture, out Rectangle uv, out Rectangle artUv))
                 return;
 
+            // placement and size always from the original art, also for an HD texture
             ref var artIndex = ref Client.Game.UO.FileManager.Arts.File.GetValidRefEntry(graphic + 0x4000);
-            artIndex.Width = (short)((artInfo.UV.Width >> 1) - 22);
-            artIndex.Height = (short)(artInfo.UV.Height - 44);
+            artIndex.Width = (short)((artUv.Width >> 1) - 22);
+            artIndex.Height = (short)(artUv.Height - 44);
 
             int posX = baseX - artIndex.Width;
             int posY = baseY - artIndex.Height;
 
-            int idx = _staticsBuckets.GetNextIndex(artInfo.Texture);
+            int idx = _staticsBuckets.GetNextIndex(texture);
             obj.MeshSpriteIndex = idx;
-            Statics.WriteQuadAt(idx, artInfo.Texture, artInfo.UV, posX, posY, hueVec, depth);
+            Statics.WriteQuadAt(idx, texture, uv, posX, posY, artUv.Width, artUv.Height, hueVec, depth);
             obj.InChunkMesh = true;
 
             if (_natureEffects)
             {
-                Vector2 sway = NatureTiles.GetSway(graphic, obj.X, obj.Y, artInfo.UV.Height);
+                Vector2 sway = NatureTiles.GetSway(graphic, obj.X, obj.Y, artUv.Height);
 
                 if (sway.X > 0)
                 {
