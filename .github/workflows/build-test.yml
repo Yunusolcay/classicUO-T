@@ -15,6 +15,9 @@ on:
       - '**/README.md'
 
 
+permissions:
+  contents: read
+
 env:
   DOTNET_NOLOGO: false
   DOTNET_CLI_TELEMETRY_OPTOUT: 1

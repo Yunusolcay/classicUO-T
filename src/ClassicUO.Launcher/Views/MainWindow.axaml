@@ -1,0 +1,129 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="using:ClassicUO.Launcher"
+        xmlns:vm="using:ClassicUO.Launcher.ViewModels"
+        x:Class="ClassicUO.Launcher.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="{x:Static l:Strings.WindowTitle}"
+        Icon="/Assets/cuoicon.ico"
+        Width="900" Height="640" MinWidth="720" MinHeight="520"
+        WindowStartupLocation="CenterScreen">
+
+  <Grid RowDefinitions="*,Auto">
+
+    <TabControl Grid.Row="0" Margin="8,4,8,0">
+
+      <TabItem Header="{x:Static l:Strings.TabServers}">
+        <Grid ColumnDefinitions="220,16,*">
+
+          <DockPanel Grid.Column="0">
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="6" Margin="0,8,0,0">
+              <Button Content="{x:Static l:Strings.Add}" Command="{Binding AddProfileCommand}" />
+              <Button Content="{x:Static l:Strings.Duplicate}" Command="{Binding DuplicateProfileCommand}" />
+              <Button Content="{x:Static l:Strings.Delete}" Command="{Binding DeleteProfileCommand}" />
+            </StackPanel>
+            <ListBox ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:ProfileViewModel">
+                  <StackPanel>
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                    <TextBlock Opacity="0.6" FontSize="12">
+                      <Run Text="{Binding Host}" /><Run Text=":" /><Run Text="{Binding Port}" />
+                    </TextBlock>
+                  </StackPanel>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </DockPanel>
+
+          <ScrollViewer Grid.Column="2" IsVisible="{Binding SelectedProfile, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <StackPanel DataContext="{Binding SelectedProfile}" x:DataType="vm:ProfileViewModel" Margin="0,0,12,12">
+
+              <TextBlock Classes="label" Text="{x:Static l:Strings.ProfileName}" />
+              <TextBox Text="{Binding Name}" />
+
+              <Grid ColumnDefinitions="*,12,120">
+                <StackPanel Grid.Column="0">
+                  <TextBlock Classes="label" Text="{x:Static l:Strings.Host}" />
+                  <TextBox Text="{Binding Host}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                  <TextBlock Classes="label" Text="{x:Static l:Strings.Port}" />
+                  <TextBox Text="{Binding Port}" />
+                </StackPanel>
+              </Grid>
+
+              <TextBlock Classes="label" Text="{x:Static l:Strings.UoDirectory}" />
+              <Grid ColumnDefinitions="*,6,Auto,6,Auto">
+                <TextBox Grid.Column="0" Text="{Binding UltimaOnlineDirectory}" />
+                <Button Grid.Column="2" Content="{x:Static l:Strings.Browse}"
+                        Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).BrowseUoFolderCommand}" />
+                <Button Grid.Column="4" Content="{x:Static l:Strings.Detect}"
+                        Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).DetectUoFolderCommand}" />
+              </Grid>
+
+              <TextBlock Classes="label" Text="{x:Static l:Strings.ClientVersion}" />
+              <TextBox Text="{Binding ClientVersion}" Watermark="7.0.x.x" />
+
+              <Grid ColumnDefinitions="*,12,*">
+                <StackPanel Grid.Column="0">
+                  <TextBlock Classes="label" Text="{x:Static l:Strings.Username}" />
+                  <TextBox Text="{Binding Username}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                  <TextBlock Classes="label" Text="{x:Static l:Strings.Password}" />
+                  <TextBox Text="{Binding Password}" PasswordChar="•" RevealPassword="False"
+                           IsEnabled="{Binding SavePassword}" />
+                </StackPanel>
+              </Grid>
+
+              <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,8,0,0">
+                <CheckBox Content="{x:Static l:Strings.SavePassword}" IsChecked="{Binding SavePassword}" />
+                <CheckBox Content="{x:Static l:Strings.AutoLogin}" IsChecked="{Binding AutoLogin}" IsEnabled="{Binding SavePassword}" />
+              </StackPanel>
+              <CheckBox Content="{x:Static l:Strings.Encryption}" IsChecked="{Binding UseEncryption}" />
+
+              <TextBlock Classes="label" Text="{x:Static l:Strings.Plugins}" />
+              <TextBox Text="{Binding Plugins}" AcceptsReturn="True" Height="70" TextWrapping="NoWrap" Watermark="./Assistant/Razor.dll" />
+
+              <TextBlock Classes="label" Text="{x:Static l:Strings.ExtraArgs}" />
+              <TextBox Text="{Binding ExtraArguments}" Watermark="-fps 144" />
+            </StackPanel>
+          </ScrollViewer>
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="{x:Static l:Strings.TabSettings}">
+        <ScrollViewer>
+          <StackPanel Margin="0,0,12,12" MaxWidth="720" HorizontalAlignment="Left">
+            <TextBlock Classes="label" Text="{x:Static l:Strings.ClientDirectory}" />
+            <Grid ColumnDefinitions="*,6,Auto">
+              <TextBox Grid.Column="0" Text="{Binding ClientDirectory}" />
+              <Button Grid.Column="2" Content="{x:Static l:Strings.OpenClientFolder}" Command="{Binding OpenClientFolderCommand}" />
+            </Grid>
+
+            <TextBlock Classes="label" Text="{x:Static l:Strings.ManifestUrl}" />
+            <TextBox Text="{Binding UpdateManifestUrl}" Watermark="https://github.com/Yunusolcay/classicUO-T/releases/download/.../manifest.xml" />
+
+            <TextBlock Classes="label" Text="{x:Static l:Strings.DownloadBaseUrl}" />
+            <TextBox Text="{Binding UpdateDownloadBaseUrl}" />
+
+            <CheckBox Margin="0,12,0,0" Content="{x:Static l:Strings.CheckOnStart}" IsChecked="{Binding CheckUpdatesOnStart}" />
+            <CheckBox Content="{x:Static l:Strings.CloseAfterLaunch}" IsChecked="{Binding CloseAfterLaunch}" />
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+    </TabControl>
+
+    <Border Grid.Row="1" Padding="12" Background="#1AFFFFFF">
+      <Grid ColumnDefinitions="*,12,Auto,12,Auto">
+        <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="6">
+          <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Classes.error="{Binding IsError}" />
+          <ProgressBar Value="{Binding Progress}" Maximum="100" IsVisible="{Binding ShowProgress}" />
+        </StackPanel>
+        <Button Grid.Column="2" Content="{x:Static l:Strings.CheckUpdates}" Command="{Binding CheckUpdatesCommand}" VerticalAlignment="Center" />
+        <Button Grid.Column="4" Classes="play" Content="{Binding PlayText}" Command="{Binding PlayCommand}" IsDefault="True" />
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

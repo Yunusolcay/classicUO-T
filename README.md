@@ -1,3 +1,30 @@
+# classicUO-T
+
+A fork of [ClassicUO](https://github.com/ClassicUO/ClassicUO) for the SphereNet shard. It tracks
+upstream and adds:
+
+* **Smoother movement**: steady step timing, continuous steps, turns while running. Every change
+  is an option and stays within the standard walk protocol, so it is safe on SphereNet, ServUO and
+  Source-X.
+* **Launcher** (`src/ClassicUO.Launcher`): server profiles, Ultima Online folder detection,
+  password storage (Windows DPAPI), and verified client updates from this repository's releases.
+
+## Play
+1. Download `ClassicUOLauncher-<your system>.zip` from the
+   [latest release](https://github.com/Yunusolcay/classicUO-T/releases/tag/ClassicUO-main-release)
+   and extract it.
+2. Start `ClassicUOLauncher`, check the Ultima Online folder, then press **PLAY**. The first start
+   downloads the client, and later starts update it.
+
+Builds are not code signed, so Windows SmartScreen may warn on first start.
+
+## Contributing
+Pull requests are welcome. Only the maintainer can push to this repository: changes from other
+people arrive as pull requests and are merged only after review. Workflows started by pull
+requests from forks wait for approval and never get write access or secrets.
+
+---
+
 <p align="center">
     <img src="https://i.imgur.com/CgpwyIQ.png" width="190" height="200" >
 </p>
