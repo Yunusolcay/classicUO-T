@@ -3,8 +3,10 @@
 using ClassicUO.Assets;
 using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
+using ClassicUO.Game.Managers;
 using ClassicUO.Game.Scenes;
 using ClassicUO.Renderer;
+using ClassicUO.Renderer.Animations;
 using ClassicUO.Utility;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -796,17 +798,36 @@ namespace ClassicUO.Game.GameObjects
 
                         for (int i = 0; i < count; ++i)
                         {
-                            batcher.Draw(
-                                spriteInfo.Texture,
-                                pos,
-                                rect,
-                                hueVec,
-                                0f,
-                                Vector2.Zero,
-                                1f,
-                                mirror ? SpriteEffects.FlipHorizontally : SpriteEffects.None,
-                                depth + 1f + (i * tiles)
-                            );
+                            // HD characters: the same slice at the same logical size (scale
+                            // 1 / SCALE), sampled from the 2x xBR frame once it is ready
+                            if (HdCharacterSprites.TryMap(spriteInfo.Texture, spriteInfo.UV, rect, out Texture2D hdTexture, out Rectangle hdRect))
+                            {
+                                batcher.Draw(
+                                    hdTexture,
+                                    pos,
+                                    hdRect,
+                                    hueVec,
+                                    0f,
+                                    Vector2.Zero,
+                                    1f / HdSpriteCache.SCALE,
+                                    mirror ? SpriteEffects.FlipHorizontally : SpriteEffects.None,
+                                    depth + 1f + (i * tiles)
+                                );
+                            }
+                            else
+                            {
+                                batcher.Draw(
+                                    spriteInfo.Texture,
+                                    pos,
+                                    rect,
+                                    hueVec,
+                                    0f,
+                                    Vector2.Zero,
+                                    1f,
+                                    mirror ? SpriteEffects.FlipHorizontally : SpriteEffects.None,
+                                    depth + 1f + (i * tiles)
+                                );
+                            }
 
                             pos.Y += rect.Height;
                             rect.Y += rect.Height;

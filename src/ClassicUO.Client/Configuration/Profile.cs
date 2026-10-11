@@ -254,6 +254,8 @@ namespace ClassicUO.Configuration
         public bool NatureEffects { get; set; }
         // fork: smooth pixel art (xBR) on the world while zoomed in
         public bool ZoomPixelArtFilter { get; set; }
+        // fork: draw characters from 2x xBR frames while zoomed in
+        public bool HdCharacters { get; set; }
 
         public bool PartyAura { get; set; }
 

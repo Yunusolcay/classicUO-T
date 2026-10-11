@@ -150,7 +150,7 @@ namespace ClassicUO.Game.UI.Gumps
         private NiceButton _setAsNewDefault;
 
         // video
-        private Checkbox _use_old_status_gump, _statusGumpBarMutuallyExclusive, _windowBorderless, _enableDeathScreen, _enableBlackWhiteEffect, _altLights, _enableLight, _enableShadows, _enableShadowsStatics, _auraMouse, _runMouseInSeparateThread, _useColoredLights, _darkNights, _partyAura, _hideChatGradient, _animatedWaterEffect, _natureEffects, _zoomPixelArtFilter;
+        private Checkbox _use_old_status_gump, _statusGumpBarMutuallyExclusive, _windowBorderless, _enableDeathScreen, _enableBlackWhiteEffect, _altLights, _enableLight, _enableShadows, _enableShadowsStatics, _auraMouse, _runMouseInSeparateThread, _useColoredLights, _darkNights, _partyAura, _hideChatGradient, _animatedWaterEffect, _natureEffects, _zoomPixelArtFilter, _hdCharacters;
         private Combobox _lightLevelType;
         private Checkbox _use_smooth_boat_movement;
         private HSliderBar _terrainShadowLevel;
@@ -2033,6 +2033,18 @@ namespace ClassicUO.Game.UI.Gumps
                 )
             );
 
+            section4.Add
+            (
+                _hdCharacters = AddCheckBox
+                (
+                    null,
+                    "HD characters when zoomed in",
+                    _currentProfile.HdCharacters,
+                    startX,
+                    startY
+                )
+            );
+
 
             SettingsSection section5 = AddSettingsSection(box, "Shadows");
             section5.Y = section4.Bounds.Bottom + 40;
@@ -3843,6 +3855,7 @@ namespace ClassicUO.Game.UI.Gumps
                     _animatedWaterEffect.IsChecked = false;
                     _natureEffects.IsChecked = false;
                     _zoomPixelArtFilter.IsChecked = false;
+                    _hdCharacters.IsChecked = false;
                     _partyAuraColorPickerBox.Hue = 0x0044;
 
                     break;
@@ -4293,6 +4306,7 @@ namespace ClassicUO.Game.UI.Gumps
             _currentProfile.AnimatedWaterEffect = _animatedWaterEffect.IsChecked;
             _currentProfile.NatureEffects = _natureEffects.IsChecked;
             _currentProfile.ZoomPixelArtFilter = _zoomPixelArtFilter.IsChecked;
+            _currentProfile.HdCharacters = _hdCharacters.IsChecked;
             _currentProfile.PartyAura = _partyAura.IsChecked;
             _currentProfile.PartyAuraHue = _partyAuraColorPickerBox.Hue;
             _currentProfile.HideChatGradient = _hideChatGradient.IsChecked;

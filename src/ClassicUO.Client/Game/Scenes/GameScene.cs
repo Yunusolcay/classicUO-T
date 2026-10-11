@@ -948,9 +948,15 @@ namespace ClassicUO.Game.Scenes
 
             RenderTarget2D worldTarget = renderTargets.WorldRenderTarget;
             float zoomScale = 1f / Camera.Zoom;
+            bool xbrWorld = ProfileManager.CurrentProfile.ZoomPixelArtFilter && zoomScale >= ZOOM_FILTER_MIN_SCALE && worldTarget != null
+                && EnsureXbrEffect(batcher.GraphicsDevice);
 
-            if (ProfileManager.CurrentProfile.ZoomPixelArtFilter && zoomScale >= ZOOM_FILTER_MIN_SCALE && worldTarget != null
-                && EnsureXbrEffect(batcher.GraphicsDevice))
+            // HD characters only help where art pixels are drawn larger than screen pixels; the xBR
+            // world filter draws at 1:1 art scale and upscales afterwards
+            HdCharacterSprites.RasterScale = xbrWorld ? 1f : zoomScale;
+            HdCharacterSprites.Update(batcher.GraphicsDevice);
+
+            if (xbrWorld)
             {
                 // Pixel art filter while zoomed in: draw the same view at 1:1 art scale into a
                 // smaller target, then let xBR upscale it by the zoom factor. Culling, mouse
