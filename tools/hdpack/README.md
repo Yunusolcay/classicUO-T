@@ -40,6 +40,11 @@ files; it is never committed to this repository or published in its releases.**
    the centre of the 3x3 tiling, land tiles and statics get the original transparency back, and
    exact gray pixels are snapped back to gray so hues still work.
 
+   Flat land tiles are made from the upscaled texmaps, the way the game draws hills, so flat
+   ground and slopes look the same and join without lines (`--keep-land` turns this off). Land
+   tiles whose texmap has another pattern (water, for example) keep their own upscaled image, so
+   for land only the texmaps really need upscaling.
+
 4. In game: Options > "HD world textures when zoomed in". The HD graphics are used from 1.25x
    magnification; at the default zoom one art pixel is one screen pixel and the originals are drawn.
 
