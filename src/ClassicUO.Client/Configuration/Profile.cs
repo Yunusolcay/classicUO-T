@@ -150,6 +150,15 @@ namespace ClassicUO.Configuration
         public bool AlwaysRunUnlessHidden { get; set; }
         public bool FastRotation { get; set; }
         public bool SmoothMovements { get; set; } = true;
+
+        // smooth movement (fork). All of these only change local timing/visuals and stay
+        // inside the standard 0x02 walk protocol, so other players and stock servers are unaffected.
+        public bool MovementTurnWhileRunningFix { get; set; } = true;
+        public bool MovementStepCadence { get; set; } = true;
+        public bool MovementContinuousSteps { get; set; } = true;
+        public bool MovementKeepLegsMoving { get; set; } = true;
+        public bool MovementDiagnostics { get; set; }
+        public bool EnableVSync { get; set; }
         public bool HoldDownKeyTab { get; set; } = true;
         public bool HoldShiftForContext { get; set; } = false;
         public bool HoldShiftToSplitStack { get; set; } = false;

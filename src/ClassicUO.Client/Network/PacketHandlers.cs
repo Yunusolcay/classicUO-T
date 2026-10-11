@@ -1189,8 +1189,12 @@ namespace ClassicUO.Network
             direction &= Direction.Up;
             sbyte z = p.ReadInt8();
 
+            MovementDiagnostics.OnDeny(seq, x, y);
+
             world.Player.Walker.DenyWalk(seq, x, y, z);
             world.Player.Direction = direction;
+            // DenyWalk synced the server direction before the facing sent by the server was applied
+            world.Player.SyncServerDirection();
 
             world.Weather.Reset();
         }
@@ -1212,6 +1216,7 @@ namespace ClassicUO.Network
 
             world.Player.NotorietyFlag = (NotorietyFlag)noto;
             world.Player.Walker.ConfirmWalk(seq);
+            MovementDiagnostics.OnAck(seq, world.Player.Walker.UnacceptedPacketsCount);
 
             world.Player.AddToTile();
         }

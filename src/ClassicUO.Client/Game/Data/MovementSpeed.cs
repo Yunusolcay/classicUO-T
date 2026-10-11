@@ -14,6 +14,22 @@ namespace ClassicUO.Game.Data
         public static bool FastRotation;
         public static int TurnDelay => FastRotation ? Constants.TURN_DELAY_FAST : Constants.TURN_DELAY;
 
+        /// <summary>
+        /// How many ms the next walk request may be scheduled early to make up for this request
+        /// being <paramref name="lateMs"/> late. Credit only flows between consecutive tile steps and
+        /// never exceeds STEP_CADENCE_MAX_CREDIT, so two requests are never closer than
+        /// walkTime - STEP_CADENCE_MAX_CREDIT and the long-run rate never exceeds the nominal speed.
+        /// </summary>
+        public static int StepCadenceCredit(bool isStep, bool previousWasStep, long lateMs, int walkTime)
+        {
+            if (!isStep || !previousWasStep || lateMs < 0 || lateMs > walkTime)
+            {
+                return 0;
+            }
+
+            return (int)Math.Min(lateMs, Constants.STEP_CADENCE_MAX_CREDIT);
+        }
+
         public static int TimeToCompleteMovement(bool run, bool mounted)
         {
             if (mounted)
