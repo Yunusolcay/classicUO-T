@@ -2,13 +2,13 @@ name: Build-Test
 
 on:
   push:
-    branches: "*"
+    branches: ["**"]
     paths-ignore:
       - '**/build-release.yml'
       - 'appveyor.yml'
       - '**/README.md'
   pull_request:
-    branches: "*"
+    branches: ["**"]
     paths-ignore:
       - '**/build-release.yml'
       - 'appveyor.yml'
