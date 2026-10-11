@@ -37,6 +37,10 @@ namespace ClassicUO.Game.GameObjects
         public ushort OriginalGraphic;
         public UltimaBatcher2D.YOffsets YOffsets;
 
+        // nature effects: grass tufts of this tile in the chunk decor mesh (first index, count)
+        public int DecorStart = -1;
+        public byte DecorCount;
+
         private Land(World world) : base(world) { }
 
         public static Land Create(World world, ushort graphic)

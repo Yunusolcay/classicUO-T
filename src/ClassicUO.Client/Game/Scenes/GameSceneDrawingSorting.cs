@@ -680,9 +680,27 @@ namespace ClassicUO.Game.Scenes
                     hueY = ShaderHueTranslator.SHADER_LAND;
                 else
                     hueY = ShaderHueTranslator.SHADER_NONE;
+
+                // nature effects: unhued grass land and plants use the grass grading modes,
+                // with a slowly varying tint passed in the otherwise unused hue index
+                if (NatureTiles.Enabled && IsNatureGreen(obj))
+                {
+                    hueX = NatureTiles.GetTint(obj.X, obj.Y);
+                    hueY = NatureTiles.GrassMode(hueY == ShaderHueTranslator.SHADER_LAND);
+                }
             }
 
             layer.SetHue(obj.MeshSpriteIndex, hueX, hueY);
+        }
+
+        private static bool IsNatureGreen(GameObject obj)
+        {
+            return obj switch
+            {
+                Land land => NatureTiles.IsGreenLand(land.Graphic),
+                Static or Multi => NatureTiles.IsPlantOrTree(obj.Graphic),
+                _ => false
+            };
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -814,6 +832,21 @@ namespace ClassicUO.Game.Scenes
                         {
                             mesh.Land.SetVisible(obj.MeshSpriteIndex, obj.AlphaHue);
                             ApplyMeshHue(obj, mesh.Land);
+
+                            // grass tufts follow their tile, but only while it shows the grass
+                            // colors (not when grayed out of range, dead, or highlighted)
+                            if (meshLand.DecorCount != 0)
+                            {
+                                float landMode = mesh.Land.GetShaderMode(obj.MeshSpriteIndex);
+
+                                if (landMode == ShaderHueTranslator.SHADER_NATURE_GRASS || landMode == ShaderHueTranslator.SHADER_NATURE_GRASS_LIT)
+                                {
+                                    for (int d = 0; d < meshLand.DecorCount; d++)
+                                    {
+                                        mesh.Decor.SetVisible(meshLand.DecorStart + d, obj.AlphaHue);
+                                    }
+                                }
+                            }
                             TrySelectObject(obj, true);
                         }
                         continue;

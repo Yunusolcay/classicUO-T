@@ -3,6 +3,7 @@ using ClassicUO.Game;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Map;
 using ClassicUO.Renderer;
+using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -208,6 +209,8 @@ namespace ClassicUO.Game.Scenes
                     mesh.Land.BuildVisibleIndices();
                 if (mesh.Statics.Count > 0)
                     mesh.Statics.BuildVisibleIndices();
+                if (mesh.Decor.Count > 0)
+                    mesh.Decor.BuildVisibleIndices();
             }
 
             // Draw chunk mesh land tiles from GPU buffers with per-frame visibility
@@ -219,6 +222,17 @@ namespace ClassicUO.Game.Scenes
             // Draw excluded land tiles (animated water, etc.)
             result += DrawRenderList(batcher, _tiles, maxGroundZ);
             result += DrawRenderList(batcher, _stretchedTiles, maxGroundZ);
+
+            // Nature effects grass tufts. They share their tile's ground depth (passing the depth
+            // test only over that ground) and do not write depth, so everything drawn after them
+            // (statics, items, corpses, mobiles) is depth tested exactly as without tufts and
+            // always paints over them: tufts can never hide anything but bare ground.
+            batcher.SetStencil(DepthStencilState.DepthRead);
+            batcher.SetWorldOffset(offsetX, offsetY);
+            foreach (var chunk in visibleChunks)
+                result += DrawMeshLayer(batcher, chunk.Mesh.Decor);
+            batcher.ResetWorldOffset();
+            batcher.SetStencil(DepthStencilState.Default);
 
             // Draw chunk mesh statics from GPU buffers with per-frame visibility
             batcher.SetWorldOffset(offsetX, offsetY);

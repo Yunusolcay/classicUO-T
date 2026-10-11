@@ -121,6 +121,21 @@ namespace ClassicUO.Renderer
             _basicUOEffect.Brighlight.SetValue(f);
         }
 
+        public void SetTime(float seconds)
+        {
+            _basicUOEffect.Time?.SetValue(seconds);
+        }
+
+        // Wind sway for the following sprites (nature effects): pixels the top edge may move and the
+        // wave phase. Reset to zero after drawing the swaying sprite.
+        public void SetSway(float amplitude, float phase)
+        {
+            _swayAmplitude = amplitude;
+            _swayPhase = phase;
+        }
+
+        private float _swayAmplitude, _swayPhase;
+
         public void SetCircleOfTransparencyRadius(float radius)
         {
             _basicUOEffect.CircleOfTransparencyRadius.SetValue(radius);
@@ -970,8 +985,9 @@ namespace ClassicUO.Renderer
             sprite.TextureCoordinate3.X = (_cornerOffsetX[3 ^ effects] * sourceW) + sourceX;
             sprite.TextureCoordinate3.Y = (_cornerOffsetY[3 ^ effects] * sourceH) + sourceY;
 
-            sprite.TextureCoordinate0.Z = 0;
-            sprite.TextureCoordinate1.Z = 0;
+            // top edge (vertices 0 and 1) carries the sway, the bottom stays anchored
+            sprite.TextureCoordinate0.Z = _swayAmplitude;
+            sprite.TextureCoordinate1.Z = _swayAmplitude;
             sprite.TextureCoordinate2.Z = 0;
             sprite.TextureCoordinate3.Z = 0;
 
@@ -988,6 +1004,12 @@ namespace ClassicUO.Renderer
             sprite.Hue3 = color;
 
             SetDefaultNormals(ref sprite);
+
+            if (_swayAmplitude != 0)
+            {
+                // the phase rides in Normal.x, which only LAND shader modes read
+                sprite.Normal0.X = sprite.Normal1.X = sprite.Normal2.X = sprite.Normal3.X = _swayPhase;
+            }
         }
 
 

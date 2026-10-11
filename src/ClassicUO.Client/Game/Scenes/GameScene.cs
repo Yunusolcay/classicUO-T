@@ -643,7 +643,7 @@ namespace ClassicUO.Game.Scenes
                         continue;
 
                     // Build chunk mesh if dirty
-                    if (chunk.Mesh.IsDirty)
+                    if (chunk.Mesh.IsDirty || chunk.Mesh.BuiltWithNatureEffects != Data.NatureTiles.Enabled)
                     {
                         chunk.Mesh.Build(chunk, _world, Client.Game.GraphicsDevice);
                     }
@@ -653,6 +653,8 @@ namespace ClassicUO.Game.Scenes
                     chunk.Mesh.Land.ResetAlpha();
                     chunk.Mesh.Statics.ResetVisibility();
                     chunk.Mesh.Statics.ResetAlpha();
+                    chunk.Mesh.Decor.ResetVisibility();
+                    chunk.Mesh.Decor.ResetAlpha();
 
                     _visibleChunks.Add(chunk);
 
@@ -1001,6 +1003,8 @@ namespace ClassicUO.Game.Scenes
 
             batcher.Begin(null, matrix);
             batcher.SetBrightlight(ProfileManager.CurrentProfile.TerrainShadowsLevel * 0.1f);
+            // wind phase for nature effects; wraps every ~17 minutes to keep float precision
+            batcher.SetTime((Time.Ticks % 1_000_000) / 1000f);
 
             if (ProfileManager.CurrentProfile.UseCircleOfTransparency
                 && ProfileManager.CurrentProfile.CircleOfTransparencyType != 1) // gradient mode uses CPU alpha, not shader

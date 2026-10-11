@@ -104,10 +104,18 @@ namespace ClassicUO.Game.Map
     {
         public readonly MeshLayer Land = new();
         public readonly MeshLayer Statics = new();
+        // nature effects: grass tufts, drawn right after the land layer
+        public readonly MeshLayer Decor = new();
+        private readonly System.Collections.Generic.List<GameObjects.Land> _tuftTiles = new();
 
         public bool IsDirty = true;
 
         private bool _animatedWaterEffect;
+        private bool _natureEffects;
+
+        // nature effects state the mesh was built with: wind sway is baked into the vertices,
+        // so toggling the option needs a rebuild
+        public bool BuiltWithNatureEffects => _natureEffects;
         private TextureBucketTracker _landBuckets = new(16);
         private TextureBucketTracker _staticsBuckets = new(32);
 
@@ -122,6 +130,7 @@ namespace ClassicUO.Game.Map
         {
             Land.Reset();
             Statics.Reset();
+            Decor.Reset();
             IsDirty = false;
 
             var profile = ProfileManager.CurrentProfile;
@@ -129,6 +138,7 @@ namespace ClassicUO.Game.Map
                 return;
 
             _animatedWaterEffect = profile.AnimatedWaterEffect;
+            _natureEffects = profile.NatureEffects;
 
             // Pass 1: count sprites per texture
             _landBuckets.Clear();
@@ -142,6 +152,12 @@ namespace ClassicUO.Game.Map
                     {
                         obj.InChunkMesh = false;
                         obj.MeshSpriteIndex = -1;
+
+                        if (obj is GameObjects.Land resetLand)
+                        {
+                            resetLand.DecorStart = -1;
+                            resetLand.DecorCount = 0;
+                        }
 
                         switch (obj)
                         {
@@ -194,8 +210,120 @@ namespace ClassicUO.Game.Map
                 }
             }
 
+            if (_natureEffects)
+            {
+                BuildDecor(chunk, graphicsDevice);
+            }
+
             Land.UploadVertexBuffer(graphicsDevice);
             Statics.UploadVertexBuffer(graphicsDevice);
+            Decor.UploadVertexBuffer(graphicsDevice);
+        }
+
+        private void BuildDecor(Chunk chunk, GraphicsDevice graphicsDevice)
+        {
+            _tuftTiles.Clear();
+            int total = 0;
+
+            for (int x = 0; x < 8; x++)
+            {
+                for (int y = 0; y < 8; y++)
+                {
+                    GameObjects.Land land = null;
+                    bool covered = false;
+
+                    for (var obj = chunk.GetHeadObject(x, y); obj != null; obj = obj.TNext)
+                    {
+                        if (obj is GameObjects.Land l)
+                        {
+                            land = l;
+                        }
+                        else if (obj is Static or Multi)
+                        {
+                            // houses, roads, plants, rocks: keep such tiles exactly as designed
+                            covered = true;
+                        }
+                    }
+
+                    if (land == null || covered || !land.InChunkMesh || land.Hue != 0 || !NatureTiles.CanHaveTufts(land.Graphic))
+                    {
+                        continue;
+                    }
+
+                    if (land.IsStretched)
+                    {
+                        ref var o = ref land.YOffsets;
+                        int min = Math.Min(Math.Min(o.Top, o.Right), Math.Min(o.Left, o.Bottom));
+                        int max = Math.Max(Math.Max(o.Top, o.Right), Math.Max(o.Left, o.Bottom));
+
+                        // on slopes a flat tuft would float or sink
+                        if (max - min > 8)
+                        {
+                            continue;
+                        }
+                    }
+
+                    int count = NatureTiles.GetTuftCount(land.X, land.Y);
+
+                    if (count == 0)
+                    {
+                        continue;
+                    }
+
+                    land.DecorCount = (byte)count;
+                    _tuftTiles.Add(land);
+                    total += count;
+                }
+            }
+
+            if (total == 0)
+            {
+                return;
+            }
+
+            Texture2D texture = NatureTiles.GetTuftTexture(graphicsDevice);
+            Decor.EnsureCapacity(total);
+            Decor.Count = total;
+            int index = 0;
+
+            foreach (GameObjects.Land land in _tuftTiles)
+            {
+                // diamond center in the same world pixel space as the land mesh
+                int centerX = (land.X - land.Y) * 22;
+                int centerY = (land.X + land.Y) * 22 - (land.Z << 2);
+
+                if (land.IsStretched)
+                {
+                    ref var o = ref land.YOffsets;
+                    // corner heights already include Z (a flat tile has every offset == Z * 4)
+                    centerY = (land.X + land.Y) * 22 - (o.Top + o.Right + o.Left + o.Bottom) / 4;
+                }
+
+                // exactly the depth of this tile's ground (same expression as TryAddLand); the decor
+                // layer is drawn depth-read-only, see RenderLists
+                float depth = land.CalculateDepthZ() + 0.5f;
+                var hue = new Vector3(NatureTiles.GetTint(land.X, land.Y), ShaderHueTranslator.SHADER_NATURE_GRASS, 1f);
+                float phase = NatureTiles.GetPhase(land.X, land.Y);
+
+                land.DecorStart = index;
+
+                for (int i = 0; i < land.DecorCount; i++)
+                {
+                    NatureTiles.GetTuft(land.X, land.Y, i, out int dx, out int dy, out int variant);
+
+                    Decor.WriteQuadAt(
+                        index,
+                        texture,
+                        NatureTiles.GetTuftSource(variant),
+                        centerX + dx - NatureTiles.TUFT_WIDTH / 2,
+                        centerY + dy - NatureTiles.TUFT_HEIGHT,
+                        hue,
+                        depth
+                    );
+                    Decor.SetSway(index, 1f, phase + i * 0.6f);
+                    index++;
+                }
+            }
         }
 
         public void Clear()
@@ -204,6 +332,8 @@ namespace ClassicUO.Game.Map
             Land.Dispose();
             Statics.Reset();
             Statics.Dispose();
+            Decor.Reset();
+            Decor.Dispose();
             IsDirty = true;
         }
 
@@ -214,6 +344,7 @@ namespace ClassicUO.Game.Map
         {
             Land.SoftReset();
             Statics.SoftReset();
+            Decor.SoftReset();
             _landBuckets.Clear();
             _staticsBuckets.Clear();
             IsDirty = true;
@@ -442,6 +573,16 @@ namespace ClassicUO.Game.Map
             obj.MeshSpriteIndex = idx;
             Statics.WriteQuadAt(idx, artInfo.Texture, artInfo.UV, posX, posY, hueVec, depth);
             obj.InChunkMesh = true;
+
+            if (_natureEffects)
+            {
+                Vector2 sway = NatureTiles.GetSway(graphic, obj.X, obj.Y, artInfo.UV.Height);
+
+                if (sway.X > 0)
+                {
+                    Statics.SetSway(idx, sway.X, sway.Y);
+                }
+            }
         }
 
         private void WriteStretchedLand(

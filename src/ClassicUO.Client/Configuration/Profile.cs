@@ -250,6 +250,8 @@ namespace ClassicUO.Configuration
         public int AuraUnderFeetType { get; set; } // 0 = NO, 1 = in warmode, 2 = ctrl+shift, 3 = always
         public bool AuraOnMouse { get; set; } = true;
         public bool AnimatedWaterEffect { get; set; } = false;
+        // fork: livelier grass colors and wind sway for plants and trees (client-side only)
+        public bool NatureEffects { get; set; }
 
         public bool PartyAura { get; set; }
 

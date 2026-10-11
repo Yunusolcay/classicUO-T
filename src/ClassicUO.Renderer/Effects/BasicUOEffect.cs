@@ -11,6 +11,7 @@ namespace ClassicUO.Renderer.Effects
             Viewport = Parameters["Viewport"];
             Brighlight = Parameters["Brightlight"];
             CircleOfTransparencyRadius = Parameters["CircleOfTransparencyRadius"];
+            Time = Parameters["Time"];
 
             CurrentTechnique = Techniques["HueTechnique"];
             Pass = CurrentTechnique.Passes[0];
@@ -21,6 +22,7 @@ namespace ClassicUO.Renderer.Effects
         public EffectParameter Viewport { get; }
         public EffectParameter Brighlight { get; }
         public EffectParameter CircleOfTransparencyRadius { get; }
+        public EffectParameter Time { get; }
         public EffectPass Pass { get; }
     }
 }

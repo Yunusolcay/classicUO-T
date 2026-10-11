@@ -193,6 +193,21 @@ namespace ClassicUO.Renderer
         }
 
         /// <summary>
+        /// Nature effects: lets the top edge of a written quad sway in the wind. The shader reads the
+        /// amplitude from TextureCoordinate.Z and the phase from Normal.X (unused by non-land modes).
+        /// </summary>
+        public float GetShaderMode(int index) => Vertices[index].Hue0.Y;
+
+        public void SetSway(int index, float amplitude, float phase)
+        {
+            ref var vertex = ref Vertices[index];
+
+            vertex.TextureCoordinate0.Z = amplitude;
+            vertex.TextureCoordinate1.Z = amplitude;
+            vertex.Normal0.X = vertex.Normal1.X = vertex.Normal2.X = vertex.Normal3.X = phase;
+        }
+
+        /// <summary>
         /// Uploads all vertex data to the GPU buffer. Creates or resizes as needed.
         /// </summary>
         public unsafe void UploadVertexBuffer(GraphicsDevice graphicsDevice)

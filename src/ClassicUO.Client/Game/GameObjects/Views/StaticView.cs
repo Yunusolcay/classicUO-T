@@ -71,6 +71,27 @@ namespace ClassicUO.Game.GameObjects
                 graphic = Constants.TREE_REPLACE_GRAPHIC;
             }
 
+            // nature effects: trees, leaves and plants drawn outside the chunk mesh sway and get
+            // the grass grading (only when unhued, so highlight / out of range colors still win)
+            bool sway = false;
+
+            if (NatureTiles.Enabled)
+            {
+                Vector2 swayInfo = NatureTiles.GetSway(graphic, X, Y, Client.Game.UO.Arts.GetArt(graphic).UV.Height);
+
+                if (swayInfo.X > 0)
+                {
+                    batcher.SetSway(swayInfo.X, swayInfo.Y);
+                    sway = true;
+                }
+
+                if (hueVec.Y == ShaderHueTranslator.SHADER_NONE && NatureTiles.IsPlantOrTree(graphic))
+                {
+                    hueVec.X = NatureTiles.GetTint(X, Y);
+                    hueVec.Y = ShaderHueTranslator.SHADER_NATURE_GRASS;
+                }
+            }
+
             DrawStaticAnimated(
                 batcher,
                 graphic,
@@ -83,6 +104,11 @@ namespace ClassicUO.Game.GameObjects
                 depth,
                 ProfileManager.CurrentProfile.AnimatedWaterEffect && ItemData.IsWet
             );
+
+            if (sway)
+            {
+                batcher.SetSway(0, 0);
+            }
 
             if (ItemData.IsLight && !InChunkMesh)
             {

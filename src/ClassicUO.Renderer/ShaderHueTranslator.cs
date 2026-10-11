@@ -18,6 +18,9 @@ namespace ClassicUO.Renderer
         public const byte SHADER_SHADOW = 8;
         public const byte SHADER_LIGHTS = 9;
         public const byte SHADER_EFFECT_HUED = 10;
+        // nature effects: like NONE / LAND but green pixels get livelier; Hue.x carries tint noise
+        public const byte SHADER_NATURE_GRASS = 11;
+        public const byte SHADER_NATURE_GRASS_LIT = 12;
 
         private const byte GUMP_OFFSET = 20;
 
