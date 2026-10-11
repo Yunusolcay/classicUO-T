@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ClassicUO.Client\ClassicUO.Client.csproj" />
+    <ProjectReference Include="..\..\src\ClassicUO.Launcher\ClassicUO.Launcher.csproj" />
   </ItemGroup>
 
 </Project>
