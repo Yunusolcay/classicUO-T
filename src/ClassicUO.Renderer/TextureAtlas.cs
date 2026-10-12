@@ -91,7 +91,7 @@ namespace ClassicUO.Renderer
                 }
             }
 
-            _packer.Dispose();
+            _packer?.Dispose();
             _textureList.Clear();
         }
     }

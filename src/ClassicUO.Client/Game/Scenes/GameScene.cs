@@ -949,7 +949,9 @@ namespace ClassicUO.Game.Scenes
 
             RenderTarget2D worldTarget = renderTargets.WorldRenderTarget;
             float zoomScale = 1f / Camera.Zoom;
-            bool xbrWorld = ProfileManager.CurrentProfile.ZoomPixelArtFilter && zoomScale >= ZOOM_FILTER_MIN_SCALE && worldTarget != null
+            // the HD world pack replaces the xBR world filter: it needs the world drawn at full resolution
+            bool xbrWorld = ProfileManager.CurrentProfile.ZoomPixelArtFilter && !HdWorldPack.HasPack
+                && zoomScale >= ZOOM_FILTER_MIN_SCALE && worldTarget != null
                 && EnsureXbrEffect(batcher.GraphicsDevice);
 
             // HD characters only help where art pixels are drawn larger than screen pixels; the xBR

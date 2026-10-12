@@ -48,6 +48,8 @@ namespace ClassicUO.Game.Managers
         private static TextureAtlas _atlas;
         private static bool _indexLoaded;
         private static int _pending;
+        // bumped when the atlas starts over: loads requested before that are dropped
+        private static int _epoch;
         private static int _generation;
         private static long _usedPixels;
         private static bool _uploadedSinceRefresh;
@@ -66,6 +68,10 @@ namespace ClassicUO.Game.Managers
         // -1 while inactive, otherwise bumped as batches of HD textures become available.
         public static int MeshGeneration => Active ? _generation : -1;
 
+        // the option is on and there is a pack to draw from (the zoom level aside)
+        public static bool HasPack =>
+            ProfileManager.CurrentProfile != null && ProfileManager.CurrentProfile.HdWorld && HasContent;
+
         private static bool HasContent => _index[0]?.Count > 0 || _index[1]?.Count > 0 || _index[2]?.Count > 0;
 
         public static void Update(GraphicsDevice device)
@@ -75,9 +81,7 @@ namespace ClassicUO.Game.Managers
                 if (_atlas != null)
                 {
                     // option turned off: give the VRAM back
-                    Clear();
-                    _atlas.Dispose();
-                    _atlas = null;
+                    Clear(false);
                 }
 
                 return;
@@ -95,7 +99,7 @@ namespace ClassicUO.Game.Managers
 
             for (int i = 0; i < MAX_UPLOADS_PER_FRAME && _done.TryDequeue(out Loaded loaded); i++)
             {
-                if (loaded.Generation != _generation || !_byFile.TryGetValue(loaded.File, out Entry entry))
+                if (loaded.Epoch != _epoch || !_byFile.TryGetValue(loaded.File, out Entry entry))
                 {
                     continue;
                 }
@@ -114,7 +118,7 @@ namespace ClassicUO.Game.Managers
                 if (_usedPixels + pixels > PIXEL_BUDGET)
                 {
                     // start over; meshes rebuild with originals and request what is visible again
-                    Clear();
+                    Clear(true);
 
                     return;
                 }
@@ -170,15 +174,15 @@ namespace ClassicUO.Game.Managers
 
             _byFile[file] = new Entry();
             _pending++;
-            int generation = _generation;
+            int epoch = _epoch;
             string path = Path.Combine(PackDirectory, file);
 
-            Task.Run(() => _done.Enqueue(Decode(file, path, generation)));
+            Task.Run(() => _done.Enqueue(Decode(file, path, epoch)));
 
             return false;
         }
 
-        private static Loaded Decode(string file, string path, int generation)
+        private static Loaded Decode(string file, string path, int epoch)
         {
             try
             {
@@ -206,13 +210,13 @@ namespace ClassicUO.Game.Managers
                     }
                 }
 
-                return new Loaded(file, generation, pixels, image.Width, image.Height);
+                return new Loaded(file, epoch, pixels, image.Width, image.Height);
             }
             catch (Exception ex)
             {
                 Log.Warn($"HD world: cannot load {path}: {ex.Message}");
 
-                return new Loaded(file, generation, null, 0, 0);
+                return new Loaded(file, epoch, null, 0, 0);
             }
         }
 
@@ -261,13 +265,14 @@ namespace ClassicUO.Game.Managers
             }
         }
 
-        private static void Clear()
+        private static void Clear(bool newAtlas)
         {
             _atlas?.Dispose();
-            _atlas = _device != null ? new TextureAtlas(_device, ATLAS_SIZE, ATLAS_SIZE, SurfaceFormat.Color) : null;
+            _atlas = newAtlas && _device != null ? new TextureAtlas(_device, ATLAS_SIZE, ATLAS_SIZE, SurfaceFormat.Color) : null;
             _byFile.Clear();
             _usedPixels = 0;
             _pending = 0;
+            _epoch++;
             // every mesh built with the old textures rebuilds before it is drawn again
             _generation++;
         }
@@ -279,6 +284,6 @@ namespace ClassicUO.Game.Managers
             public bool Failed;
         }
 
-        private readonly record struct Loaded(string File, int Generation, uint[] Pixels, int Width, int Height);
+        private readonly record struct Loaded(string File, int Epoch, uint[] Pixels, int Width, int Height);
     }
 }
