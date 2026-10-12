@@ -224,14 +224,14 @@ namespace ClassicUO.Game.GameObjects
             }
         }
 
-        // HD world pack: same position, 2x texture drawn at half scale
+        // HD world pack: same position, the texture drawn at 1 / its size relative to the art
         private static void ResolveHdArt(ushort graphic, ref Texture2D texture, ref Rectangle uv, ref Vector2 scale)
         {
             if (HdWorldPack.TryGet(HdWorldPack.Kind.Static, graphic, out Texture2D hd, out Rectangle hdUv))
             {
                 texture = hd;
                 uv = hdUv;
-                scale *= 0.5f;
+                scale *= 1f / HdWorldPack.TextureScale;
             }
         }
 

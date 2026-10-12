@@ -2050,7 +2050,7 @@ namespace ClassicUO.Game.UI.Gumps
                 _hdWorld = AddCheckBox
                 (
                     null,
-                    "HD world textures when zoomed in (Data/HD/world)",
+                    "Remastered world textures (Data/HD/world)",
                     _currentProfile.HdWorld,
                     startX,
                     startY

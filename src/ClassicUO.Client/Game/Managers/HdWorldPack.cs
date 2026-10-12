@@ -18,7 +18,9 @@ namespace ClassicUO.Game.Managers
 {
     // Profile.HdWorld: land tiles, texmaps and statics drawn from 2x images of an HD pack in
     // Data/HD/world (made with tools/hdpack, never shipped: it is derived from EA's art and every
-    // player builds it locally). Only while zoomed in, like HdCharacterSprites.
+    // player builds it locally). At every zoom level: zoomed in (art pixels larger than screen
+    // pixels) the 2x images are used as they are, otherwise they are halved while loading, so the
+    // remastered look also shows at 1x, drawn pixel for pixel like the original art.
     //
     // Images are decoded on the thread pool when first needed and uploaded to a separate atlas on
     // the render thread. Geometry, picking and draw order keep using the original graphics; only
@@ -51,15 +53,18 @@ namespace ClassicUO.Game.Managers
         // bumped when the atlas starts over: loads requested before that are dropped
         private static int _epoch;
         private static int _generation;
+        private static int _textureScale = 1;
         private static long _usedPixels;
         private static bool _uploadedSinceRefresh;
         private static uint _lastRefresh;
 
+        // size of the loaded textures relative to the original art: 2 when zoomed in, else 1
+        public static int TextureScale => _textureScale;
+
         public static string PackDirectory => Path.Combine(CUOEnviroment.ExecutablePath, "Data", "HD", "world");
 
         public static bool Active =>
-            HdCharacterSprites.RasterScale >= MIN_RASTER_SCALE
-            && ProfileManager.CurrentProfile != null
+            ProfileManager.CurrentProfile != null
             && ProfileManager.CurrentProfile.HdWorld
             && _atlas != null
             && HasContent;
@@ -96,6 +101,17 @@ namespace ClassicUO.Game.Managers
             }
 
             _atlas ??= new TextureAtlas(device, ATLAS_SIZE, ATLAS_SIZE, SurfaceFormat.Color);
+
+            int textureScale = HdCharacterSprites.RasterScale >= MIN_RASTER_SCALE ? 2 : 1;
+
+            if (textureScale != _textureScale)
+            {
+                // zoomed in or out past the threshold: load everything again at the other size
+                _textureScale = textureScale;
+                Clear(true);
+
+                return;
+            }
 
             for (int i = 0; i < MAX_UPLOADS_PER_FRAME && _done.TryDequeue(out Loaded loaded); i++)
             {
@@ -175,14 +191,15 @@ namespace ClassicUO.Game.Managers
             _byFile[file] = new Entry();
             _pending++;
             int epoch = _epoch;
+            bool half = _textureScale == 1;
             string path = Path.Combine(PackDirectory, file);
 
-            Task.Run(() => _done.Enqueue(Decode(file, path, epoch)));
+            Task.Run(() => _done.Enqueue(Decode(file, path, epoch, half)));
 
             return false;
         }
 
-        private static Loaded Decode(string file, string path, int epoch)
+        private static Loaded Decode(string file, string path, int epoch, bool half)
         {
             try
             {
@@ -210,6 +227,11 @@ namespace ClassicUO.Game.Managers
                     }
                 }
 
+                if (half)
+                {
+                    return new Loaded(file, epoch, Halve(pixels, image.Width, image.Height), image.Width / 2, image.Height / 2);
+                }
+
                 return new Loaded(file, epoch, pixels, image.Width, image.Height);
             }
             catch (Exception ex)
@@ -218,6 +240,35 @@ namespace ClassicUO.Game.Managers
 
                 return new Loaded(file, epoch, null, 0, 0);
             }
+        }
+
+        // 2x2 box average of premultiplied RGBA. The pack keeps the original outline at 2x, so every
+        // 2x2 block is fully opaque or fully transparent and edges stay as sharp as the original.
+        internal static uint[] Halve(uint[] src, int width, int height)
+        {
+            int w = width / 2;
+            int h = height / 2;
+            var dst = new uint[w * h];
+
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    int i = y * 2 * width + x * 2;
+                    uint a = src[i], b = src[i + 1], c = src[i + width], d = src[i + width + 1];
+                    uint result = 0;
+
+                    for (int shift = 0; shift < 32; shift += 8)
+                    {
+                        uint sum = ((a >> shift) & 0xFF) + ((b >> shift) & 0xFF) + ((c >> shift) & 0xFF) + ((d >> shift) & 0xFF);
+                        result |= ((sum + 2) / 4) << shift;
+                    }
+
+                    dst[y * w + x] = result;
+                }
+            }
+
+            return dst;
         }
 
         private static void LoadIndex()
