@@ -13,11 +13,13 @@ exactly 2x. Then:
   all       pixels that are exact gray (R = G = B) in the original are snapped back to exact gray,
             because the game recolors them (hues) by their gray level
 
-Flat land tiles are then made from the upscaled texmaps (unless --keep-land): the game draws
-sloped land with the texmap laid over the diamond, so a flat tile drawn the same way looks exactly
-like the hills next to it and joins its neighbours like they do. Only where the original texmap
-has the same pattern as the original land tile (not for water and other tiles without a texmap of
-their own); the other land tiles keep their own upscaled image, if there is one.
+Flat land tiles are then made from the texmaps (unless --keep-land): the game draws sloped land
+with the texmap laid over the diamond, so a flat tile drawn the same way looks exactly like the
+hills next to it and joins its neighbours like they do. Only where the original texmap has the
+same pattern as the original land tile (not for water and other tiles without a texmap of their
+own); the other land tiles keep their own upscaled image, if there is one. Texmaps that are not
+upscaled yet are used as they are, so all flat tiles of a terrain get the same tone and no
+patchwork of upscaled and original tiles appears while a pack is still incomplete.
 Images that are missing or the wrong size are skipped and reported; the game then keeps using the
 original for them. Identical originals ("same_as") share one file.
 
@@ -42,6 +44,9 @@ def load_rgba(path):
 
 def nearest2x(a):
     return np.repeat(np.repeat(a, 2, axis=0), 2, axis=1)
+
+
+FLAT_TEXMAP_LIGHT = 0.85355339
 
 
 def project_texmap(tex, size):
@@ -170,14 +175,14 @@ def land_from_texmaps(args, manifest, index):
     tex_first = {e["file"]: e for e in manifest["texmaps"] if "file" in e}
     land_first = {e["file"]: e for e in manifest["land"] if "file" in e}
     os.makedirs(os.path.join(args.pack, "land"), exist_ok=True)
-    made = {}  # texmap pack file -> land pack file
+    made = {}  # texmap (pack file, or source file when not upscaled) -> land pack file
     checked = {}  # (land file, texmap file) -> same pattern
-    done = 0
+    done = from_original = 0
     for e in manifest["land"]:
         tex_id = e.get("texmap", 0)
         tex_pack = index["texmaps"].get(str(tex_id))
         land_file = e.get("file") or e.get("same_as")
-        if tex_id == 0 or tex_pack is None or land_file not in land_first:
+        if tex_id == 0 or tex_id not in tex_entry or land_file not in land_first:
             continue
         t = tex_entry[tex_id]
         tex_file = t.get("file") or t.get("same_as")
@@ -188,20 +193,30 @@ def land_from_texmaps(args, manifest, index):
             checked[key] = same_pattern(load_rgba(os.path.join(args.src, land_file)), src_tex)
         if not checked[key]:
             continue
-        if tex_pack not in made:
-            hd_tex = load_rgba(os.path.join(args.pack, tex_pack))
+        key_tex = tex_pack or tex_file
+        if key_tex not in made:
+            if tex_pack:
+                tex = load_rgba(os.path.join(args.pack, tex_pack))
+                pack_rel = "land/t" + os.path.basename(tex_pack)
+            else:
+                n = tex_first[tex_file]["size"]
+                tex = load_rgba(os.path.join(args.src, tex_file))[n:2 * n, n:2 * n]
+                pack_rel = f"land/o{tex_first[tex_file]['id']:04X}.png"
             out = np.zeros((88, 88, 4), dtype=np.int32)
-            out[..., :3] = np.round(project_texmap(hd_tex[..., :3], 88)).astype(np.int32)
+            # IsometricWorld.fx get_light: land drawn from a texmap is lit, a level tile at
+            # (cos(45) / 2) + 0.5 whatever the terrain shadow level; flat art is not lit at all
+            out[..., :3] = np.round(project_texmap(tex[..., :3], 88) * FLAT_TEXMAP_LIGHT).astype(np.int32)
             # every land tile has the same diamond outline
             diamond = nearest2x(load_rgba(os.path.join(args.src, land_file)))[..., 3] > 0
             out[..., 3] = np.where(diamond, 255, 0)
             out[..., :3] = np.where(diamond[..., None], out[..., :3], 0)
-            pack_rel = "land/t" + os.path.basename(tex_pack)
             Image.fromarray(np.clip(out, 0, 255).astype(np.uint8), "RGBA").save(os.path.join(args.pack, pack_rel), optimize=True)
-            made[tex_pack] = pack_rel
-        index["land"][str(e["id"])] = made[tex_pack]
+            made[key_tex] = pack_rel
+        index["land"][str(e["id"])] = made[key_tex]
         done += 1
-    print(f"land from texmaps: {done} ids ({len(made)} images); {len(index['land'])} land ids in total")
+        from_original += tex_pack is None
+    print(f"land from texmaps: {done} ids ({len(made)} images, {from_original} ids from texmaps not upscaled yet); "
+          f"{len(index['land'])} land ids in total")
 
 
 if __name__ == "__main__":
