@@ -960,6 +960,16 @@ namespace ClassicUO.Game.Scenes
             HdCharacterSprites.Update(batcher.GraphicsDevice);
             HdWorldPack.Update(batcher.GraphicsDevice);
 
+            // Modern look: the world is drawn into a second target first and the post-process writes
+            // the final image into the world target
+            RenderTarget2D finalTarget = worldTarget;
+            bool modernLook = ProfileManager.CurrentProfile.ModernLook && worldTarget != null && EnsureModernLookEffect(batcher.GraphicsDevice);
+
+            if (modernLook)
+            {
+                worldTarget = renderTargets.GetPostProcessWorldRenderTarget(batcher.GraphicsDevice);
+            }
+
             if (xbrWorld)
             {
                 // Pixel art filter while zoomed in: draw the same view at 1:1 art scale into a
@@ -979,6 +989,11 @@ namespace ClassicUO.Game.Scenes
             else
             {
                 DrawWorld(batcher, ref matrix, renderTargets, worldTarget);
+            }
+
+            if (modernLook)
+            {
+                ApplyModernLook(batcher, worldTarget, finalTarget);
             }
 
             batcher.GraphicsDevice.Viewport = r_viewport;
@@ -1015,6 +1030,53 @@ namespace ClassicUO.Game.Scenes
             }
         }
 
+        private ModernLookEffect _modernLookEffect;
+
+        private bool EnsureModernLookEffect(GraphicsDevice device)
+        {
+            if (_modernLookEffect != null)
+            {
+                return true;
+            }
+
+            try
+            {
+                _modernLookEffect = new ModernLookEffect(device);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Modern look disabled, shader failed to load: {ex.Message}");
+                ProfileManager.CurrentProfile.ModernLook = false;
+
+                return false;
+            }
+        }
+
+        private void ApplyModernLook(UltimaBatcher2D batcher, RenderTarget2D source, RenderTarget2D target)
+        {
+            GraphicsDevice device = batcher.GraphicsDevice;
+
+            _modernLookEffect.TextureSize.SetValue(new Vector2(source.Width, source.Height));
+            _modernLookEffect.Strength.SetValue(1f);
+            _modernLookEffect.MatrixTransform.SetValue(
+                Matrix.CreateOrthographicOffCenter(0, target.Width, target.Height, 0, short.MinValue, short.MaxValue)
+            );
+
+            device.SetRenderTarget(target);
+            device.Clear(Color.Black);
+
+            batcher.Begin(_modernLookEffect, Matrix.Identity);
+            // neighbouring samples must not wrap around the screen edges
+            batcher.SetSampler(SamplerState.PointClamp);
+            batcher.Draw(source, Vector2.Zero, null, Vector3.UnitZ, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
+            batcher.SetSampler(null);
+            batcher.End();
+
+            device.SetRenderTarget(null);
+        }
+
         private void UpscaleWorld(UltimaBatcher2D batcher, RenderTarget2D source, RenderTarget2D target, float scale)
         {
             GraphicsDevice device = batcher.GraphicsDevice;
@@ -1042,7 +1104,7 @@ namespace ClassicUO.Game.Scenes
         {
             batcher.GraphicsDevice.SetRenderTarget(target);
 
-            if (_worldRenderScale != 1f)
+            if (_worldRenderScale != 1f || target != renderTargets.WorldRenderTarget)
             {
                 // own target: clear color and depth explicitly
                 batcher.GraphicsDevice.Clear(Color.Black);

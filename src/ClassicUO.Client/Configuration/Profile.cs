@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSD-2-Clause
+﻿// SPDX-License-Identifier: BSD-2-Clause
 
 using System;
 using System.Collections.Generic;
@@ -258,6 +258,8 @@ namespace ClassicUO.Configuration
         public bool HdCharacters { get; set; }
         // fork: land, texmaps and statics from a local HD pack (Data/HD/world) while zoomed in
         public bool HdWorld { get; set; }
+        // fork: post-process on the world image: color grading, glow, sharpening, vignette
+        public bool ModernLook { get; set; }
 
         public bool PartyAura { get; set; }
 

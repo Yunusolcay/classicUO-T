@@ -1566,5 +1566,8 @@ namespace ClassicUO.Renderer
 
         [FileEmbed.FileEmbed("shaders/xBR.fxc")]
         public static partial ReadOnlySpan<byte> GetXBRShader();
+
+        [FileEmbed.FileEmbed("shaders/ModernLook.fxc")]
+        public static partial ReadOnlySpan<byte> GetModernLookShader();
     }
 }

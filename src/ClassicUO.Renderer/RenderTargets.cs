@@ -37,6 +37,17 @@ namespace ClassicUO.Renderer
             return _lowResWorldRenderTarget;
         }
 
+        private RenderTarget2D _postProcessWorldRenderTarget;
+
+        // World drawn here first when a post-process (Modern look) writes the final image into
+        // WorldRenderTarget. Same size, own depth buffer.
+        public RenderTarget2D GetPostProcessWorldRenderTarget(GraphicsDevice graphicsDevice)
+        {
+            EnsureSize(graphicsDevice, ref _postProcessWorldRenderTarget, _gameWorldSceneAfterDPI.Width, _gameWorldSceneAfterDPI.Height);
+
+            return _postProcessWorldRenderTarget;
+        }
+
         public void SetLightsConfiguration(Func<BlendState> lightsBlendState, Func<Vector3> lightsHue)
         {
             _lightsBlendState = lightsBlendState;
