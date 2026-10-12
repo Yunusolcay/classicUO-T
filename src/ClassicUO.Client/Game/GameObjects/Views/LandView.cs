@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 
 using ClassicUO.Configuration;
+using ClassicUO.Game.Managers;
 using ClassicUO.Assets;
 using ClassicUO.Renderer;
 using Microsoft.Xna.Framework;
@@ -65,10 +66,20 @@ namespace ClassicUO.Game.GameObjects
 
                 if (texmapInfo.Texture != null)
                 {
+                    Texture2D texmapTexture = texmapInfo.Texture;
+                    Rectangle texmapUv = texmapInfo.UV;
+
+                    // tiles outside the chunk mesh (animated water): HD pack like the mesh
+                    if (HdWorldPack.TryGet(HdWorldPack.Kind.Texmap, TileData.TexID, out Texture2D hdTexmap, out Rectangle hdTexmapUv))
+                    {
+                        texmapTexture = hdTexmap;
+                        texmapUv = hdTexmapUv;
+                    }
+
                     batcher.DrawStretchedLand(
-                        texmapInfo.Texture,
+                        texmapTexture,
                         new Vector2(posX, posY),
-                        texmapInfo.UV,
+                        texmapUv,
                         ref YOffsets,
                         ref NormalTop,
                         ref NormalRight,
@@ -99,13 +110,22 @@ namespace ClassicUO.Game.GameObjects
                 {
                     var pos = new Vector2(posX, posY);
                     var scale = Vector2.One;
+                    Texture2D texture = artInfo.Texture;
+                    Rectangle uv = artInfo.UV;
+
+                    if (HdWorldPack.TryGet(HdWorldPack.Kind.Land, Graphic, out Texture2D hdLand, out Rectangle hdLandUv))
+                    {
+                        texture = hdLand;
+                        uv = hdLandUv;
+                        scale /= HdWorldPack.TextureScale;
+                    }
 
                     if (ProfileManager.CurrentProfile.AnimatedWaterEffect && TileData.IsWet)
                     {
                         batcher.Draw(
-                            artInfo.Texture,
+                            texture,
                             pos,
-                            artInfo.UV,
+                            uv,
                             hueVec,
                             0f,
                             Vector2.Zero,
@@ -116,13 +136,13 @@ namespace ClassicUO.Game.GameObjects
 
                         var sin = (float)Math.Sin(Time.Ticks / 1000f);
                         var cos = (float)Math.Cos(Time.Ticks / 1000f);
-                        scale = new Vector2(1.1f + sin * 0.1f, 1.1f + cos * 0.5f * 0.1f);
+                        scale *= new Vector2(1.1f + sin * 0.1f, 1.1f + cos * 0.5f * 0.1f);
                     }
 
                     batcher.Draw(
-                        artInfo.Texture,
+                        texture,
                         pos,
-                        artInfo.UV,
+                        uv,
                         hueVec,
                         0f,
                         Vector2.Zero,
