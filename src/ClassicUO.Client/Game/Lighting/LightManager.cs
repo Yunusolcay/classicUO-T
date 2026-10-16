@@ -144,6 +144,7 @@ namespace ClassicUO.Game.Lighting
             light.DrawY = y;
             light.HasDefinition = LightDefinitions.TryGet(lightObject.Graphic, out light.Definition);
             light.Seed = lightObject is Entity entity ? (int)entity.Serial : lightObject.X * 7919 + lightObject.Y * 104729;
+            light.Carried = obj is Mobile;
             TryAdd(light);
         }
 
@@ -158,6 +159,43 @@ namespace ClassicUO.Game.Lighting
             _lights[_count++] = light;
 
             return true;
+        }
+
+        // Lights of this frame that cast soft shadows (docs/SHADOWS_PLAN.md, S3), in world render
+        // target pixels. Call before Draw, which starts a new frame of collection.
+        public int GetShadowLights(Span<ShadowLight> destination)
+        {
+            int written = 0;
+
+            for (int i = 0; i < _count && written < destination.Length; i++)
+            {
+                ref LightSource l = ref _lights[i];
+
+                if (l.Carried)
+                {
+                    continue;
+                }
+
+                ref readonly var lightInfo = ref Client.Game.UO.Lights.GetLight(l.ID);
+
+                if (lightInfo.Texture == null)
+                {
+                    continue;
+                }
+
+                float size = Math.Max(lightInfo.UV.Width, lightInfo.UV.Height);
+                bool defined = l.HasDefinition;
+
+                destination[written++] = new ShadowLight
+                {
+                    Position = new Vector2(l.DrawX, l.DrawY),
+                    // the light reaches about half its sprite size; shadows go a bit further out
+                    Radius = size * 0.6f * (defined ? l.Definition.Radius : 1f),
+                    Strength = defined ? l.Definition.Intensity : 0.8f
+                };
+            }
+
+            return written;
         }
 
         // Draws the collected lights with the batcher already begun on the light render target,

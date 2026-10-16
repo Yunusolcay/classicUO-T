@@ -16,5 +16,7 @@ namespace ClassicUO.Game.Lighting
         public LightDefinition Definition;
         // stable per light source: the flicker of two torches side by side does not line up
         public int Seed;
+        // carried by a mobile: casts no shadows (a shadow away from your own torch looks wrong in 2D)
+        public bool Carried;
     }
 }

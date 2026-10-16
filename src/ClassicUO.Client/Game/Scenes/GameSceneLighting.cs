@@ -18,6 +18,8 @@ namespace ClassicUO.Game.Scenes
 
         private readonly LightMapRenderer _lightMapRenderer = new LightMapRenderer();
         private readonly AmbientLight _ambientLight = new AmbientLight();
+        // enhanced lighting draws this frame (set before the world is drawn)
+        private bool _enhancedLightingActive;
 
         // personal light (0x4E, e.g. night sight) halo around the player, on top of the ambient
         private const float PERSONAL_HALO_STRENGTH = 0.45f;
@@ -30,6 +32,7 @@ namespace ClassicUO.Game.Scenes
         private bool UseEnhancedLighting(GraphicsDevice device, RenderTargets renderTargets)
         {
             bool enhanced = CanUseEnhancedLighting(device, renderTargets);
+            _enhancedLightingActive = enhanced;
 
             if (!enhanced)
             {

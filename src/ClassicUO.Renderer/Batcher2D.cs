@@ -111,6 +111,7 @@ namespace ClassicUO.Renderer
         {
             _vertexInfo = null;
             _white?.Dispose();
+            _contactTexture?.Dispose();
             _basicUOEffect?.Dispose();
             _vertexBuffer.Dispose();
             _indexBuffer.Dispose();
@@ -323,6 +324,13 @@ namespace ClassicUO.Renderer
 
         public void DrawShadow(Texture2D texture, Vector2 position, Rectangle sourceRect, bool flip, float depth)
         {
+            if (_deferShadows)
+            {
+                DeferShadowCaster(texture, position, sourceRect, flip, depth);
+
+                return;
+            }
+
             float width = sourceRect.Width;
             float height = sourceRect.Height * 0.5f;
             float translatedY = position.Y + height - 10;
@@ -373,13 +381,6 @@ namespace ClassicUO.Renderer
             vertex.Hue0.X = vertex.Hue1.X = vertex.Hue2.X = vertex.Hue3.X = 0;
             vertex.Hue0.Y = vertex.Hue1.Y = vertex.Hue2.Y = vertex.Hue3.Y = ShaderHueTranslator.SHADER_SHADOW;
             vertex.Hue0.Z = vertex.Hue1.Z = vertex.Hue2.Z = vertex.Hue3.Z = 1f;
-
-            if (_deferShadows)
-            {
-                DeferShadow(ref vertex, texture, sourceX, sourceY, sourceX + sourceW, sourceY + sourceH);
-
-                return;
-            }
 
             PushSprite(texture);
         }
