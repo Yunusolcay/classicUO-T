@@ -72,6 +72,25 @@ namespace ClassicUO.Game.Managers
 
                 }
             );
+
+            // lightdebug: lighting numbers in the FPS box; lightdebug map: light map only view
+            Register
+            (
+                "lightdebug",
+                s =>
+                {
+                    if (s.Length > 1 && s[1].Equals("map", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Lighting.LightingDebug.ShowLightMapOnly = !Lighting.LightingDebug.ShowLightMapOnly;
+                        GameActions.Print(_world, $"Lighting debug: light map only {(Lighting.LightingDebug.ShowLightMapOnly ? "on" : "off")}");
+
+                        return;
+                    }
+
+                    Lighting.LightingDebug.Enabled = !Lighting.LightingDebug.Enabled;
+                    GameActions.Print(_world, $"Lighting debug {(Lighting.LightingDebug.Enabled ? "on: see the FPS box (Options > General > Show FPS)" : "off")}");
+                }
+            );
         }
 
 

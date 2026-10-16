@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 
 using System;
+using System.Diagnostics;
 using ClassicUO.Configuration;
 using ClassicUO.Game.Lighting;
 using ClassicUO.Renderer;
@@ -28,6 +29,7 @@ namespace ClassicUO.Game.Scenes
             {
                 // the ambient fade only runs while the enhanced path draws
                 _ambientLight.Reset();
+                LightingDebug.RecordLegacy();
             }
 
             return enhanced;
@@ -84,8 +86,21 @@ namespace ClassicUO.Game.Scenes
 
             LightingQualityPreset preset = LightingSettings.GetQualityPreset(profile.LightingQuality);
 
+            long start = LightingDebug.Enabled ? Stopwatch.GetTimestamp() : 0;
+
             _lightMapRenderer.Draw(batcher, _lightManager, source, destination, worldMatrix, ambient, preset.LightMapScale, preset.BlurPasses, profile.LightIntensity,
                 profile.LightFlicker, preset.UseProceduralFalloff);
+
+            if (LightingDebug.Enabled)
+            {
+                LightingDebug.RecordEnhanced(
+                    _lightMapRenderer.LastLightCount,
+                    _lightMapRenderer.LastMaxLights,
+                    (int) Math.Ceiling(source.Width * preset.LightMapScale),
+                    (int) Math.Ceiling(source.Height * preset.LightMapScale),
+                    Stopwatch.GetElapsedTime(start).TotalMilliseconds
+                );
+            }
         }
     }
 }

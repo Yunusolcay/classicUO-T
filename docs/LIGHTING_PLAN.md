@@ -184,7 +184,10 @@ ID'ler sabittir (PLAN.md ile eşleşir).
 - Dosyalar: `Game/UI/Gumps/OptionsGump.cs` (mevcut ışık bölümünün yanına: `LightLevelType` civarı); metinler `Resources/ResGumps` kalıbıyla.
 - Kabul: §4 ayarları UI'dan değişiyor, yeniden başlatmadan uygulanıyor.
 
-### L13 – Debug overlay + ölçüm **[Codex]** · K
+### L13 – Debug overlay + ölçüm · K · Claude Code (Codex yerine) · 🔶 kod hazır, oyun içi kabul bekliyor
+- Uygulama notu: `-lightdebug` FPS kutusuna (Options > General > Show FPS) ışık sayısı/limit, light map boyutu ve ışık
+  pass'inin CPU süresini ("not GPU time" etiketli, Stopwatch, yumuşatılmış) ekler; `-lightdebug map` dünyayı beyaz çizip
+  yalnız light map'i gösterir. `Profiler` enum'una yeni bağlam eklemek yerine yerel Stopwatch (Utility'ye dokunmamak için).
 - Dosyalar: yeni `Game/Lighting/LightingDebug.cs`; `CommandManager`'a komut (ör. `lightdebug`); `Profiler` bağlamı.
 - Kabul: Işık sayısı, light RT boyutu, ışık pass'inin **CPU** süresi (ms, açıkça "CPU" etiketli; `Profiler` Stopwatch tabanlıdır, GPU süresi değildir) ekranda; light map'i tek başına gösterme modu.
 
