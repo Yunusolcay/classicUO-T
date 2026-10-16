@@ -12,6 +12,9 @@ namespace ClassicUO.Renderer.Effects
             Brighlight = Parameters["Brightlight"];
             CircleOfTransparencyRadius = Parameters["CircleOfTransparencyRadius"];
             Time = Parameters["Time"];
+            WorldOrigin = Parameters["WorldOrigin"];
+            AmbientTint = Parameters["AmbientTint"];
+            AmbientTint?.SetValue(Microsoft.Xna.Framework.Vector3.One);
 
             CurrentTechnique = Techniques["HueTechnique"];
             Pass = CurrentTechnique.Passes[0];
@@ -23,6 +26,8 @@ namespace ClassicUO.Renderer.Effects
         public EffectParameter Brighlight { get; }
         public EffectParameter CircleOfTransparencyRadius { get; }
         public EffectParameter Time { get; }
+        public EffectParameter WorldOrigin { get; }
+        public EffectParameter AmbientTint { get; }
         public EffectPass Pass { get; }
     }
 }

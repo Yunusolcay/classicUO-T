@@ -120,23 +120,10 @@ namespace ClassicUO.Game.GameObjects
                         scale /= HdWorldPack.TextureScale;
                     }
 
-                    if (ProfileManager.CurrentProfile.AnimatedWaterEffect && TileData.IsWet)
+                    if (ProfileManager.CurrentProfile.AnimatedWaterEffect && TileData.IsWet && hueVec.Y == ShaderHueTranslator.SHADER_NONE)
                     {
-                        batcher.Draw(
-                            texture,
-                            pos,
-                            uv,
-                            hueVec,
-                            0f,
-                            Vector2.Zero,
-                            scale,
-                            SpriteEffects.None,
-                            depth + 0.5f
-                        );
-
-                        var sin = (float)Math.Sin(Time.Ticks / 1000f);
-                        var cos = (float)Math.Cos(Time.Ticks / 1000f);
-                        scale *= new Vector2(1.1f + sin * 0.1f, 1.1f + cos * 0.5f * 0.1f);
+                        // water light pattern (docs/WATER_WEATHER_PLAN.md); the shore foam is in the chunk mesh
+                        hueVec.Y = ShaderHueTranslator.SHADER_WATER;
                     }
 
                     batcher.Draw(

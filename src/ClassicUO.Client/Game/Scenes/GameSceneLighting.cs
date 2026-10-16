@@ -113,6 +113,10 @@ namespace ClassicUO.Game.Scenes
             }
 
             Vector3 ambient = _ambientLight.Update(level, Time.Ticks, profile.LightTransitionSeconds, profile.DayNightTint);
+            SetWaterTint(ambient);
+
+            // storm lightning lights up the night as well (docs/WATER_WEATHER_PLAN.md, H3)
+            ambient = Vector3.Lerp(ambient, Vector3.One, WeatherRenderer.Flash * 0.7f);
 
             LightingQualityPreset preset = LightingSettings.GetQualityPreset(profile.LightingQuality);
 

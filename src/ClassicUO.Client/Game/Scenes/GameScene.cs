@@ -508,6 +508,7 @@ namespace ClassicUO.Game.Scenes
 
                     // Build chunk mesh if dirty
                     if (chunk.Mesh.IsDirty || chunk.Mesh.BuiltWithNatureEffects != Data.NatureTiles.Enabled
+                        || chunk.Mesh.BuiltWithWaterEffect != ProfileManager.CurrentProfile.AnimatedWaterEffect
                         || chunk.Mesh.BuiltHdGeneration != HdWorldPack.MeshGeneration)
                     {
                         chunk.Mesh.Build(chunk, _world, Client.Game.GraphicsDevice);
@@ -1051,6 +1052,7 @@ namespace ClassicUO.Game.Scenes
             batcher.SetBrightlight(ProfileManager.CurrentProfile.TerrainShadowsLevel * 0.1f);
             // wind phase for nature effects; wraps every ~17 minutes to keep float precision
             batcher.SetTime((Time.Ticks % 1_000_000) / 1000f);
+            SetWaterParameters(batcher);
 
             if (ProfileManager.CurrentProfile.UseCircleOfTransparency
                 && ProfileManager.CurrentProfile.CircleOfTransparencyType != 1) // gradient mode uses CPU alpha, not shader

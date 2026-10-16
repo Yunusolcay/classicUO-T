@@ -264,7 +264,11 @@ namespace ClassicUO.Configuration
         public int TerrainShadowsLevel { get; set; } = 15;
         public int AuraUnderFeetType { get; set; } // 0 = NO, 1 = in warmode, 2 = ctrl+shift, 3 = always
         public bool AuraOnMouse { get; set; } = true;
-        public bool AnimatedWaterEffect { get; set; } = false;
+        public bool AnimatedWaterEffect { get; set; } = true;
+        // layered rain, soft snow, storm sky (docs/WATER_WEATHER_PLAN.md)
+        public bool EnhancedWeather { get; set; } = true;
+        // storm lightning brightens the screen; off for players sensitive to flashes
+        public bool LightningFlashes { get; set; } = true;
         // fork: livelier grass colors and wind sway for plants and trees (client-side only)
         public bool NatureEffects { get; set; }
         // fork: smooth pixel art (xBR) on the world while zoomed in
