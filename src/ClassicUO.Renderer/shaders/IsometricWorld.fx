@@ -145,6 +145,21 @@ float water_hash(float2 p)
 	return frac(sin(dot(p, float2(12.9898f, 78.233f))) * 43758.5453f);
 }
 
+// smooth value noise: hashes at integer corners, smoothstep blended
+float value_noise(float2 x)
+{
+	float2 i = floor(x);
+	float2 f = frac(x);
+	f = f * f * (3.0f - 2.0f * f);
+
+	float a = water_hash(i);
+	float b = water_hash(i + float2(1, 0));
+	float c = water_hash(i + float2(0, 1));
+	float d = water_hash(i + float2(1, 1));
+
+	return lerp(lerp(a, b, f.x), lerp(c, d, f.x), f.y);
+}
+
 float water_edge(float mask, float bit, float distance)
 {
 	float on = step(bit, fmod(floor(mask / bit), 2.0f) * bit);
@@ -321,21 +336,26 @@ float4 PixelShader_Hue(PS_INPUT IN) : COLOR0
 	else if (mode == TERRAIN_BLEND)
 	{
 		// Terrain transition (docs/TERRAIN_BLEND_PLAN.md): the neighbour's texmap continued over this
-		// tile, fading from the shared edge inwards. Normal.xy = position in the tile (0..1),
-		// Hue.x = edge (0 NE v=0, 1 NW u=0, 2 SE u=1, 3 SW v=1), Hue.z = the tile's light before
-		// Brightlight (same as get_light for its corner normals).
+		// tile up to a ragged shore line. Opaque pixels, no ghosting: a pixel shows either texture.
+		// Normal.xy = position in the tile (0..1), Hue.x = edge (0 NE v=0, 1 NW u=0, 2 SE u=1,
+		// 3 SW v=1), Hue.z = the tile's light before Brightlight (get_light of its corner normals).
 		float2 q = IN.Normal.xy;
 		float edge = IN.Hue.x;
 		float d = edge < 0.5f ? q.y : (edge < 1.5f ? q.x : (edge < 2.5f ? 1.0f - q.x : 1.0f - q.y));
-		float grain = water_hash(floor(IN.WorldPos / 3.0f)) - 0.5f;
+
+		// how far the neighbour reaches in: meandering on the map, the same on both sides of a seam
+		float2 p = floor(IN.WorldPos);
+		float n = value_noise(p / 9.0f) * 0.7f + value_noise(p / 3.0f) * 0.3f;
+		float reach = 0.04f + 0.42f * n;
+
+		if (d > reach)
+			discard;
+
 		float base = IN.Hue.z;
 		float light = base + ((Brightlight * (base - 0.85355339f)) - (base - 0.85355339f));
 
 		color.rgb *= light;
-		alpha = (1.0f - smoothstep(0.0f, 0.38f, d + grain * 0.12f)) * 0.6f;
-
-		if (alpha < 0.01f)
-			discard;
+		alpha = 1.0f;
 	}
 
 	if (useTrans && CircleOfTransparencyRadius > 0)
