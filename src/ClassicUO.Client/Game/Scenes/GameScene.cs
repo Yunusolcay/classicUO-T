@@ -1125,6 +1125,7 @@ namespace ClassicUO.Game.Scenes
             }
 
             // draw weather
+            DrawAtmosphere(batcher, MAX_LAYER_DEPTH - 1);
             _world.Weather.Draw(batcher, 0, 0, MAX_LAYER_DEPTH - 1);
 
             DrawSelection(batcher, MAX_LAYER_DEPTH);

@@ -44,6 +44,7 @@ Oynanış ve protokol uyumluluğu korunur; değişiklikler görsel katmanda yoğ
 - docs/BLOOM_PLAN.md       – bloom / parlama (M5)
 - docs/EFFECTS_PLAN.md     – büyü/efekt görselleri
 - docs/OUTLINE_PLAN.md     – hedef/hover konturu
+- docs/ATMOSPHERE_PLAN.md  – bölge atmosferi (ton, pus)
 - docs/PLAN.md             – kilometre taşları ve görev durumu
 - docs/DECISIONS.md        – alınan kararlar ve nedenleri
 
