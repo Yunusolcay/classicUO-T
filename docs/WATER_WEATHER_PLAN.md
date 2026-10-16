@@ -67,7 +67,6 @@ Not: "Animated water effect" yeni profillerde varsayılan açık (eski profiller
 - Deniz/göl yüzeyi yavaşça "kıpırdıyor", ara ara küçük parıltılar; karo dikişi yok, kamera kayınca desen yüzmüyor.
 - Kumsal/kıyı kenarında köpük bandı; açık denizde köpük yok. Gece su da kararıyor (ışık kompoziti).
 - Ayar kapalıyken su eskisi gibi (düz). FPS'te belirgin düşüş yok (desen piksel başına birkaç sinüs).
-- Yağmur/kar/fırtına görevleri H1–H4 kabulü ayrı yazılacak.
 - Yağmur ekranı dolduruyor, derinlik hissi var, yere sıçrıyor; kar yumuşak salınıyor; fırtınada şimşek çakıyor ve
   gece sahneyi bir an aydınlatıyor. Hava bitince parçacıklar yavaşça kayboluyor; sunucu mesajları ve sesler aynı.
 - "Enhanced weather" kapalıyken eski görünüm; "Lightning flashes" kapalıyken çakma yok.
