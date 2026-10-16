@@ -40,19 +40,33 @@ Sınırlar / riskler:
 - Ertelenen gölgeler derinlik yazmaz: eskiden gölgenin arkasında kalan (daha uzak) bir nesne gölge pikselinde
   gizlenirdi, şimdi çizilip gölgeyle kararır (fiziksel olarak daha doğru).
 
-## 3. Sonraki adımlar
+## 3. S2–S5 (uygulandı)
 
-| ID | Görev | Not |
-|---|---|---|
-| S2 | Gölge quad'ını kenar payıyla genişletme | yan kenarlarda da yumuşama; UV sınır kenetlemesi zaten var |
-| S3 | Yerel ışıklardan gölge (gece) | Enhanced ışıklar için en yakın 1–2 güçlü ışığa göre yön/uzunluk; maliyet ölçülmeli |
-| S4 | Temas gölgesi / ortam kapatma | bina dibi ve nesne tabanında yumuşak kararma; derinlik tabanlı, düşük çözünürlük |
-| S5 | Ölçüm | L14 ile aynı yöntem; gölge sayısı yüksek sahnede (orman, kalabalık) kare süresi farkı |
+- **Derinlik düzeltmesi (S1 hatası):** ertelenen gölge, gölgeyi düşüren nesneyle aynı derinlikte olduğundan
+  `LessEqual` ile karakterin kendi bacaklarını da karartabiliyordu (kuyrukta gövde gölgenin üstüne çizildiği için
+  eskiden görünmezdi). Gölge geçişi artık `Less`: aynı derinlikteki nesne (gölgenin sahibi, bineği, aynı karedeki
+  eşyalar) kararmaz, daha uzaktaki zemin kararır.
+- **S2 – Kenar payı:** gölge quad'ı sprite'tan 3 texel geniş (yanlar ve baş ucu; ayak çizgisi yerinde). Sprite
+  dışındaki örnekler boş sayılır (`step` maskesi); yumuşama silüetin dışına taşar, yan kenarlar da yumuşar.
+- **S3 – Yerel ışık gölgeleri:** güneş gölgesi söndükçe (`1 − güneş/0.4`) en fazla 0.45 güçte ışık gölgeleri devreye
+  girer. Yalnız Enhanced aktif karede; bu karenin `LightManager` ışıklarından (taşınan ışıklar hariç: kendi
+  meşalenden düşen gölge 2D'de yanlış görünür) en fazla 64'ü. Her gölge düşüren için menzildeki en güçlü 2 ışık;
+  yön ışıktan uzağa, uzunluk mesafeyle 0.5–1.5 × yarım sprite yüksekliği, güç mesafeyle azalır. Aşağı bakan
+  gölgede sarma yönü ters döner; sol/sağ vertex'ler takas edilerek culling'den korunur.
+- **S4 – Temas gölgesi:** her görünen mobilin ayak altına 34×14 px yumuşak elips (0.3), gündüz/gece. Bina dibi
+  ortam kapatması (AO) kapsam dışı bırakıldı: 2D derinlik tamponu yüzey normali vermiyor, maliyet/fayda düşük;
+  ileride ayrı görev (S6) olarak değerlendirilebilir.
+- **S5 – Ölçüm:** `-lightdebug` FPS kutusunda gölge sayısını gösterir ("N soft shadows" / "original").
+  Kare süresi ölçümü L14 ile aynı yöntemle (kullanıcı makinesi).
 
-## 4. Kabul (S1)
+## 4. Kabul (S1–S5)
 
 - Gündüz: karakter/ağaç gölgeleri aynı yerde, aynı koyulukta; kenarlar yumuşak, ayak dibi keskin.
 - Zırhlı/pelerinli karakter ve binekli karakterde gölge içinde koyu katman lekesi yok.
 - Gölge üstünde duran / önünden geçen karakter gölgede kalmıyor (derinlik testi).
 - Akşam karardıkça gölgeler kayboluyor; gece yok. Soft shadows kapalıyken görüntü eskisiyle aynı.
 - Zoom (xBR açık/kapalı), Modern look, Enhanced lighting ile bozulma yok.
+- Bacaklar/gövde kendi gölgesiyle kararmıyor; gölge kenarları yanlarda da yumuşak.
+- Gece meşale/mangal yakınındaki ağaç ve karakterlerin gölgesi ışıktan uzağa düşüyor; elde taşınan ışık gölge
+  düşürmüyor. Gündüz ışık gölgesi yok.
+- Karakterlerin ayak altında hafif temas gölgesi var; Soft shadows kapalıyken yok.

@@ -108,8 +108,8 @@ Tabloda client dosyaları `src/ClassicUO.Client/`, renderer dosyaları `src/Clas
 Kaynak: [SHADOWS_PLAN.md](SHADOWS_PLAN.md).
 
 - [x] Claude Code: teknik ve kabul ölçütleri (`SHADOWS_PLAN.md`).
-- [ ] S1 — Yumuşak gölge: ertelenmiş gölge geçişi (alfa maske, max blend, tek karartma), kenar yumuşatma, gece solması; `SoftShadows` ayarı. 🔶 kod hazır (345 test), oyun içi kabul bekliyor.
-- [ ] S2 — Gölge quad kenar payı · S3 — Yerel ışık gölgeleri · S4 — Temas gölgesi/AO · S5 — Ölçüm
+- [x] S1 — Yumuşak gölge: ertelenmiş gölge geçişi (alfa maske, max blend, tek karartma), kenar yumuşatma, gece solması; `SoftShadows` ayarı. Yayında (`3986f0b90`); derinlik düzeltmesi S2 ile.
+- [ ] S2 — Kenar payı · S3 — Yerel ışık gölgeleri · S4 — Mobil temas gölgesi · S5 — `-lightdebug` gölge sayısı. 🔶 kod hazır (347 test), oyun içi kabul bekliyor. Bina dibi AO kapsam dışı (S6 adayı).
 
 ## M3 — Shader efektleri
 

@@ -14,6 +14,8 @@ namespace ClassicUO.Game.Lighting
         private static bool _enhanced;
         private static int _lights, _maxLights, _lightMapWidth, _lightMapHeight;
         private static double _cpuMs;
+        // -1: soft shadows off
+        private static int _shadows = -1;
 
         public static bool Enabled { get; set; }
 
@@ -30,6 +32,11 @@ namespace ClassicUO.Game.Lighting
             _cpuMs = _cpuMs <= 0 ? cpuMs : _cpuMs + (cpuMs - _cpuMs) * SMOOTHING;
         }
 
+        public static void RecordShadows(int count)
+        {
+            _shadows = count;
+        }
+
         public static void RecordLegacy()
         {
             _enhanced = false;
@@ -38,12 +45,16 @@ namespace ClassicUO.Game.Lighting
 
         public static string GetText()
         {
+            string shadows = _shadows < 0
+                ? "- Shadows: original\n"
+                : string.Format(CultureInfo.InvariantCulture, "- Shadows: {0} soft shadows\n", _shadows);
+
             if (!_enhanced)
             {
-                return "- Lighting: original path (day, alternative lights or enhanced off)\n";
+                return "- Lighting: original path (day, alternative lights or enhanced off)\n" + shadows;
             }
 
-            return string.Format(
+            return shadows + string.Format(
                 CultureInfo.InvariantCulture,
                 "- Lighting: {0}/{1} lights, light map {2}x{3}{4}\n    - Light pass CPU {5:0.00} ms (not GPU time)\n",
                 _lights,

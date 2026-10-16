@@ -27,5 +27,15 @@ namespace ClassicUO.UnitTests.Game.Lighting
 
             Assert.Contains("original path", LightingDebug.GetText());
         }
+
+        [Fact]
+        public void Text_ShowsTheSoftShadowCount()
+        {
+            LightingDebug.RecordShadows(17);
+            Assert.Contains("17 soft shadows", LightingDebug.GetText());
+
+            LightingDebug.RecordShadows(-1);
+            Assert.Contains("Shadows: original", LightingDebug.GetText());
+        }
     }
 }

@@ -37,5 +37,13 @@ namespace ClassicUO.UnitTests.Game.Lighting
             float middle = ShadowSettings.GetStrength((ShadowSettings.FADE_START + ShadowSettings.FADE_END) * 0.5f);
             Assert.Equal(ShadowSettings.DAY_STRENGTH * 0.5f, middle, 4);
         }
+
+        [Fact]
+        public void LightShadows_TakeOverAsTheSunFades()
+        {
+            Assert.Equal(0f, ShadowSettings.GetLocalStrength(ShadowSettings.DAY_STRENGTH));
+            Assert.Equal(ShadowSettings.LOCAL_STRENGTH, ShadowSettings.GetLocalStrength(0f));
+            Assert.Equal(ShadowSettings.LOCAL_STRENGTH * 0.5f, ShadowSettings.GetLocalStrength(ShadowSettings.DAY_STRENGTH * 0.5f), 4);
+        }
     }
 }
