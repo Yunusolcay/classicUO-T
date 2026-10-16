@@ -5,6 +5,9 @@ float2 textureSize;
 float4x4 MatrixTransform;
 // 0 = original image, 1 = full effect
 float Strength;
+// 1 when enhanced lighting already lit the image: the lit areas are bright and warm by
+// themselves, so glow, vibrance and the warm highlight shift back off there
+float LitScene;
 
 sampler world : register(s0);
 
@@ -38,7 +41,7 @@ float3 bright(float2 uv)
     float3 c = tex2D(world, uv).rgb;
 
     // only what is clearly brighter than the scene glows: lava, fire, lights, sunlit snow
-    return c * saturate((dot(c, LUMA) - 0.62) * 3.0);
+    return c * saturate((dot(c, LUMA) - lerp(0.62, 0.82, LitScene)) * 3.0);
 }
 
 float4 main_fragment(PS_INPUT IN) : COLOR0
@@ -63,17 +66,20 @@ float4 main_fragment(PS_INPUT IN) : COLOR0
     glow += bright(uv + float2( r2.x, -r2.y) * 0.707) + bright(uv + float2(-r2.x, -r2.y) * 0.707);
     glow += bright(uv + float2( r2.x, 0)) + bright(uv + float2(-r2.x, 0));
     glow += bright(uv + float2(0,  r2.y)) + bright(uv + float2(0, -r2.y));
-    c += glow * (0.5 / 12.0);
+    c += glow * (lerp(0.5, 0.2, LitScene) / 12.0);
 
     // color grading: a little brighter (UO scenes are dark), vibrance (dull colors gain more than
     // already saturated ones), a gentle S-curve for contrast, cool shadows and warm highlights
-    c = pow(saturate(c), 0.85);
+    // in a lit scene the brightening keeps to the shadows and the highlights keep their color
+    float protect = LitScene * smoothstep(0.35, 0.8, dot(saturate(c), LUMA));
+    c = pow(saturate(c), lerp(0.85, 1.0, protect));
     float luma = dot(c, LUMA);
     float sat = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));
-    c = lerp(luma.xxx, c, 1.0 + 0.55 * (1.0 - saturate(sat)));
+    c = lerp(luma.xxx, c, 1.0 + 0.55 * (1.0 - saturate(sat)) * (1.0 - protect));
     c = saturate(c);
-    c = lerp(c, c * c * (3.0 - 2.0 * c), 0.25);
-    c += (luma - 0.45) * float3(0.05, 0.015, -0.05);
+    c = lerp(c, c * c * (3.0 - 2.0 * c), 0.25 * (1.0 - protect));
+    float shift = luma - 0.45;
+    c += lerp(shift, min(shift, 0.0), LitScene) * float3(0.05, 0.015, -0.05);
 
     // vignette: draws the eye to the middle of the screen, where the player is
     float d = distance(uv, float2(0.5, 0.5));

@@ -175,7 +175,11 @@ ID'ler sabittir (PLAN.md ile eşleşir).
 - Dosyalar: yeni `Game/Lighting/LightingDebug.cs`; `CommandManager`'a komut (ör. `lightdebug`); `Profiler` bağlamı.
 - Kabul: Işık sayısı, light RT boyutu, ışık pass'inin **CPU** süresi (ms, açıkça "CPU" etiketli; `Profiler` Stopwatch tabanlıdır, GPU süresi değildir) ekranda; light map'i tek başına gösterme modu.
 
-### L15 – Modern look ile ışık uyumu · K · Claude Code
+### L15 – Modern look ile ışık uyumu · K · Claude Code · 🔶 ilk ayar yapıldı, oyun içi kabul bekliyor
+- Not (ilk ayar): Modern look açıkken lamba çevresi yine düz sarıya yanıyordu (glow + vibrance + sıcak vurgu kayması).
+  `ModernLook.fx`'e `LitScene` eklendi: Enhanced ışık uygulanmış karede glow eşiği 0.62→0.82, gücü 0.5→0.2; parlak
+  bölgelerde (luma 0.35–0.8 arası yumuşak geçiş) parlatma, vibrance ve S-eğrisi geri çekilir; sıcak vurgu kayması
+  kapanır, gölgelerdeki serin kayma kalır. `LitScene` = 0 iken (gündüz, Enhanced kapalı) matematik birebir eskisi.
 - Dosyalar: `ClassicUO.Renderer/shaders/ModernLook.fx` (+ `.fxc`), gerekirse `GameScene.ApplyModernLook`.
 - Kabul: Enhanced + Modern look açıkken meşale/lamba glow alıyor ama gece karanlığı Modern look'un parlatmasıyla kaybolmuyor (glow eşiği ve gamma ışıklı sahne için ayarlı); Enhanced kapalıyken Modern look çıktısı değişmemiş.
 

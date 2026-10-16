@@ -881,7 +881,7 @@ namespace ClassicUO.Game.Scenes
 
             if (modernLook)
             {
-                ApplyModernLook(batcher, worldTarget, finalTarget);
+                ApplyModernLook(batcher, worldTarget, finalTarget, enhancedLights);
             }
 
             batcher.GraphicsDevice.Viewport = r_viewport;
@@ -942,9 +942,11 @@ namespace ClassicUO.Game.Scenes
             }
         }
 
-        private void ApplyModernLook(UltimaBatcher2D batcher, RenderTarget2D source, RenderTarget2D target)
+        private void ApplyModernLook(UltimaBatcher2D batcher, RenderTarget2D source, RenderTarget2D target, bool litScene)
         {
             GraphicsDevice device = batcher.GraphicsDevice;
+
+            _modernLookEffect.LitScene.SetValue(litScene ? 1f : 0f);
 
             _modernLookEffect.TextureSize.SetValue(new Vector2(source.Width, source.Height));
             _modernLookEffect.Strength.SetValue(1f);
