@@ -51,6 +51,12 @@ namespace ClassicUO.Game.GameObjects
 
             bool hasShadow = !IsDead && !IsHidden && ProfileManager.CurrentProfile.ShadowsEnabled;
 
+            if (hasShadow)
+            {
+                // soft shadows only (docs/SHADOWS_PLAN.md, S4); does nothing otherwise
+                batcher.DrawContactShadow(drawX, drawY, depth);
+            }
+
             if (World.AuraManager.IsEnabled)
             {
                 World.AuraManager.Draw(

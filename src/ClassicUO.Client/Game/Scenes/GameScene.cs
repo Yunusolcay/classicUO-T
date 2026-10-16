@@ -1077,7 +1077,7 @@ namespace ClassicUO.Game.Scenes
 
             if (softShadows)
             {
-                batcher.DrawDeferredShadows(target.Width, target.Height);
+                DrawSoftShadows(batcher, target);
             }
 
 

@@ -91,13 +91,16 @@ float3 grade_grass(float3 color, float tint)
 	return lerp(color, saturate(vivid), greenness);
 }
 
-// Soft shadow (docs/SHADOWS_PLAN.md, S1): Hue.x = strength (> 0 marks a soft shadow), Normal =
+// Soft shadow (docs/SHADOWS_PLAN.md): Hue.x = strength (> 0 marks a soft shadow), Normal =
 // sprite bounds (u min, v min, u max), Hue.z = v max. Coverage is averaged over a disc that grows
-// from the base (bottom of the sprite, at the feet) to the far end (top of the sprite). Samples
-// stay inside the sprite: the atlas packs sprites without gaps.
+// from the base (bottom of the sprite, at the feet) to the far end (top of the sprite). The quad
+// is a few texels larger than the sprite; samples outside the sprite count as empty, since the
+// atlas packs sprites without gaps.
 float soft_shadow_tap(float2 uv, float2 lo, float2 hi)
 {
-	return tex2Dlod(DrawSampler, float4(clamp(uv, lo, hi), 0, 0)).a;
+	float2 inside = step(lo, uv) * step(uv, hi);
+
+	return tex2Dlod(DrawSampler, float4(clamp(uv, lo, hi), 0, 0)).a * inside.x * inside.y;
 }
 
 float4 soft_shadow(PS_INPUT IN, float2 dx, float2 dy)
