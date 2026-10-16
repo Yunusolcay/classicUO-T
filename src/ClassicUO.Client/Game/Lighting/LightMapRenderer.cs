@@ -37,6 +37,8 @@ namespace ClassicUO.Game.Lighting
         private readonly LightMapTarget _targets = new LightMapTarget();
         private LightingEffect _effect;
         private Texture2D _roundLight;
+        // stands in for the world in the light map only debug view
+        private Texture2D _white;
         private bool _failed;
 
         // Loads the lighting shader once. False when the graphics backend cannot load it: the
@@ -57,6 +59,8 @@ namespace ClassicUO.Game.Lighting
             {
                 _effect = new LightingEffect(device);
                 _roundLight = CreateRoundLight(device, ROUND_LIGHT_SIZE);
+                _white = new Texture2D(device, 1, 1, false, SurfaceFormat.Color);
+                _white.SetData(new[] { Color.White });
 
                 return true;
             }
@@ -88,13 +92,16 @@ namespace ClassicUO.Game.Lighting
             int blurPasses,
             float intensity,
             bool flicker,
-            bool proceduralFalloff
+            bool proceduralFalloff,
+            in PersonalHalo halo
         )
         {
             GraphicsDevice device = batcher.GraphicsDevice;
             RenderTarget2D lightMap = _targets.GetLightMap(device, world.Width, world.Height, lightMapScale);
 
             device.SetRenderTarget(lightMap);
+            _lastLightCount = lights.Count;
+            _lastLightMaxCount = lights.MaxLights;
 
             Vector3 encodedAmbient = Vector3.Clamp(ambient, Vector3.Zero, Vector3.One) * 0.5f;
             device.Clear(ClearOptions.Target, new Vector4(encodedAmbient, 1f), 0f, 0);
@@ -112,6 +119,20 @@ namespace ClassicUO.Game.Lighting
                 batcher,
                 new LightDrawOptions(true, flicker, proceduralFalloff ? _roundLight : null, Time.Ticks)
             );
+
+            if (halo.Intensity > 0f)
+            {
+                int size = halo.Diameter;
+
+                // plain white light: hue mode none, the alpha is the strength
+                batcher.Draw(
+                    _roundLight,
+                    new Rectangle(halo.X - size / 2, halo.Y - size / 2, size, size),
+                    new Vector3(0f, 0f, Math.Clamp(halo.Intensity, 0f, 1f)),
+                    0f
+                );
+            }
+
             batcher.SetSampler(null);
             batcher.SetBlendState(null);
             batcher.End();
@@ -129,7 +150,7 @@ namespace ClassicUO.Game.Lighting
 
             _effect.CurrentTechnique = _effect.Composite;
             _effect.SetProjection(Matrix.Identity);
-            _effect.WorldTexture.SetValue(world);
+            _effect.WorldTexture.SetValue(LightingDebug.ShowLightMapOnly ? _white : world);
             _effect.OverbrightLimit.SetValue(OVERBRIGHT_LIMIT * MathHelper.Clamp(intensity, 0f, 2f));
             _effect.LightSaturation.SetValue(LIGHT_SATURATION);
 
@@ -193,11 +214,19 @@ namespace ClassicUO.Game.Lighting
             return texture;
         }
 
+        // lights drawn by the last Draw, for the debug overlay
+        public int LastLightCount => _lastLightCount;
+        public int LastMaxLights => _lastLightMaxCount;
+
+        private int _lastLightCount, _lastLightMaxCount;
+
         public void Dispose()
         {
             _targets.Dispose();
             _roundLight?.Dispose();
             _roundLight = null;
+            _white?.Dispose();
+            _white = null;
             _effect?.Dispose();
             _effect = null;
         }

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 
 using System;
+using System.Diagnostics;
 using ClassicUO.Configuration;
 using ClassicUO.Game.Lighting;
 using ClassicUO.Renderer;
@@ -18,6 +19,12 @@ namespace ClassicUO.Game.Scenes
         private readonly LightMapRenderer _lightMapRenderer = new LightMapRenderer();
         private readonly AmbientLight _ambientLight = new AmbientLight();
 
+        // personal light (0x4E, e.g. night sight) halo around the player, on top of the ambient
+        private const float PERSONAL_HALO_STRENGTH = 0.45f;
+        private const int PERSONAL_HALO_DIAMETER = 360;
+        // body center above the tile anchor of the player sprite
+        private const int PERSONAL_HALO_RAISE = 20;
+
         // Enhanced lighting replaces the normal night darkness only: daylight, alternative lights and
         // the dead black and white view keep the original path.
         private bool UseEnhancedLighting(GraphicsDevice device, RenderTargets renderTargets)
@@ -28,6 +35,7 @@ namespace ClassicUO.Game.Scenes
             {
                 // the ambient fade only runs while the enhanced path draws
                 _ambientLight.Reset();
+                LightingDebug.RecordLegacy();
             }
 
             return enhanced;
@@ -68,6 +76,27 @@ namespace ClassicUO.Game.Scenes
             batcher.GraphicsDevice.SetRenderTarget(null);
         }
 
+        // The ambient already lights the whole screen to at least the personal level, as before; the
+        // halo only adds a soft brighter area around the player, so nobody sees less than before.
+        private PersonalHalo GetPersonalHalo()
+        {
+            int personal = _world.Light.Personal;
+
+            if (personal <= 0 || _world.Player == null)
+            {
+                return default;
+            }
+
+            Vector2 position = _world.Player.GetScreenPosition();
+
+            return new PersonalHalo(
+                (int) position.X + 22,
+                (int) position.Y + 22 - PERSONAL_HALO_RAISE,
+                PERSONAL_HALO_DIAMETER,
+                PERSONAL_HALO_STRENGTH * Math.Min(personal, 0x1E) / 0x1E
+            );
+        }
+
         // Writes the world drawn into source, lit by this frame's lights, into destination
         private void DrawEnhancedLights(UltimaBatcher2D batcher, RenderTarget2D source, RenderTarget2D destination, Matrix worldMatrix)
         {
@@ -84,8 +113,21 @@ namespace ClassicUO.Game.Scenes
 
             LightingQualityPreset preset = LightingSettings.GetQualityPreset(profile.LightingQuality);
 
+            long start = LightingDebug.Enabled ? Stopwatch.GetTimestamp() : 0;
+
             _lightMapRenderer.Draw(batcher, _lightManager, source, destination, worldMatrix, ambient, preset.LightMapScale, preset.BlurPasses, profile.LightIntensity,
-                profile.LightFlicker, preset.UseProceduralFalloff);
+                profile.LightFlicker, preset.UseProceduralFalloff, GetPersonalHalo());
+
+            if (LightingDebug.Enabled)
+            {
+                LightingDebug.RecordEnhanced(
+                    _lightMapRenderer.LastLightCount,
+                    _lightMapRenderer.LastMaxLights,
+                    (int) Math.Ceiling(source.Width * preset.LightMapScale),
+                    (int) Math.Ceiling(source.Height * preset.LightMapScale),
+                    Stopwatch.GetElapsedTime(start).TotalMilliseconds
+                );
+            }
         }
     }
 }

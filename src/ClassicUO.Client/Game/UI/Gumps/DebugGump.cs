@@ -149,6 +149,11 @@ namespace ClassicUO.Game.UI.Gumps
                 }
 
 
+                if (Lighting.LightingDebug.Enabled)
+                {
+                    sb.Append(Lighting.LightingDebug.GetText());
+                }
+
                 _cacheText = sb.ToString();
 
                 sb.Dispose();
