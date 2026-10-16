@@ -1,81 +1,88 @@
 # Dinamik Işık Sistemi – Tasarım Planı (M1)
 
-> Not: Teknik (D-001) tabandan bağımsızdır. Dosya yolları, kancalar ve görev ayrıntıları **MIG-4**
-> görevinde yeni tabana göre güncellenecek (upstream'de ışık kodu evrildi: `ClassicUO.Renderer/Lights/Light.cs`
-> atlas, `ClassicUO.Renderer/RenderTargets.cs`, `ClassicUO.Client/Game/Data/LightShaderData.cs` RGB + eğri).
-
-Önkoşul okuma: `docs/arch/rendering.md` §3 (mevcut ışık sistemi) ve §6 (genişletme noktaları).
+Taban: upstream `main` `ee79d7eb`. Önkoşul okuma: `docs/arch/rendering.md` §3 (mevcut ışık sistemi),
+§6 (genişletme noktaları). Teknik kararı: `docs/DECISIONS.md` D-001.
 
 ## 1. Hedefler
 
-1. Renkli dinamik ışık kaynakları (meşale, mum, lamba, büyü, alan efektleri) – yumuşak radyal düşüş.
-2. Yumuşak geçişler: ışık seviyesi değişimleri ve ışığın kendisi (yumuşak kenar, flicker).
-3. Gece/gündüz: sunucunun `0x4F` seviyesine bağlı ambient **renk** (şafak turuncu, gece mavi), yumuşatılmış.
-4. Protokol uyumu: `0x4F` (global), `0x4E` (kişisel), item `LightID` (0x1A/0xF3 içindeki light alanı) aynen kullanılır; sunucu her zaman otorite.
-5. Her şey ayarlardan kapatılabilir; kapalıyken mevcut (upstream) yol birebir çalışır.
-6. Performans: orta seviye GPU'da (GTX 1050 / RX 560 sınıfı), 1080p, 200 ışıkla **60+ FPS**; ışık sistemi kare başına ≤ 1.5 ms GPU.
+1. Renkli dinamik ışık kaynakları (meşale, mum, lamba, büyü, alan efektleri), yumuşak radyal düşüş.
+2. Yumuşak geçişler: seviye değişimleri zamanla; ışık kenarları yumuşak; ateşte flicker.
+3. Gece/gündüz: sunucunun `0x4F` seviyesine bağlı ambient **renk** (şafak turuncu, gece mavi).
+4. Protokol uyumu: `0x4F`, `0x4E`, item `LightID` aynen kullanılır; sunucu otoritedir. Mevcut
+   `Data/Client/lights.txt` ve `lightshaders.txt` dosyaları geçerli kalır.
+5. Her şey ayarlardan kapatılabilir; kapalıyken upstream yolu birebir çalışır.
+6. Performans: orta GPU (GTX 1050 / RX 560 sınıfı), 1080p, 200 ışık → **60+ FPS**; ışık sistemi ≤ 1.5 ms GPU/kare.
 
-Kapsam dışı (M2): ışıkların duvar arkasına geçmemesi için gerçek gölge/occlusion.
+Kapsam dışı (M2): ışığın duvar/kat arkasına geçmemesi (gerçek occlusion).
 
-## 2. Önerilen teknik: Ayrı light map RT + shader ile kompozit
+## 2. Teknik: ayrı light map RT + çarpımsal kompozit (×2)
 
 ```
-Dünya pass'i (değişmez) ──► viewport RT (sahne rengi)
-Işık pass'i (yeni)       ──► light RT (ambient ile temizle, ışıkları additive çiz, opsiyonel blur)
-Kompozit pass'i (yeni)   ──► ekran: sahne × (light × 2)   [overbright, tonemap/clamp]
+GameScene.DrawWorld (değişmez)       ──► WorldRenderTarget
+LightMapRenderer (yeni, dünyadan SONRA) ──► kendi light RT'miz (ölçekli; ambient/2 ile temizle,
+                                            ışıkları additive çiz /2, opsiyonel blur)
+RenderTargets.Draw (kanca)            ──► World × Light × 2  (blend: Src=DestColor, Dst=SourceColor)
 ```
 
-Ayrıntılar:
-- **Light RT** ayrı, ölçeklenebilir çözünürlükte (1/1, 1/2, 1/4). Düşük çözünürlük + bilinear örnekleme zaten yumuşak kenar verir; Yüksek kalitede ek 2-pass ayrık Gauss blur.
-- **Kodlama:** `SurfaceFormat.Color` içinde ışık değeri `/2` saklanır, kompozitte `×2` → 0..2 aralığı = overbright (meşale yanındaki pikseller sahne renginden parlak olabilir). Yüksek kalite seçeneği: `HalfVector4` RT (FNA/GL destekliyorsa) – opsiyonel, varsayılan değil.
-- **Işık sprite'ları:** yeni `Lighting.fx` içinde `LightSprite` tekniği: light.mul şekli (linear sampling) **veya** prosedürel radyal düşüş (`saturate(1 - d²)^k`) × renk × yoğunluk × flicker. Renk doğrudan RGB (vertex `Hue` alanı RGB olarak taşınır), hue tablosuna bağımlılık yok.
-- **Ambient:** light RT `Clear` rengi = `AmbientLight.Current` (RGB). Sunucu seviyesi → hedef yoğunluk; tint eğrisi → renk; hedefe zamanla lerp.
-- **Kompozit:** `WorldViewport.Draw` içinde, `_darknessBlend` çağrısı yerine `LightCompositor.Composite(...)` (yeni sınıf) tam ekran quad ile `Lighting.fx/Composite` tekniğini çalıştırır. Overhead/yazılar sonra çizildiği için etkilenmez.
-- **Işık toplama:** `GameScene.AddLight` mantığı yeni `LightManager`'a taşınır; mevcut tile örtme testi korunur. Işık tanımları (renk, yarıçap, yoğunluk, flicker) veri dosyasından (`LightDefinitions`), yoksa mevcut `LightColors` / `ItemData.LightIndex` fallback.
+- **×2 kompozit shader'sız:** blend `ColorSourceBlend = DestinationColor`, `ColorDestinationBlend = SourceColor`
+  → `src·dst + dst·src = 2·src·dst`. Light RT'de 0.5 = nötr, 1.0 = 2× parlak (overbright).
+  Gündüz: ambient 0.5 → sahne değişmez. Tonemap/renk düzenleme gerekirse M5'te shader'lı kompozite geçilir.
+- **Kendi light RT'miz** (`SurfaceFormat.Color`, ölçek 1, 1/2, 1/4). Upstream `LightRenderTarget`
+  backbuffer formatında ve tam boyutlu; ona dokunmuyoruz. `RenderTargets` yalnızca "hangi ışık texture'ı
+  çizilecek" kancası alır.
+- **Gecikmesiz:** ışık listesi aynı karede (`DrawWorld` sonrası) çizilir.
+- **Işık sprite'ları:** yeni `Lighting.fx` / `LightSprite` tekniği: atlas'tan light.mul şekli (linear)
+  **veya** prosedürel radyal düşüş × RGB × yoğunluk × flicker. Renk RGB olarak taşınır;
+  mevcut `lightshaders.txt` (s2 tablosu) ve hue renkleri RGB'ye çevrilerek kullanılır.
+- **Ambient:** `AmbientLight` sunucu seviyesinden hedef yoğunluk + gün/gece tonu üretir, zamanla yaklaşır.
+- **Işık toplama:** `GameScene.AddLight` → `LightManager.Add` (aynı örtme testi, aynı ID/renk kuralları
+  + tanım tablosundan yarıçap/yoğunluk/flicker).
 
-### Neden bu?
+### Alternatifler
 | Seçenek | Artı | Eksi | Karar |
 |---|---|---|---|
-| **A. Light map RT + kompozit (önerilen)** | Mevcut mimarinin doğal uzantısı (zaten bir light RT var); sprite shader'ına dokunmaz; ışık sayısından bağımsız tek kompozit; çözünürlük/blur ile kalite ayarlanır; post-process zincirine (M5) doğal giriş | 2D ekran uzayı → ışık duvarlardan sızar (M2'de ele alınacak) | **Seçildi** |
-| B. Forward: sprite pixel shader'ında ışık dizisi döngüsü | Piksel başına doğru, ek RT yok | ps_3_0 sabit limiti (~50 ışık), her sprite × her ışık maliyeti, tek global shader'a büyük müdahale, batch'ler state ile bölünür | Reddedildi |
-| C. Deferred + normal map | Gerçekçi 3B ışık, gelecekte HD art ile güzel | UO art'ında normal yok; G-buffer için MRT + vertex format değişikliği; büyük refactor | M6 (HD art) sonrası yeniden değerlendirilecek; A'nın light RT'si buna evrilebilir |
-| D. 2D ışık izleme / SDF GI | Gerçek yumuşak gölge | Orta GPU'da 60 FPS riskli, karmaşık | Reddedildi (M2'de sınırlı varyantı değerlendirilebilir) |
+| **A. Light map RT + ×2 kompozit** | Mevcut mimarinin uzantısı; sprite shader'ına ve mesh'lere dokunmaz; maliyet ışık sayısından büyük ölçüde bağımsız; ölçek/blur ile kalite ayarı; M5'e doğal giriş | 2D ekran uzayı → duvar arkasına sızma (M2) | **Seçildi** |
+| B. Forward (sprite shader'ında ışık döngüsü) | Piksel başına doğru | ps_3_0 sabit limiti, chunk mesh'lere per-frame ışık verisi, tek global shader'a büyük müdahale | Reddedildi |
+| C. Deferred + normal map | Gerçekçi ışık (HD art ile) | UO art'ında normal yok; MRT + vertex format değişikliği | M6 sonrası yeniden değerlendirilecek |
+| D. 2D ışık izleme / SDF GI | Gerçek yumuşak gölge | Orta GPU'da 60 FPS riskli | Reddedildi (M2'de sınırlı varyant) |
 
-## 3. Bileşenler (yeni dosyalar)
+## 3. Bileşenler
 
-`src/Game/Lighting/` (namespace `ClassicUO.Game.Lighting`):
+Yeni dosyalar:
 
-| Sınıf | Sorumluluk |
-|---|---|
-| `LightingSettings` | Profile'dan okunan ayarlar, kalite önayarları (`Off/Low/Medium/High`) |
-| `LightSource` (struct) | Ekran pozisyonu, RGB renk, yarıçap, yoğunluk, flicker seed, şekil (lightID / prosedürel) |
-| `LightManager` | Kare başına ışık toplama (`Add`), örtme testi, tanım çözümleme, sayaç; limit ≥ 512 |
-| `LightDefinitions` | `Data/Client/lights.json` benzeri veri dosyası: graphic → renk/yarıçap/yoğunluk/flicker; fallback mevcut tablolar |
-| `AmbientLight` | Sunucu `World.Light` → hedef ambient RGB; gün/gece tint eğrisi; zaman tabanlı yumuşatma |
-| `LightMapRenderer` | Light RT yönetimi (ölçek, yeniden oluşturma), ışıkları çizme, blur |
-| `LightCompositor` | Kompozit pass (sahne × ışık), `WorldViewport`'tan çağrılır |
-| `LightingEffect` (`Renderer/`) | `Lighting.fx` sarmalayıcısı (`MatrixEffect` türevi) |
+| Sınıf | Yer | Sorumluluk |
+|---|---|---|
+| `LightingSettings` | `ClassicUO.Client/Game/Lighting/` | Profil ayarları + kalite önayarları |
+| `LightSource` (struct) | `ClassicUO.Client/Game/Lighting/` | Ekran pozisyonu, RGB, yarıçap, yoğunluk, flicker seed, şekil (lightID / prosedürel) |
+| `LightManager` | `ClassicUO.Client/Game/Lighting/` | Kare başına toplama, örtme testi, tanım çözümleme; limit ≥ 512 |
+| `LightDefinitions` | `ClassicUO.Client/Game/Lighting/` | `Data/Client/lights_ex.txt`: yarıçap/yoğunluk/flicker (renk mevcut dosyalardan) |
+| `AmbientLight` | `ClassicUO.Client/Game/Lighting/` | `World.Light` → hedef ambient RGB, tint eğrisi, yumuşatma |
+| `LightMapRenderer` | `ClassicUO.Client/Game/Lighting/` | Light RT'yi doldurma (ışıklar, blur), kalite seviyeleri |
+| `LightMapTarget` | `ClassicUO.Renderer/Lighting/` | Ölçekli RT'lerin yaşam döngüsü (oluştur/boyutla/dispose) |
+| `LightingEffect` | `ClassicUO.Renderer/Effects/` | `Lighting.fx` sarmalayıcısı |
+| `Lighting.fx` / `.fxc` | `ClassicUO.Renderer/shaders/` | `LightSprite`, `BlurH`, `BlurV` |
 
-`src/shaders/Lighting.fx` (+ `.fxc`): teknikler `LightSprite`, `BlurH`, `BlurV`, `Composite`.
+Upstream kancaları (hepsi `EnhancedLighting` kapalıyken eski yol):
+- `GameScene.AddLight` → başta `if (enhanced) { _lightManager.Add(...); return; }`.
+- `GameScene.Draw` → enhanced iken `PrepareLightsRendering` atlanır, `DrawWorld` sonrası `LightMapRenderer.Draw`.
+- `GameScene.InitializeRenderTargets` → enhanced iken ×2 blend + bizim light texture.
+- `RenderTargets` → `SetLightsConfiguration`'a opsiyonel `Func<Texture2D>` (ışık texture'ı override).
+- `Batcher2D.cs` `Resources` → `[FileEmbed("shaders/Lighting.fxc")] GetLightingShader()`.
+- `Profile.cs` → yeni property'ler; `OptionsGump.cs` → ayar bölümü.
 
-Upstream dosyalara kancalar (tamamı “özellik kapalıysa eski yol” koşullu):
-- `GameScene.AddLight` → `LightManager.Add` (veya her ikisi).
-- `GameScene.DrawLights` → `LightMapRenderer.Draw`.
-- `WorldViewport.Draw` ışık bloğu → `LightCompositor.Composite`.
-- `Profile.cs` → yeni ayar property'leri. `OptionsGump.cs` → ayar arayüzü.
-
-## 4. Ayarlar ve kalite seviyeleri
+## 4. Ayarlar ve kalite
 
 | Ayar | Varsayılan | Not |
 |---|---|---|
-| `EnhancedLighting` | açık | Kapalı = birebir upstream davranışı |
+| `EnhancedLighting` | açık | Kapalı = birebir upstream |
 | `LightingQuality` | Medium | aşağıdaki tablo |
 | `LightFlicker` | açık | ateş tabanlı ışıklar |
-| `DayNightTint` | açık | ambient renk tonu; kapalıysa gri |
-| `LightTransitionSeconds` | 2.0 | 0 = anlık (eski davranış) |
-| `LightIntensity` | 1.0 | genel çarpan (0.5–2.0) |
+| `DayNightTint` | açık | kapalıysa gri ambient |
+| `LightTransitionSeconds` | 2.0 | 0 = anlık |
+| `LightIntensity` | 1.0 | 0.5–2.0 genel çarpan |
 
-Mevcut `UseColoredLights`, `UseCustomLightLevel`/`LightLevel`, `UseDarkNights`, `UseAlternativeLights` korunur ve yeni sistemde de anlamlı kalır.
+Mevcut `UseColoredLights`, `UseCustomLightLevel`/`LightLevel`/`LightLevelType`, `UseDarkNights`,
+`UseAlternativeLights` korunur ve yeni sistemde de uygulanır.
 
 | Kalite | Light RT ölçeği | Blur | Maks ışık | Prosedürel düşüş |
 |---|---|---|---|---|
@@ -85,71 +92,71 @@ Mevcut `UseColoredLights`, `UseCustomLightLevel`/`LightLevel`, `UseDarkNights`, 
 
 ## 5. Görevler
 
-Zorluk: K (kolay, <½ gün) · O (orta, ~1 gün) · Z (zor, 2+ gün). **[Codex]** = Codex'e verilebilecek kadar net.
+Zorluk: K (<½ gün) · O (~1 gün) · Z (2+ gün). **[Codex]** = Codex'e verilebilecek kadar net.
+ID'ler sabittir (PLAN.md ile eşleşir).
 
 ### L1 – Işık limitini ID limitinden ayır **[Codex]** · K
-- Dosyalar: `Game/Constants.cs` (yeni `MAX_LIGHTS_PER_FRAME`), `Game/Scenes/GameScene.cs` (`_lights` boyutu, `AddLight` limit kontrolü).
-- Kabul: `MAX_LIGHTS_DATA_INDEX_COUNT` yalnızca light.mul ID'si için kullanılıyor; 300 ışıklı bir sahnede (ör. Britain bankası önü çok mum) hepsi çiziliyor; görsel fark başka yok.
+- Dosyalar: `ClassicUO.Client/Game/Constants.cs` (yeni `MAX_LIGHTS_PER_FRAME = 512`), `Game/Scenes/GameScene.cs` (`_lights` boyutu ve `AddLight` başındaki limit).
+- Kabul: `LightsLoader.MAX_LIGHTS_DATA_INDEX_COUNT` yalnızca ID kontrolünde kalıyor; 100'den fazla ışıklı sahnede hepsi çiziliyor; başka görsel fark yok.
 
 ### L2 – `LightingSettings` + Profile ayarları **[Codex]** · K
-- Dosyalar: yeni `Game/Lighting/LightingSettings.cs`; `Configuration/Profile.cs` (§4'teki property'ler, `[JsonProperty]`).
-- Kabul: Eski profile.json ile açılış hatasız, varsayılanlar §4'teki gibi; ayarlar kaydedilip yeniden yükleniyor.
+- Dosyalar: yeni `Game/Lighting/LightingSettings.cs`; `Configuration/Profile.cs` (§4 property'leri; serileştirme `ProfileJsonContext` source-gen ile, mevcut property kalıbına uy).
+- Kabul: Eski `profile.json` ile açılış hatasız; varsayılanlar §4; kaydet/yükle döngüsü çalışıyor.
 
-### L3 – `LightManager`'a taşıma (davranış değişmeden) · O
-- Dosyalar: yeni `Game/Lighting/LightManager.cs`, `LightSource.cs`; `GameScene.cs` (`AddLight`, `DrawLights` delegasyon).
-- Kabul: `EnhancedLighting` açık/kapalı fark etmeksizin ekran görüntüleri değişiklik öncesiyle piksel piksel aynı (aynı konum, gece). `GameScene` diff'i < 30 satır.
+### L3 – `LightManager`'a taşıma (davranış değişmeden) · O · Claude Code
+- Dosyalar: yeni `Game/Lighting/LightManager.cs`, `LightSource.cs`; `GameScene.cs` (`AddLight`, `PrepareLightsRendering` delegasyonu).
+- Kabul: Enhanced kapalıyken gece ekran görüntüleri değişiklik öncesiyle aynı; `GameScene.cs` diff'i < 30 satır.
 
-### L4 – `Lighting.fx` + `LightingEffect` · O
-- Dosyalar: yeni `shaders/Lighting.fx`, `.fxc`, `Renderer/LightingEffect.cs`; `ClassicUO.csproj` (EmbeddedResource); `Batcher2D.cs` `Resources` sınıfına getter.
-- Kabul: Dört teknik derleniyor (fx_2_0), runtime'da yükleniyor; basit test: tek ışık sprite'ı + kompozit doğru çıktı veriyor (Windows D3D/GL).
+### L4 – `Lighting.fx` + `LightingEffect` · O · Claude Code
+- Dosyalar: yeni `ClassicUO.Renderer/shaders/Lighting.fx` + `.fxc`, `Effects/LightingEffect.cs`; `Batcher2D.cs` `Resources` getter; `compile_shaders.bat`'e satır.
+- Kabul: Teknikler `fxc /T fx_2_0` ile derleniyor, FileEmbed ile yükleniyor; tek ışık sprite testi D3D11 ve OpenGL'de doğru.
 
-### L5 – Shader derleme scripti **[Codex]** · K
-- Dosyalar: `shaders/compile_shaders.bat` → fxc yolunu otomatik bulan `shaders/compile_shaders.ps1`; `docs/BUILD.md`'ye bölüm.
-- Kabul: Tek komutla tüm `.fx` → `.fxc`; fxc bulunamazsa anlaşılır hata.
+### L5 – ~~Shader derleme scripti~~ · kaldırıldı
+- Upstream `fxc.exe` + `compile_shaders.bat` içeriyor; Lighting.fx satırı L4'e dahil.
 
-### L6 – `LightMapRenderer` + `LightCompositor` (çekirdek) · Z
-- Dosyalar: yeni `Game/Lighting/LightMapRenderer.cs`, `LightCompositor.cs`; `GameSceneDrawingSorting.cs` (RT oluşturma kancası), `WorldViewport.cs` (kompozit kancası).
-- Kabul: Enhanced açıkken gece sahnesi: ışıklar ölçekli RT'de, ×2 overbright ile birleşiyor; kapalıyken eski yol. Zoom 0.5–2.5 ve pencere boyutlandırmada RT doğru yeniden kuruluyor, sızıntı yok (RT'ler dispose).
+### L6 – `LightMapRenderer` + kompozit (çekirdek) · Z · Claude Code
+- Dosyalar: yeni `Game/Lighting/LightMapRenderer.cs`, `ClassicUO.Renderer/Lighting/LightMapTarget.cs`; `GameScene.cs` (`Draw`, `InitializeRenderTargets` kancaları), `RenderTargets.cs` (ışık texture override).
+- Kabul: Enhanced açıkken ışıklar aynı karede, ölçekli RT'de, ×2 blend ile birleşiyor; gündüz sahnesi enhanced açık/kapalı aynı görünüyor; zoom ve pencere/DPI değişiminde RT doğru yeniden kuruluyor, sızıntı yok.
 
-### L7 – `AmbientLight`: yumuşak geçiş + gün/gece tonu · O
-- Dosyalar: yeni `Game/Lighting/AmbientLight.cs`; `LightMapRenderer` clear rengi.
-- Kabul: `0x4F` 0→30 değişiminde ambient `LightTransitionSeconds` içinde doğrusal/smoothstep geçiyor; tint kapalıyken gri ve eski `IsometricLevel` ile aynı son değer. `UseCustomLightLevel` hâlâ çalışıyor. Birim testi: verilen seviye ve zamana göre beklenen RGB.
+### L7 – `AmbientLight`: yumuşak geçiş + gün/gece tonu · O · Claude Code
+- Dosyalar: yeni `Game/Lighting/AmbientLight.cs`; `LightMapRenderer` clear rengi; birim testi `tests/ClassicUO.UnitTests/`.
+- Kabul: `0x4F` değişiminde ambient `LightTransitionSeconds` içinde smoothstep geçiyor; tint kapalıyken son değer eski `IsometricLevel` ile aynı; `UseCustomLightLevel` + `LightLevelType` çalışıyor; test seviye/zaman → beklenen RGB.
 
-### L8 – Işık tanım tablosu (`LightDefinitions`) **[Codex]** · O
-- Dosyalar: yeni `Game/Lighting/LightDefinitions.cs`, varsayılan `lights.json` (çıktı klasörüne kopyalanır), `.csproj`.
-- Kabul: JSON şeması dokümante (`graphic`, `color` "#RRGGBB", `radius`, `intensity`, `flicker`); dosya yok/bozuksa log + `LightColors` fallback; meşale/mum/lamba/brazier/ateş alanı/enerji alanı için en az 25 giriş.
+### L8 – Işık tanım genişletmesi (`lights_ex.txt`) **[Codex]** · K–O
+- Upstream `lights.txt` (renk) ve `lightshaders.txt` (RGB + eğri) zaten var; bunlara dokunma.
+- Dosyalar: yeni `Game/Lighting/LightDefinitions.cs`; `Data/Client/lights_ex.txt` yoksa örnekli varsayılan oluşturulur (`LightColors.LoadLights` kalıbıyla, `TextFileParser`).
+- Format: `ITEM_ID RADIUS INTENSITY FLICKER` (ör. `0x0A0F 1.2 1.0 fire`); bilinmeyen/bozuk satır loglanıp atlanır.
+- Kabul: meşale/mum/lamba/brazier/şamdan/ateş alanı/enerji alanı için ≥ 25 varsayılan giriş; dosya silinince yeniden oluşuyor.
 
-### L9 – Prosedürel ışık + renk + flicker · O
+### L9 – Prosedürel ışık + RGB renk + flicker · O · Claude Code
 - Dosyalar: `LightMapRenderer.cs`, `Lighting.fx` (`LightSprite`), `LightManager.cs`.
-- Kabul: Ateş tabanlı ışıklar `Time.Ticks` tabanlı (kare hızından bağımsız) titriyor, seed konumdan → komşu meşaleler senkron değil; `LightFlicker` kapalıyken sabit.
+- Kabul: Ateş ışıkları `Time.Ticks` tabanlı titriyor (FPS'ten bağımsız), seed konumdan; `LightFlicker` kapalıyken sabit; `lightshaders.txt` renkleri korunuyor.
 
-### L10 – Yumuşak light map: blur + kalite seviyeleri · O
-- Dosyalar: `LightMapRenderer.cs`, `Lighting.fx` (`BlurH/BlurV`), `LightingSettings.cs`.
-- Kabul: Low/Medium/High §4 tablosuna uyuyor; High'da ışık kenarında 5-bit kademelenme görünmüyor.
+### L10 – Yumuşak light map: blur + kalite seviyeleri · O · Claude Code
+- Dosyalar: `LightMapRenderer.cs`, `Lighting.fx` (`BlurH`, `BlurV`), `LightingSettings.cs`.
+- Kabul: Low/Medium/High §4 tablosuna uyuyor; High'da ışık kenarında kademelenme yok.
 
-### L11 – Kişisel ışık (0x4E) görselleştirmesi · O (opsiyonel)
-- Dosyalar: `LightManager.cs` (oyuncu etrafında radyal ışık), `AmbientLight.cs`.
-- Kabul: `0x4E` > 0 iken oyuncu etrafında yumuşak hale; global ambient'i değiştirme davranışı, eski sistemle aynı **görünürlüğü** sağlıyor (oyuncu karanlıkta eskisinden daha az görmüyor). Ölçek tutarsızlığı (bkz. rendering.md §3) doğrulanıp not edilecek.
+### L11 – Kişisel ışık (0x4E) görselleştirmesi · O (opsiyonel) · Claude Code
+- Dosyalar: `LightManager.cs`, `AmbientLight.cs`.
+- Kabul: `0x4E` > 0 iken oyuncu çevresinde yumuşak hale; oyuncu karanlıkta eski sistemden daha az görmüyor; `IsometricLevel` formülündeki ölçek şüphesi doğrulanıp not edilmiş.
 
 ### L12 – Ayarlar arayüzü **[Codex]** · O
-- Dosyalar: `Game/UI/Gumps/OptionsGump.cs` (mevcut ışık ayarlarının yanına bölüm).
-- Kabul: §4'teki tüm ayarlar UI'dan değişiyor ve oyun yeniden başlatmadan uygulanıyor.
+- Dosyalar: `Game/UI/Gumps/OptionsGump.cs` (mevcut ışık bölümünün yanına: `LightLevelType` civarı); metinler `Resources/ResGumps` kalıbıyla.
+- Kabul: §4 ayarları UI'dan değişiyor, yeniden başlatmadan uygulanıyor.
 
-### L13 – Debug overlay + performans ölçümü **[Codex]** · K
-- Dosyalar: yeni `Game/Lighting/LightingDebug.cs`; bir komut (`CommandManager`, ör. `-lightdebug`).
-- Kabul: Ekranda ışık sayısı, light RT boyutu, ışık pass süresi (ms); light map'i tek başına gösterme modu.
+### L13 – Debug overlay + ölçüm **[Codex]** · K
+- Dosyalar: yeni `Game/Lighting/LightingDebug.cs`; `CommandManager`'a komut (ör. `lightdebug`); `Profiler` bağlamı.
+- Kabul: Işık sayısı, light RT boyutu, ışık pass süresi (ms) ekranda; light map'i tek başına gösterme modu.
 
-### L14 – Performans doğrulama ve kabul · O
-- Sahip: Claude Code (ölçüm Codex ile).
-- Kabul: §1/6'daki hedef; 3 senaryo (açık alan gece, şehir gece, zindan), Low/Medium/High için FPS tablosu `docs/PLAN.md`'ye.
+### L14 – Performans doğrulama ve kabul · O · Claude Code (+ Codex ölçüm)
+- Kabul: §1/6 hedefi; açık alan gece, şehir gece, zindan × Low/Medium/High FPS tablosu `docs/PLAN.md`'de.
 
-**Sıra / bağımlılık:** L1, L2, L5 paralel → L3 → L4 → L6 → (L7, L8, L9, L10 paralel) → L11, L12, L13 → L14.
-
-Toplam: **14 görev** (Codex'e uygun: L1, L2, L5, L8, L12, L13 = 6).
+**Sıra:** L1, L2 paralel → L3 → L4 → L6 → (L7, L8, L9, L10 paralel) → L11, L12, L13 → L14.
+Toplam **13 aktif görev** (L5 kaldırıldı); Codex'e uygun: L1, L2, L8, L12, L13.
 
 ## 6. Riskler
 
-- Taban sürüm (2020 snapshot) — upstream'e geçilirse L3/L6 kancaları yeniden yazılır. M1'e başlamadan karar (DECISIONS D-002).
-- Işık sızıntısı (duvar/kat arkası) – 2D yaklaşımın doğası; M2.
-- MojoShader/GL farkları – D3D ve OpenGL arka uçlarında test şart.
-- Overbright kompozit, gündüz sahnelerini değiştirmemeli: gündüz ambient = 0.5 (×2 = 1.0) → nötr.
+- Işık sızıntısı (duvar/kat arkası) – 2D yaklaşımın doğası; M2. Depth texture örneklenemediği için M2'de MRT ile derinlik hedefi gerekebilir.
+- MojoShader/GL farkları – D3D11 ve OpenGL'de test şart.
+- ×2 kompozit 8-bit hassasiyette ambient'i yarıya sıkıştırır (koyu tonlarda hafif bantlanma); görülürse High kalitede `HalfVector4` RT seçeneği.
+- Upstream merge çakışmaları: kancalar `GameScene.cs`, `RenderTargets.cs`, `Profile.cs`, `OptionsGump.cs`'te; diff'leri küçük tut.

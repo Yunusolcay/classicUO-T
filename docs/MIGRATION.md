@@ -16,7 +16,7 @@ Upstream senkronu: `git fetch upstream && git merge upstream/main` (main üzerin
 
 ## Görevler
 
-### MIG-1 – Dalları yayımla ve varsayılan dalı değiştir · Kullanıcı · K
+### MIG-1 – Dalları yayımla ve varsayılan dalı değiştir · Kullanıcı · K · ✅ 2026-10-16 (Claude Code çalıştırdı)
 - `git push origin main legacy/2020`; GitHub'da varsayılan dalı `main` yap.
 - Ana klasörü `main`'e geçir, submodule'leri çek: `git switch main && git submodule update --init --recursive`.
 - Worktree'leri yeni tabanda aç: `git worktree add ../cuo-claude-v2 -b analiz/render-v2 main`, `git worktree add ../cuo-codex-v2 -b analiz/build-network-v2 main`.
@@ -26,11 +26,11 @@ Upstream senkronu: `git fetch upstream && git merge upstream/main` (main üzerin
 - .NET 10 SDK, submodule'ler, `dotnet build`/`publish` (Release, Windows x64). `docs/BUILD.md`, kökte `build.ps1`, `.gitignore` (UO verisi `*.mul *.uop *.idx *.def`, `settings.json`, profiller, build çıktıları).
 - Kabul: Temiz klon + `build.ps1` ile çalışan exe; `settings.json` örneği veri yolu `D:\Games\Electronic Arts\Ultima Online Classic`, `clientversion` `7.0.20.0`.
 
-### MIG-3 – Render haritasını yenile · **Claude Code** · O
+### MIG-3 – Render haritasını yenile · **Claude Code** · O · ✅ 2026-10-16
 - `docs/arch/rendering.md`'yi yeni koda göre yeniden yaz (eski sürüm `legacy/2020` dalında kalır).
 - Kabul: Tüm yollar/metotlar `main` ile eşleşiyor; upstream'deki ışık değişiklikleri (atlas, `LightShaderData`, `RenderTargets`) belgelenmiş.
 
-### MIG-4 – Işık planını yeni tabana uyarla · **Claude Code** · K–O
+### MIG-4 – Işık planını yeni tabana uyarla · **Claude Code** · K–O · ✅ 2026-10-16
 - `docs/LIGHTING_PLAN.md`: dosya yolları, kancalar; upstream'in zaten yaptığı işler varsa görevlerden düş (ör. L8 renk verisi kısmen `LightShaderData` ile mevcut olabilir).
 - Kabul: Her görevdeki dosya yolu `main`'de mevcut ya da “yeni dosya” olarak işaretli; görev sayısı ve sahipler güncel.
 

@@ -2,8 +2,9 @@
 
 Format: her karar için tarih, durum, bağlam, karar, gerekçe, sonuçlar.
 
-## D-001 – Işık tekniği: ayrı light map RT + shader ile kompozit
-- **Tarih:** 2026-10-16 · **Durum:** Kabul edildi (öneri, kullanıcı onayı bekliyor)
+## D-001 – Işık tekniği: ayrı light map RT + çarpımsal ×2 kompozit
+- **Tarih:** 2026-10-16 · **Durum:** Kabul edildi (kullanıcı kararları Claude Code'a bıraktı)
+- **Güncelleme (yeni taban, MIG-4):** Kompozit için shader gerekmiyor: blend `Src=DestinationColor, Dst=SourceColor` → `2·sahne·ışık`. Light RT bizim (ölçekli, `ClassicUO.Renderer/Lighting/`); upstream `RenderTargets`'a yalnızca ışık texture'ı kancası eklenir. Işık pass'i dünyadan sonraya alınarak upstream'deki 1 kare gecikme giderilir. Renkler için upstream'in `lights.txt`/`lightshaders.txt` dosyaları korunur; yarıçap/yoğunluk/flicker yeni `lights_ex.txt`'ten.
 - **Bağlam:** Mevcut istemci zaten bir light RT kullanıyor (gri ambient + light.mul sprite'ları, çarpımsal blend). Hedef: renkli, yumuşak, overbright destekli dinamik ışık ve gece/gündüz tonu; orta GPU'da 60+ FPS; ayarlardan kapatılabilirlik; upstream'e minimum müdahale.
 - **Karar:** Light map ayrı, ölçeklenebilir bir RT'de üretilir (ambient renk ile temizlenir, ışıklar additive çizilir, opsiyonel blur), sonra tam ekran kompozit shader'ı ile `sahne × ışık × 2` olarak birleştirilir. Yeni kod `src/Game/Lighting/` + `shaders/Lighting.fx`; upstream dosyalara yalnızca koşullu kancalar.
 - **Gerekçe:** Mevcut mimarinin doğal uzantısı; sprite shader'ına ve vertex formatına dokunmaz; maliyet ışık sayısından büyük ölçüde bağımsız; kalite RT ölçeği ve blur ile ayarlanır; M5 post-process zincirine doğal giriş noktası. Forward (sprite shader içinde ışık döngüsü) ps_3_0 limitleri ve batch maliyeti nedeniyle; deferred/normal-map UO art'ında normal olmadığı için reddedildi (HD art sonrası tekrar değerlendirilebilir).
