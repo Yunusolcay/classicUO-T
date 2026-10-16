@@ -211,8 +211,6 @@ namespace ClassicUO.Game.Scenes
                     mesh.Statics.BuildVisibleIndices();
                 if (mesh.Decor.Count > 0)
                     mesh.Decor.BuildVisibleIndices();
-                if (mesh.LandBlend.Count > 0)
-                    mesh.LandBlend.BuildVisibleIndices();
             }
 
             // Draw chunk mesh land tiles from GPU buffers with per-frame visibility
@@ -220,18 +218,6 @@ namespace ClassicUO.Game.Scenes
             foreach (var chunk in visibleChunks)
                 result += DrawMeshLayer(batcher, chunk.Mesh.Land);
             batcher.ResetWorldOffset();
-
-            // Terrain transitions (docs/TERRAIN_BLEND_PLAN.md): over their own tile's ground depth,
-            // depth read only, so roads, statics and everything after still paint over them
-            if (Map.ChunkMesh.DrawTerrainBlend)
-            {
-                batcher.SetStencil(DepthStencilState.DepthRead);
-                batcher.SetWorldOffset(offsetX, offsetY);
-                foreach (var chunk in visibleChunks)
-                    result += DrawMeshLayer(batcher, chunk.Mesh.LandBlend);
-                batcher.ResetWorldOffset();
-                batcher.SetStencil(DepthStencilState.Default);
-            }
 
             // Draw excluded land tiles (animated water, etc.)
             result += DrawRenderList(batcher, _tiles, maxGroundZ);

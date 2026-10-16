@@ -132,10 +132,10 @@ Kaynak: [SHADOWS_PLAN.md](SHADOWS_PLAN.md).
 
 ## M7 — Ek görseller (2026-10-17)
 
-- [ ] Büyü/efekt görselleri: renkli efekt ışıkları, mermi izi, çarpma parlaması ([EFFECTS_PLAN.md](EFFECTS_PLAN.md)). 🔶 kod hazır.
-- [ ] Hedef/hover konturu, notoriety renginde ([OUTLINE_PLAN.md](OUTLINE_PLAN.md)). 🔶 kod hazır.
-- [ ] Bölge atmosferi: zindan/kar/çöl/jungle/bataklık/volkanik/void tonu ve pusu ([ATMOSPHERE_PLAN.md](ATMOSPHERE_PLAN.md)). 🔶 kod hazır.
-- [ ] Zemin geçişleri: komşu texmap'in kenardan sönen şeridi ([TERRAIN_BLEND_PLAN.md](TERRAIN_BLEND_PLAN.md)). 🔶 kod hazır.
+- [ ] Büyü/efekt görselleri: renkli efekt ışıkları, mermi izi, çarpma parlaması ([EFFECTS_PLAN.md](EFFECTS_PLAN.md)). 🔶 yayında, oyun içi kabul bekliyor.
+- [ ] Hedef/hover konturu, notoriety renginde ([OUTLINE_PLAN.md](OUTLINE_PLAN.md)). 🔶 yayında, oyun içi kabul bekliyor.
+- [ ] Bölge atmosferi: zindan/kar/çöl/jungle/bataklık/volkanik/void tonu ve pusu ([ATMOSPHERE_PLAN.md](ATMOSPHERE_PLAN.md)). 🔶 yayında, oyun içi kabul bekliyor.
+- [x] ~~Zemin geçişleri~~ — iptal (2026-10-17). İki sürüm denendi (komşu texmap'in kenardan sönen saydam şeridi; ardından opak, gürültülü, tek taraflı kıyı). Oyun içi testte ikisi de doğal görünmedi (hayalet/çamur görüntü, karo ızgarasını vurgulayan desen); kod geri alındı (`2328cbce8`, `f8f75b8a1`). UO'nun kendi geçiş karoları yeterli kabul edildi; tekrar ele alınırsa çözüm büyük olasılıkla sanatçı yapımı geçiş dokuları (M6 içerik katmanı) olur, shader değil.
 
 ## M6 — Değiştirilebilir art paketleri
 

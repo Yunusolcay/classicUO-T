@@ -23,8 +23,6 @@ namespace ClassicUO.Renderer
         public const byte SHADER_NATURE_GRASS_LIT = 12;
         // water light pattern and shore foam (docs/WATER_WEATHER_PLAN.md)
         public const byte SHADER_WATER = 13;
-        // neighbour terrain texture fading in from a tile edge (docs/TERRAIN_BLEND_PLAN.md)
-        public const byte SHADER_TERRAIN_BLEND = 14;
 
         private const byte GUMP_OFFSET = 20;
 

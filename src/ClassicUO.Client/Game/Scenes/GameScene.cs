@@ -516,7 +516,6 @@ namespace ClassicUO.Game.Scenes
                     // Build chunk mesh if dirty
                     if (chunk.Mesh.IsDirty || chunk.Mesh.BuiltWithNatureEffects != Data.NatureTiles.Enabled
                         || chunk.Mesh.BuiltWithWaterEffect != ProfileManager.CurrentProfile.AnimatedWaterEffect
-                        || chunk.Mesh.BuiltWithTerrainBlend != ProfileManager.CurrentProfile.SoftTerrainTransitions
                         || chunk.Mesh.BuiltHdGeneration != HdWorldPack.MeshGeneration)
                     {
                         chunk.Mesh.Build(chunk, _world, Client.Game.GraphicsDevice);
