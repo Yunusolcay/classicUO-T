@@ -39,7 +39,8 @@ renk düzenlemeye sokar. Görsel sonuç L15'te test edilecek; Enhanced kapalıyk
   **Güncelleme (L6.1):** İlk oyun içi testte üst üste binen lambalar art'ı düz sarı-turuncuya yaktı (2× sert tavan +
   Modern look glow). Kompozit artık shader'lı (`LightingEffect.Composite`): ışık 1'e kadar aynen, üstü yumuşak eğriyle
   `OverbrightLimit`'e (0.35 × `light_intensity`) yaklaşır; ışık renkleri %75 doygunlukta tutulur. Light map s0'da
-  (linear, hedefe gerilir), dünya s1'de (`WorldTexture`, 1:1 olduğu için batcher'ın point örneklemesi doğru).
+  (linear, hedefe gerilir), dünya s3'te (`WorldTexture`, 1:1 olduğu için batcher'ın point örneklemesi doğru). s1/s2'yi kullanma: bkz. rendering.md
+  "Hue tabloları" notu (ilk sürüm s1'i boşaltıp karakter ve gump'ları siyah çizdirdi).
 - **Kendi light RT'miz** (`SurfaceFormat.Color`, ölçek 1, 1/2, 1/4). Upstream `LightRenderTarget`
   backbuffer formatında ve tam boyutlu; ona dokunmuyoruz. Kompozit `GameScene` içinde (E10) yapılır;
   `RenderTargets` değişmez: enhanced iken upstream Light RT'si, upstream'in kendi "ışık yok" yolundaki gibi
