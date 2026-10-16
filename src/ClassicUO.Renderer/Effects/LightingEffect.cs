@@ -16,12 +16,14 @@ namespace ClassicUO.Renderer
             OverbrightLimit = Parameters["OverbrightLimit"];
             LightSaturation = Parameters["LightSaturation"];
             WorldTexture = Parameters["WorldTexture"];
+            BloomThreshold = Parameters["BloomThreshold"];
 
             LightTexture = Techniques["LightTexture"];
             LightRadial = Techniques["LightRadial"];
             BlurH = Techniques["BlurH"];
             BlurV = Techniques["BlurV"];
             Composite = Techniques["Composite"];
+            BrightPass = Techniques["BrightPass"];
 
             CurrentTechnique = LightTexture;
             FalloffPower.SetValue(2f);
@@ -35,6 +37,7 @@ namespace ClassicUO.Renderer
         public EffectParameter OverbrightLimit { get; }
         public EffectParameter LightSaturation { get; }
         public EffectParameter WorldTexture { get; }
+        public EffectParameter BloomThreshold { get; }
 
         // light.mul shapes from the light atlas, tinted by the vertex RGB
         public EffectTechnique LightTexture { get; }
@@ -44,6 +47,8 @@ namespace ClassicUO.Renderer
         public EffectTechnique BlurV { get; }
         // light map over the target (s0) multiplied into WorldTexture (s3) with a soft overbright limit
         public EffectTechnique Composite { get; }
+        // bloom: bright parts of the source, averaged down to a quarter size
+        public EffectTechnique BrightPass { get; }
 
         // Same projection the batcher uses for its own effect: the batcher does not set it on
         // custom effects. Call after the render target and viewport are set.

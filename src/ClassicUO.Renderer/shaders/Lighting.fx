@@ -14,6 +14,8 @@ float FalloffPower;
 float OverbrightLimit;
 // composite: 1 keeps the light colors, 0 makes the lights white
 float LightSaturation;
+// bloom bright pass: luma where the glow starts (docs/BLOOM_PLAN.md)
+float BloomThreshold;
 
 sampler Source : register(s0);
 
@@ -115,6 +117,24 @@ float4 composite(PS_INPUT IN) : COLOR0
     return float4(world * light, 1.0);
 }
 
+// Bloom bright pass: four linear taps one source texel apart average a 4x4 block (the target is a
+// quarter of the source size), then only what is brighter than the threshold is kept.
+float4 bright_pass(PS_INPUT IN) : COLOR0
+{
+    float2 uv = IN.TexCoord.xy;
+    float2 h = TexelSize;
+
+    float3 c = tex2D(Source, uv + float2(-h.x, -h.y)).rgb;
+    c += tex2D(Source, uv + float2(h.x, -h.y)).rgb;
+    c += tex2D(Source, uv + float2(-h.x, h.y)).rgb;
+    c += tex2D(Source, uv + float2(h.x, h.y)).rgb;
+    c *= 0.25;
+
+    float keep = smoothstep(BloomThreshold, BloomThreshold + 0.25, dot(c, LUMA));
+
+    return float4(c * keep, 1.0);
+}
+
 technique LightTexture
 {
     pass P0
@@ -157,5 +177,14 @@ technique Composite
     {
         VertexShader = compile vs_3_0 main_vertex();
         PixelShader = compile ps_3_0 composite();
+    }
+}
+
+technique BrightPass
+{
+    pass P0
+    {
+        VertexShader = compile vs_3_0 main_vertex();
+        PixelShader = compile ps_3_0 bright_pass();
     }
 }

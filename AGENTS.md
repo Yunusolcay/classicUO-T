@@ -41,6 +41,7 @@ Oynanış ve protokol uyumluluğu korunur; değişiklikler görsel katmanda yoğ
 - docs/SHADOWS_PLAN.md     – gölge sistemi tasarımı (M2)
 - docs/CAMERA_PLAN.md      – kamera ve zoom akıcılığı (M4)
 - docs/WATER_WEATHER_PLAN.md – su ve hava durumu (M3)
+- docs/BLOOM_PLAN.md       – bloom / parlama (M5)
 - docs/PLAN.md             – kilometre taşları ve görev durumu
 - docs/DECISIONS.md        – alınan kararlar ve nedenleri
 
