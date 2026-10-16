@@ -36,6 +36,10 @@ renk düzenlemeye sokar. Görsel sonuç L15'te test edilecek; Enhanced kapalıyk
 - **×2 kompozit shader'sız:** blend `ColorSourceBlend = DestinationColor`, `ColorDestinationBlend = SourceColor`
   → `src·dst + dst·src = 2·src·dst`. Light RT'de 0.5 = nötr, 1.0 = 2× parlak (overbright).
   Gündüz: ambient 0.5 → sahne değişmez. Tonemap/renk düzenleme gerekirse M5'te shader'lı kompozite geçilir.
+  **Güncelleme (L6.1):** İlk oyun içi testte üst üste binen lambalar art'ı düz sarı-turuncuya yaktı (2× sert tavan +
+  Modern look glow). Kompozit artık shader'lı (`LightingEffect.Composite`): ışık 1'e kadar aynen, üstü yumuşak eğriyle
+  `OverbrightLimit`'e (0.35 × `light_intensity`) yaklaşır; ışık renkleri %75 doygunlukta tutulur. Light map s0'da
+  (linear, hedefe gerilir), dünya s1'de (`WorldTexture`, 1:1 olduğu için batcher'ın point örneklemesi doğru).
 - **Kendi light RT'miz** (`SurfaceFormat.Color`, ölçek 1, 1/2, 1/4). Upstream `LightRenderTarget`
   backbuffer formatında ve tam boyutlu; ona dokunmuyoruz. Kompozit `GameScene` içinde (E10) yapılır;
   `RenderTargets` değişmez: enhanced iken upstream Light RT'si, upstream'in kendi "ışık yok" yolundaki gibi
@@ -130,6 +134,8 @@ ID'ler sabittir (PLAN.md ile eşleşir).
 - Not: Bu aşamada ışık sprite'ları upstream renkleriyle (s2 tablosu / hue) varsayılan effect ile, `BlendFactor` 0.5'li additive
   ile çizilir; RGB/prosedürel ışık L9'da, blur L10'da `LightingEffect`'e geçer. Sınırlama: Enhanced yalnız normal gece
   karanlığında; gündüz, `UseAltLights` ve ölü siyah-beyaz görünümde eski yol.
+- L6.1 (oyun içi ilk test sonrası): ×2 blend yerine yumuşak tavanlı shader kompoziti (§2 güncellemesi); `light_intensity`
+  aşırı parlamanın sınırını ölçekler (0 = art'tan parlak olmaz).
 - Dosyalar: yeni `Game/Lighting/LightMapRenderer.cs`, `ClassicUO.Renderer/Lighting/LightMapTarget.cs`; `Game/Scenes/GameSceneLighting.cs` (partial: `UseEnhancedLighting`, `DisableLegacyLightLayer`, `DrawEnhancedLights`); `GameScene.cs` (`Draw` kancası E10, `Unload` dispose).
 - Kabul: `LightingEffect` D3D11 ve OpenGL arka uçlarında yükleniyor (yüklenemezse Modern look gibi loglanıp Enhanced kapanıyor); Enhanced açıkken ışıklar aynı karede, ölçekli RT'de, ×2 blend ile dünya hedefine gömülüyor; Modern look açık/kapalı, xBR zoom filtresi açık/kapalı ve HD world pack ile doğru; gündüz sahnesi enhanced açık/kapalı aynı; zoom ve pencere/DPI değişiminde RT doğru yeniden kuruluyor, sızıntı yok.
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 // Enhanced lighting (docs/LIGHTING_PLAN.md): light sprites drawn additively into the light map,
-// and a separable blur for the high quality soft light map.
+// a separable blur for the high quality soft light map, and the composite of the world with it.
 //
 // Light sprites take their color from the vertex Hue as plain RGB (intensity already applied by
 // the caller, light map encoding included). Output alpha is 1 so BlendState.Additive adds the RGB.
@@ -10,8 +10,21 @@ float4x4 MatrixTransform;
 float2 TexelSize;
 // radial lights: higher values give a tighter core
 float FalloffPower;
+// composite: largest brightening above the art (0.35 = 35%), already scaled by the light intensity
+float OverbrightLimit;
+// composite: 1 keeps the light colors, 0 makes the lights white
+float LightSaturation;
 
 sampler Source : register(s0);
+
+// composite: the world image, same size as the target so the batcher's point sampling on s1 is exact
+texture WorldTexture;
+sampler World : register(s1) = sampler_state
+{
+    Texture = <WorldTexture>;
+};
+
+static const float3 LUMA = float3(0.2126, 0.7152, 0.0722);
 
 struct VS_INPUT
 {
@@ -84,6 +97,23 @@ float4 blur_vertical(PS_INPUT IN) : COLOR0
     return float4(blur(IN.TexCoord.xy, float2(0, TexelSize.y)), 1.0);
 }
 
+// Light map drawn over the whole target (s0, linear), multiplied into the world (s1). The map stores
+// half the light: up to 1 the art is darkened as before, above it the extra light rolls off
+// towards OverbrightLimit so overlapping lights cannot burn the art into flat color.
+float4 composite(PS_INPUT IN) : COLOR0
+{
+    float3 light = tex2D(Source, IN.TexCoord.xy).rgb * 2.0;
+    float3 world = tex2D(World, IN.TexCoord.xy).rgb;
+
+    light = lerp(dot(light, LUMA).xxx, light, LightSaturation);
+
+    float3 over = max(light - 1.0, 0.0);
+    float limit = max(OverbrightLimit, 0.0001);
+    light = min(light, 1.0) + limit * (1.0 - exp(-over / limit));
+
+    return float4(world * light, 1.0);
+}
+
 technique LightTexture
 {
     pass P0
@@ -117,5 +147,14 @@ technique BlurV
     {
         VertexShader = compile vs_3_0 main_vertex();
         PixelShader = compile ps_3_0 blur_vertical();
+    }
+}
+
+technique Composite
+{
+    pass P0
+    {
+        VertexShader = compile vs_3_0 main_vertex();
+        PixelShader = compile ps_3_0 composite();
     }
 }

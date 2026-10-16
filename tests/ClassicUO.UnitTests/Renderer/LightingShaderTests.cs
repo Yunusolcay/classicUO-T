@@ -22,9 +22,13 @@ namespace ClassicUO.UnitTests.Renderer
         [InlineData("LightRadial")]
         [InlineData("BlurH")]
         [InlineData("BlurV")]
+        [InlineData("Composite")]
         [InlineData("MatrixTransform")]
         [InlineData("TexelSize")]
         [InlineData("FalloffPower")]
+        [InlineData("OverbrightLimit")]
+        [InlineData("LightSaturation")]
+        [InlineData("WorldTexture")]
         public void Embedded_Shader_Has_The_Names_LightingEffect_Looks_Up(string name)
         {
             // LightingEffect reads these techniques and parameters by name; a stale .fxc would miss them
