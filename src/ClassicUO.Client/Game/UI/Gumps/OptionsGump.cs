@@ -2259,7 +2259,7 @@ namespace ClassicUO.Game.UI.Gumps
                 (
                     null,
                     "Soft terrain transitions",
-                    _currentProfile.TerrainBlending,
+                    _currentProfile.SoftTerrainTransitions,
                     startX,
                     startY
                 )
@@ -4105,7 +4105,7 @@ namespace ClassicUO.Game.UI.Gumps
                     _enhancedEffects.IsChecked = true;
                     _mobileOutline.IsChecked = true;
                     _regionAtmosphere.IsChecked = true;
-                    _terrainBlending.IsChecked = true;
+                    _terrainBlending.IsChecked = false;
                     _partyAuraColorPickerBox.Hue = 0x0044;
 
                     break;
@@ -4574,7 +4574,7 @@ namespace ClassicUO.Game.UI.Gumps
             _currentProfile.EnhancedEffects = _enhancedEffects.IsChecked;
             _currentProfile.MobileOutline = _mobileOutline.IsChecked;
             _currentProfile.RegionAtmosphere = _regionAtmosphere.IsChecked;
-            _currentProfile.TerrainBlending = _terrainBlending.IsChecked;
+            _currentProfile.SoftTerrainTransitions = _terrainBlending.IsChecked;
             _currentProfile.PartyAura = _partyAura.IsChecked;
             _currentProfile.PartyAuraHue = _partyAuraColorPickerBox.Hue;
             _currentProfile.HideChatGradient = _hideChatGradient.IsChecked;
