@@ -84,7 +84,7 @@ namespace ClassicUO.Game.Scenes
 
             LightingQualityPreset preset = LightingSettings.GetQualityPreset(profile.LightingQuality);
 
-            _lightMapRenderer.Draw(batcher, _lightManager, source, destination, worldMatrix, ambient, preset.LightMapScale, profile.LightIntensity);
+            _lightMapRenderer.Draw(batcher, _lightManager, source, destination, worldMatrix, ambient, preset.LightMapScale, preset.BlurPasses, profile.LightIntensity);
         }
     }
 }

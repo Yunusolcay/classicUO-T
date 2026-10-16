@@ -80,6 +80,7 @@ namespace ClassicUO.Game.Lighting
             Matrix worldMatrix,
             Vector3 ambient,
             float lightMapScale,
+            int blurPasses,
             float intensity
         )
         {
@@ -105,6 +106,15 @@ namespace ClassicUO.Game.Lighting
             batcher.SetBlendState(null);
             batcher.End();
 
+            // each blur pair: horizontal into the blur target, vertical back into the light map
+            for (int i = 0; i + 1 < blurPasses; i += 2)
+            {
+                RenderTarget2D blur = _targets.GetBlurTarget(device, lightMap.Width, lightMap.Height);
+
+                DrawBlurPass(batcher, lightMap, blur, _effect.BlurH);
+                DrawBlurPass(batcher, blur, lightMap, _effect.BlurV);
+            }
+
             device.SetRenderTarget(destination);
 
             _effect.CurrentTechnique = _effect.Composite;
@@ -126,6 +136,23 @@ namespace ClassicUO.Game.Lighting
             _effect.WorldTexture.SetValue((Texture2D) null);
             device.Textures[1] = null;
             device.SetRenderTarget(null);
+        }
+
+        private void DrawBlurPass(UltimaBatcher2D batcher, RenderTarget2D source, RenderTarget2D target, EffectTechnique technique)
+        {
+            batcher.GraphicsDevice.SetRenderTarget(target);
+
+            _effect.CurrentTechnique = technique;
+            _effect.SetProjection(Matrix.Identity);
+            _effect.TexelSize.SetValue(new Vector2(1f / source.Width, 1f / source.Height));
+
+            batcher.Begin(_effect, Matrix.Identity);
+            batcher.SetBlendState(BlendState.Opaque);
+            batcher.SetSampler(SamplerState.LinearClamp);
+            batcher.Draw(source, new Rectangle(0, 0, target.Width, target.Height), Vector3.UnitZ, 0f);
+            batcher.SetSampler(null);
+            batcher.SetBlendState(null);
+            batcher.End();
         }
 
         public void Dispose()

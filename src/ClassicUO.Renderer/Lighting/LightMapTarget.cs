@@ -5,12 +5,13 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace ClassicUO.Renderer.Lighting
 {
-    // Render targets of the enhanced lighting: the light map (a fraction of the world size) and the
-    // lit world image used when a post-process still runs after the lights. Both are fully redrawn
-    // every frame, so they need no depth buffer and may discard their contents.
+    // Render targets of the enhanced lighting: the light map (a fraction of the world size), its blur
+    // ping-pong target and the lit world image used when a post-process still runs after the lights.
+    // All are fully redrawn every frame, so they need no depth buffer and may discard their contents.
     public sealed class LightMapTarget : IDisposable
     {
         private RenderTarget2D _lightMap;
+        private RenderTarget2D _blur;
         private RenderTarget2D _litWorld;
 
         public RenderTarget2D GetLightMap(GraphicsDevice device, int worldWidth, int worldHeight, float scale)
@@ -21,6 +22,14 @@ namespace ClassicUO.Renderer.Lighting
             EnsureSize(device, ref _lightMap, width, height);
 
             return _lightMap;
+        }
+
+        // Same size as the light map: the horizontal blur pass writes here, the vertical one back
+        public RenderTarget2D GetBlurTarget(GraphicsDevice device, int width, int height)
+        {
+            EnsureSize(device, ref _blur, width, height);
+
+            return _blur;
         }
 
         public RenderTarget2D GetLitWorld(GraphicsDevice device, int width, int height)
@@ -54,6 +63,8 @@ namespace ClassicUO.Renderer.Lighting
         {
             _lightMap?.Dispose();
             _lightMap = null;
+            _blur?.Dispose();
+            _blur = null;
             _litWorld?.Dispose();
             _litWorld = null;
         }

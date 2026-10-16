@@ -156,7 +156,9 @@ ID'ler sabittir (PLAN.md ile eşleşir).
 - Dosyalar: `LightMapRenderer.cs`, `Lighting.fx` (`LightTexture`, `LightRadial`), `LightManager.cs`.
 - Kabul: Ateş ışıkları `Time.Ticks` tabanlı titriyor (FPS'ten bağımsız), seed konumdan; `LightFlicker` kapalıyken sabit; `lightshaders.txt` renkleri korunuyor.
 
-### L10 – Yumuşak light map: blur + kalite seviyeleri · O · Claude Code
+### L10 – Yumuşak light map: blur + kalite seviyeleri · O · Claude Code · 🔶 kod hazır, oyun içi kabul bekliyor
+- Not: `BlurPasses` ayrık geçiş sayısıdır; her çift = yatay (light map → blur RT) + dikey (blur RT → light map).
+  Blur RT light map ile aynı boyutta (`LightMapTarget.GetBlurTarget`). Low/Medium'da blur yok.
 - Dosyalar: `LightMapRenderer.cs`, `Lighting.fx` (`BlurH`, `BlurV`), `LightingSettings.cs`.
 - Kabul: Low/Medium/High §4 tablosuna uyuyor; High'da ışık kenarında kademelenme yok.
 
