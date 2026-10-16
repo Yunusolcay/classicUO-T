@@ -26,6 +26,21 @@ bozması ya da atlas dışı örnekleme gerekmez (atlas'ta sprite'lar boşluksuz
   için geçiş simetrik.
 - Ölü siyah-beyaz görünümde katman çizilmez (renkli kalırdı). Ayar değişince chunk mesh yeniden kurulur.
 
+## İkinci sürüm (ilk oyun içi testten sonra)
+
+İlk sürüm komşu dokuyu %60 saydamlıkla, kenardan %38 içeri düz bir bantla ve iki taraftan birden bindiriyordu:
+çim-toprak ve dağ eteklerinde hayalet/çamur görüntü, karo içinde ikinci bir elmas kenarı ve kayaya tırmanan yarı
+saydam çim şeritleri oluştu. Değişiklikler:
+
+- **Opak, düzensiz kıyı:** saydamlık yok; piksel ya komşunun ya kendi dokusunu gösterir. Komşunun karoya ne kadar
+  gireceği (karonun %4–46'sı) dünyaya sabit, iki ölçekli yumuşak gürültüyle (9 px ve 3 px) belirlenir; sınır
+  kıvrılır, her iki taraftaki karoda aynı gürültü kullanıldığı için dikiş tutarlıdır.
+- **Tek taraf:** dikişte yalnız "baskın" zemin karşıya geçer: kar > çim/orman/jungle/yaprak > kum > toprak/sürülmüş >
+  kaya ve diğerleri; eşitlikte yüksek texmap id. İki taraf birbirini örtmez.
+- **Dik yamaç yok:** köşe yükseklik farkı 20 pikseli (5 z) aşan karolar geçiş almaz ve vermez (uçurum, dağ duvarı).
+- Ayar adı `TerrainBlending` → `SoftTerrainTransitions` oldu ve **varsayılan kapalı**: ilk sürümü kaydetmiş
+  profiller de kapalı başlar; oyun içinde kabul edilince açılabilir.
+
 ## Sınırlar
 
 - Yalnız texmap'li (eğimli/doku) zemin; düz art karolar (kasaba döşemeleri vb.) ve su dahil değil.
