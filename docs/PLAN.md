@@ -128,7 +128,7 @@ Kaynak: [SHADOWS_PLAN.md](SHADOWS_PLAN.md).
 
 - [x] classicUO-T: Modern look; renk düzenleme, parlak bölgelerde glow, keskinlik ve vignette. `Profile.ModernLook` ve Options aç/kapa; `src/ClassicUO.Renderer/Effects/ModernLookEffect.cs`, `shaders/ModernLook.fx`, `src/ClassicUO.Client/Game/Scenes/GameScene.cs` içindeki `ApplyModernLook()` ile uygulanmış.
 - [x] Claude Code / MIG-8: ışık kompoziti dünya çizimi/xBR büyütme sonrasında, Modern look öncesinde E10'a konumlandırıldı. R2/R5 belge bulguları kapatıldı; bu tasarım uygulaması ve görsel kabul L6/L15'te.
-- [ ] Glow ile tam bloom zincirini aynı kabul etmeden kalan kalite/performans ihtiyacını ve kapalı durum görsel eşliğini değerlendir.
+- [ ] Bloom zinciri (1/4 çözünürlük bright pass + 2× blur + additive; Modern look glow'u devralır), bkz. [BLOOM_PLAN.md](BLOOM_PLAN.md). 🔶 kod hazır (361 test), oyun içi kabul bekliyor.
 
 ## M6 — Değiştirilebilir art paketleri
 

@@ -8,6 +8,8 @@ float Strength;
 // 1 when enhanced lighting already lit the image: the lit areas are bright and warm by
 // themselves, so glow, vibrance and the warm highlight shift back off there
 float LitScene;
+// 1 = Modern look's own glow, 0 when the bloom pass already makes the glow
+float GlowAmount;
 
 sampler world : register(s0);
 
@@ -66,7 +68,7 @@ float4 main_fragment(PS_INPUT IN) : COLOR0
     glow += bright(uv + float2( r2.x, -r2.y) * 0.707) + bright(uv + float2(-r2.x, -r2.y) * 0.707);
     glow += bright(uv + float2( r2.x, 0)) + bright(uv + float2(-r2.x, 0));
     glow += bright(uv + float2(0,  r2.y)) + bright(uv + float2(0, -r2.y));
-    c += glow * (lerp(0.5, 0.2, LitScene) / 12.0);
+    c += glow * (lerp(0.5, 0.2, LitScene) / 12.0) * GlowAmount;
 
     // color grading: a little brighter (UO scenes are dark), vibrance (dull colors gain more than
     // already saturated ones), a gentle S-curve for contrast, cool shadows and warm highlights
