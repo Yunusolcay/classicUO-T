@@ -21,6 +21,7 @@ namespace ClassicUO.Game.Lighting
         private const float LIGHT_SATURATION = 0.75f;
         // sampler register of WorldTexture in Lighting.fx
         private const int WORLD_TEXTURE_SLOT = 3;
+        private const int ROUND_LIGHT_SIZE = 128;
 
         // additive at half strength: the light map encoding
         private static readonly BlendState _halfAdditive = new BlendState
@@ -35,6 +36,7 @@ namespace ClassicUO.Game.Lighting
 
         private readonly LightMapTarget _targets = new LightMapTarget();
         private LightingEffect _effect;
+        private Texture2D _roundLight;
         private bool _failed;
 
         // Loads the lighting shader once. False when the graphics backend cannot load it: the
@@ -54,6 +56,7 @@ namespace ClassicUO.Game.Lighting
             try
             {
                 _effect = new LightingEffect(device);
+                _roundLight = CreateRoundLight(device, ROUND_LIGHT_SIZE);
 
                 return true;
             }
@@ -83,7 +86,9 @@ namespace ClassicUO.Game.Lighting
             Vector3 ambient,
             float lightMapScale,
             int blurPasses,
-            float intensity
+            float intensity,
+            bool flicker,
+            bool proceduralFalloff
         )
         {
             GraphicsDevice device = batcher.GraphicsDevice;
@@ -103,7 +108,10 @@ namespace ClassicUO.Game.Lighting
             batcher.Begin(null, toLightMap);
             batcher.SetBlendState(_halfAdditive);
             batcher.SetSampler(SamplerState.LinearClamp);
-            lights.Draw(batcher);
+            lights.Draw(
+                batcher,
+                new LightDrawOptions(true, flicker, proceduralFalloff ? _roundLight : null, Time.Ticks)
+            );
             batcher.SetSampler(null);
             batcher.SetBlendState(null);
             batcher.End();
@@ -158,9 +166,38 @@ namespace ClassicUO.Game.Lighting
             batcher.End();
         }
 
+        // Gray radial gradient read like a light.mul shape: the light color tables map its red
+        // channel to the light color. Full at the center, smooth to zero at the edge.
+        private static Texture2D CreateRoundLight(GraphicsDevice device, int size)
+        {
+            Color[] pixels = new Color[size * size];
+            float half = size * 0.5f;
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = (x + 0.5f - half) / half;
+                    float dy = (y + 0.5f - half) / half;
+                    float falloff = 1f - Math.Clamp(dx * dx + dy * dy, 0f, 1f);
+                    byte value = (byte)(falloff * falloff * 255f + 0.5f);
+
+                    // alpha stays opaque: the world shader discards fully transparent texels
+                    pixels[y * size + x] = new Color(value, value, value, (byte)255);
+                }
+            }
+
+            Texture2D texture = new Texture2D(device, size, size, false, SurfaceFormat.Color);
+            texture.SetData(pixels);
+
+            return texture;
+        }
+
         public void Dispose()
         {
             _targets.Dispose();
+            _roundLight?.Dispose();
+            _roundLight = null;
             _effect?.Dispose();
             _effect = null;
         }

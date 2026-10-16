@@ -147,13 +147,23 @@ ID'ler sabittir (PLAN.md ile eşleşir).
 - Dosyalar: yeni `Game/Lighting/AmbientLight.cs`; `LightMapRenderer` clear rengi; birim testi `tests/ClassicUO.UnitTests/`.
 - Kabul: `0x4F` değişiminde ambient `LightTransitionSeconds` içinde smoothstep geçiyor; tint kapalıyken son değer eski `IsometricLevel` ile aynı; `UseCustomLightLevel` + `LightLevelType` çalışıyor; test seviye/zaman → beklenen RGB.
 
-### L8 – Işık tanım genişletmesi (`lights_ex.txt`) **[Codex]** · K–O
+### L8 – Işık tanım genişletmesi (`lights_ex.txt`) · K–O · Claude Code (Codex yerine) · 🔶 kod hazır, oyun içi kabul bekliyor
+- Uygulama notu: Format `ITEM_ID[-LAST_ID] RADIUS INTENSITY FLICKER [SHAPE]`; aralık sözdizimi ve isteğe bağlı
+  `SHAPE` (`texture` = light.mul şekli, varsayılan; `round` = prosedürel yuvarlak) eklendi. Duvara monteli ışıklar
+  (duvar meşalesi, aplik, şömine) light.mul şeklini korur: o şekiller yalnız duvarın önünü aydınlatır. Varsayılan
+  giriş listesi referans 7.0.112 tiledata'daki LightSource bayraklı eşyalardan çıkarıldı. Sayılar invariant culture ile
+  okunur (Türkçe Windows'ta `1.2` doğru). Yükleme `Client.cs`'te `LightColors.LoadLights()` sonrası (1 satır).
 - Upstream `lights.txt` (renk) ve `lightshaders.txt` (RGB + eğri) zaten var; bunlara dokunma.
 - Dosyalar: yeni `Game/Lighting/LightDefinitions.cs`; `Data/Client/lights_ex.txt` yoksa örnekli varsayılan oluşturulur (`LightColors.LoadLights` kalıbıyla, `TextFileParser`).
 - Format: `ITEM_ID RADIUS INTENSITY FLICKER` (ör. `0x0A0F 1.2 1.0 fire`); bilinmeyen/bozuk satır loglanıp atlanır.
 - Kabul: meşale/mum/lamba/brazier/şamdan/ateş alanı/enerji alanı için ≥ 25 varsayılan giriş; dosya silinince yeniden oluşuyor.
 
-### L9 – Prosedürel ışık + RGB renk + flicker · O · Claude Code
+### L9 – Prosedürel ışık + RGB renk + flicker · O · Claude Code · 🔶 kod hazır, oyun içi kabul bekliyor
+- Uygulama notu: Yalnız Enhanced yolunda ve yalnız `lights_ex.txt`'te tanımlı ışıklara uygulanır; tanımsız ışıklar ve
+  Enhanced kapalı yol birebir eski çizim. Yoğunluk + titreme hue alfasıyla (renk × alfa) verilir, boyut ölçekle.
+  Titreme `Time.Ticks` tabanlı (double, uzun oturumda hassas), faz ışığın serial'ından ya da konumundan. `round` şekil:
+  CPU'da üretilen 128×128 gri radyal doku, light.mul gibi renk tablosundan geçer (lights.txt/lightshaders.txt renkleri
+  korunur); yalnız prosedürel düşüşü olan kalitelerde (Medium/High), Low'da light.mul şekli.
 - Dosyalar: `LightMapRenderer.cs`, `Lighting.fx` (`LightTexture`, `LightRadial`), `LightManager.cs`.
 - Kabul: Ateş ışıkları `Time.Ticks` tabanlı titriyor (FPS'ten bağımsız), seed konumdan; `LightFlicker` kapalıyken sabit; `lightshaders.txt` renkleri korunuyor.
 

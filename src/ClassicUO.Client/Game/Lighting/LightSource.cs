@@ -10,5 +10,11 @@ namespace ClassicUO.Game.Lighting
         public bool IsHue;
         public int DrawX,
             DrawY;
+
+        // lights_ex.txt entry of the light item, used by the enhanced lighting only
+        public bool HasDefinition;
+        public LightDefinition Definition;
+        // stable per light source: the flicker of two torches side by side does not line up
+        public int Seed;
     }
 }
