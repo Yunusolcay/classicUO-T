@@ -115,7 +115,7 @@ namespace ClassicUO.Renderer
         // Soft dark ellipse under a mobile's feet (x, y: feet center). Only while shadows are deferred.
         public void DrawContactShadow(float x, float y, float depth)
         {
-            if (!_deferShadows || _contactStrength <= 0f)
+            if (!_deferShadows || _contactStrength <= 0f || HueOverrideActive)
             {
                 return;
             }

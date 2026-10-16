@@ -1,6 +1,7 @@
 ﻿// SPDX-License-Identifier: BSD-2-Clause
 
 using System;
+using ClassicUO.Configuration;
 using ClassicUO.Game.Managers;
 using Microsoft.Xna.Framework;
 
@@ -163,7 +164,32 @@ namespace ClassicUO.Game.GameObjects
         {
             CreateExplosionEffect();
 
+            FlashOnArrival();
             Destroy();
+        }
+
+        // enhanced effects (docs/EFFECTS_PLAN.md, E3): a short light flash where the projectile lands
+        private void FlashOnArrival()
+        {
+            if (ProfileManager.CurrentProfile == null || !ProfileManager.CurrentProfile.EnhancedEffects)
+            {
+                return;
+            }
+
+            Microsoft.Xna.Framework.Vector3 color = Lighting.EffectLights.GetColor(AnimationGraphic);
+
+            if (color == Microsoft.Xna.Framework.Vector3.Zero)
+            {
+                return;
+            }
+
+            (ushort x, ushort y, sbyte z) = GetTarget();
+
+            Lighting.EffectLights.AddBurst(
+                new Microsoft.Xna.Framework.Vector2((x - y) * 22, (x + y) * 22 - z * 4),
+                color,
+                150f
+            );
         }
 
         private static void TileOffsetOnMonitorToXY(ref int ofsX, ref int ofsY, out int x, out int y)

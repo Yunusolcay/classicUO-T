@@ -30,27 +30,42 @@ namespace ClassicUO.Game.GameObjects
             // sub-pixel camera (docs/CAMERA_PLAN.md): every mobile is drawn with the fraction of its
             // step that whole pixels drop; for the player this cancels the world shift, so it stays
             // centered, the others move smoothly instead of in whole world pixels
-            if (!GameScene.SubPixelCameraActive)
+            Vector2 fraction = GameScene.SubPixelCameraActive ? GameScene.GetSubPixel(Offset) : Vector2.Zero;
+
+            if (fraction == Vector2.Zero && !MobileOutline.ShouldOutline(this))
             {
                 return DrawMobile(batcher, posX, posY, depth);
             }
-
-            Vector2 fraction = GameScene.GetSubPixel(Offset);
-
-            if (fraction == Vector2.Zero)
-            {
-                return DrawMobile(batcher, posX, posY, depth);
-            }
-
-            batcher.SpriteOffset = fraction;
 
             try
             {
+                // hover/target outline (docs/OUTLINE_PLAN.md): the silhouette in one color around the mobile
+                if (MobileOutline.ShouldOutline(this))
+                {
+                    batcher.HueOverride = MobileOutline.GetHue(this);
+                    batcher.HueOverrideActive = true;
+                    GameScene.SuppressLights = true;
+
+                    foreach (Vector3 ring in MobileOutline.Offsets)
+                    {
+                        batcher.SpriteOffset = fraction + new Vector2(ring.X, ring.Y);
+                        batcher.HueOverride.Z = ring.Z;
+                        DrawMobile(batcher, posX, posY, depth);
+                    }
+
+                    batcher.HueOverrideActive = false;
+                    GameScene.SuppressLights = false;
+                }
+
+                batcher.SpriteOffset = fraction;
+
                 return DrawMobile(batcher, posX, posY, depth);
             }
             finally
             {
                 batcher.SpriteOffset = Vector2.Zero;
+                batcher.HueOverrideActive = false;
+                GameScene.SuppressLights = false;
             }
         }
 

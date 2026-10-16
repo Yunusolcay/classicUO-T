@@ -60,6 +60,11 @@ namespace ClassicUO.Renderer
         // around the player's draw for the sub-pixel camera (docs/CAMERA_PLAN.md); zero otherwise.
         public Vector2 SpriteOffset;
 
+        // While set, sprites and sitting characters use this hue vector and shadows are skipped: a
+        // silhouette in one color, for the hover/target outline (docs/OUTLINE_PLAN.md)
+        public bool HueOverrideActive;
+        public Vector3 HueOverride;
+
 
         public UltimaBatcher2D(GraphicsDevice device)
         {
@@ -340,6 +345,11 @@ namespace ClassicUO.Renderer
 
         public void DrawShadow(Texture2D texture, Vector2 position, Rectangle sourceRect, bool flip, float depth)
         {
+            if (HueOverrideActive)
+            {
+                return;
+            }
+
             position += SpriteOffset;
 
             if (_deferShadows)
@@ -417,6 +427,11 @@ namespace ClassicUO.Renderer
             EnsureSize();
 
             position += SpriteOffset;
+
+            if (HueOverrideActive)
+            {
+                hue = HueOverride;
+            }
 
             float h03 = sourceRect.Height * mod.X;
             float h06 = sourceRect.Height * mod.Y;
@@ -920,6 +935,11 @@ namespace ClassicUO.Renderer
 
             destinationX += SpriteOffset.X;
             destinationY += SpriteOffset.Y;
+
+            if (HueOverrideActive)
+            {
+                color = HueOverride;
+            }
 
             SetVertex
             (

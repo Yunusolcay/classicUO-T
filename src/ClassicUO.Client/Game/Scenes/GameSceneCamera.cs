@@ -16,6 +16,13 @@ namespace ClassicUO.Game.Scenes
 
         private Vector2 _cameraSubPixel;
 
+        // set while outline copies of a mobile are drawn: their lights are not collected
+        public static bool SuppressLights { get; set; }
+
+        // world pixel of the world target's origin this frame (the scene draw offset); for effects
+        // that remember world positions (docs/EFFECTS_PLAN.md)
+        public static Point DrawOffset { get; private set; }
+
         // read by MobileView: mobiles are drawn with their own sub-pixel step (GetSubPixel)
         public static bool SubPixelCameraActive { get; private set; }
 

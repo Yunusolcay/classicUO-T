@@ -403,6 +403,12 @@ namespace ClassicUO.Game.Scenes
 
         public void AddLight(GameObject obj, GameObject lightObject, int x, int y)
         {
+            // the outline copies of a mobile must not add its lights again (docs/OUTLINE_PLAN.md)
+            if (SuppressLights)
+            {
+                return;
+            }
+
             if (!UseLights && !UseAltLights)
             {
                 return;
@@ -510,6 +516,7 @@ namespace ClassicUO.Game.Scenes
                     // Build chunk mesh if dirty
                     if (chunk.Mesh.IsDirty || chunk.Mesh.BuiltWithNatureEffects != Data.NatureTiles.Enabled
                         || chunk.Mesh.BuiltWithWaterEffect != ProfileManager.CurrentProfile.AnimatedWaterEffect
+                        || chunk.Mesh.BuiltWithTerrainBlend != ProfileManager.CurrentProfile.TerrainBlending
                         || chunk.Mesh.BuiltHdGeneration != HdWorldPack.MeshGeneration)
                     {
                         chunk.Mesh.Build(chunk, _world, Client.Game.GraphicsDevice);
@@ -1119,6 +1126,7 @@ namespace ClassicUO.Game.Scenes
             }
 
             // draw weather
+            DrawAtmosphere(batcher, MAX_LAYER_DEPTH - 1);
             _world.Weather.Draw(batcher, 0, 0, MAX_LAYER_DEPTH - 1);
 
             DrawSelection(batcher, MAX_LAYER_DEPTH);
