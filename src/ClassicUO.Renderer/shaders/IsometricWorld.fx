@@ -12,6 +12,7 @@
 #define NATURE_GRASS 11
 #define NATURE_GRASS_LIT 12
 #define WATER 13
+#define TERRAIN_BLEND 14
 #define GUMP 20
 
 const static float3 LIGHT_DIRECTION = float3(0.0f, 1.0f, 1.0f);
@@ -316,6 +317,25 @@ float4 PixelShader_Hue(PS_INPUT IN) : COLOR0
 	else if (mode == WATER)
 	{
 		color.rgb = water(color.rgb, IN);
+	}
+	else if (mode == TERRAIN_BLEND)
+	{
+		// Terrain transition (docs/TERRAIN_BLEND_PLAN.md): the neighbour's texmap continued over this
+		// tile, fading from the shared edge inwards. Normal.xy = position in the tile (0..1),
+		// Hue.x = edge (0 NE v=0, 1 NW u=0, 2 SE u=1, 3 SW v=1), Hue.z = the tile's light before
+		// Brightlight (same as get_light for its corner normals).
+		float2 q = IN.Normal.xy;
+		float edge = IN.Hue.x;
+		float d = edge < 0.5f ? q.y : (edge < 1.5f ? q.x : (edge < 2.5f ? 1.0f - q.x : 1.0f - q.y));
+		float grain = water_hash(floor(IN.WorldPos / 3.0f)) - 0.5f;
+		float base = IN.Hue.z;
+		float light = base + ((Brightlight * (base - 0.85355339f)) - (base - 0.85355339f));
+
+		color.rgb *= light;
+		alpha = (1.0f - smoothstep(0.0f, 0.38f, d + grain * 0.12f)) * 0.6f;
+
+		if (alpha < 0.01f)
+			discard;
 	}
 
 	if (useTrans && CircleOfTransparencyRadius > 0)

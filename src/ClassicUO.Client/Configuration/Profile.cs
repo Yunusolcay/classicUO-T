@@ -269,6 +269,14 @@ namespace ClassicUO.Configuration
         public bool EnhancedWeather { get; set; } = true;
         // soft glow around bright light (docs/BLOOM_PLAN.md)
         public bool Bloom { get; set; } = true;
+        // effect lights, projectile trails and impact flashes (docs/EFFECTS_PLAN.md)
+        public bool EnhancedEffects { get; set; } = true;
+        // colored outline around the hovered and the last targeted mobile (docs/OUTLINE_PLAN.md)
+        public bool MobileOutline { get; set; } = true;
+        // place-dependent tint and haze: dungeon, snow, desert, swamp... (docs/ATMOSPHERE_PLAN.md)
+        public bool RegionAtmosphere { get; set; } = true;
+        // neighbour ground textures fading in over tile edges (docs/TERRAIN_BLEND_PLAN.md)
+        public bool TerrainBlending { get; set; } = true;
         // storm lightning brightens the screen; off for players sensitive to flashes
         public bool LightningFlashes { get; set; } = true;
         // fork: livelier grass colors and wind sway for plants and trees (client-side only)

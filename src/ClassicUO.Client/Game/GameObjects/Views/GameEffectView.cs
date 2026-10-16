@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
+using ClassicUO.Game.Lighting;
 using ClassicUO.Game.Scenes;
 using ClassicUO.Assets;
 using ClassicUO.Renderer;
@@ -87,6 +88,13 @@ namespace ClassicUO.Game.GameObjects
         );
 
 
+        // enhanced effects (docs/EFFECTS_PLAN.md): trail of a moving effect, world pixels, newest first
+        private const int TRAIL_LENGTH = 4;
+        private const uint TRAIL_STEP_MS = 30;
+        private readonly Vector2[] _trail = new Vector2[TRAIL_LENGTH];
+        private int _trailCount;
+        private uint _nextTrailTime;
+
         public override bool Draw(UltimaBatcher2D batcher, int posX, int posY, float depth)
         {
             if (IsDestroyed || !AllowedToDraw)
@@ -120,6 +128,11 @@ namespace ClassicUO.Game.GameObjects
             if (Source != null)
             {
                 depth = Source.CalculateDepthZ() + 1f;
+            }
+
+            if (ProfileManager.CurrentProfile.EnhancedEffects)
+            {
+                DrawEnhancements(batcher, posX, posY, hueVec, depth);
             }
 
             switch (Blend)
@@ -251,6 +264,62 @@ namespace ClassicUO.Game.GameObjects
             }
 
             return true;
+        }
+
+        // Light around the effect in its own color, and a fading trail behind moving effects
+        private void DrawEnhancements(UltimaBatcher2D batcher, int posX, int posY, Vector3 hueVec, float depth)
+        {
+            Vector3 color = EffectLights.GetColor(AnimationGraphic);
+
+            if (color != Vector3.Zero && Blend != GraphicEffectBlendMode.Multiply && Blend != GraphicEffectBlendMode.ShadowBlue)
+            {
+                ref readonly var art = ref Client.Game.UO.Arts.GetArt(AnimationGraphic);
+                float radius = Math.Clamp(Math.Max(art.UV.Width, art.UV.Height) * 1.6f, 60f, 200f);
+
+                EffectLights.Add(new Vector2(posX + 22, posY + 22), radius, color * 0.85f);
+            }
+
+            if (!IsMoving)
+            {
+                return;
+            }
+
+            Point offset = GameScene.DrawOffset;
+            Vector2 absolute = new Vector2(posX + offset.X, posY + offset.Y);
+
+            if (Time.Ticks >= _nextTrailTime)
+            {
+                _nextTrailTime = Time.Ticks + TRAIL_STEP_MS;
+
+                for (int i = Math.Min(_trailCount, TRAIL_LENGTH - 1); i > 0; i--)
+                {
+                    _trail[i] = _trail[i - 1];
+                }
+
+                _trail[0] = absolute;
+                _trailCount = Math.Min(_trailCount + 1, TRAIL_LENGTH);
+            }
+
+            // additive copies, fainter further back; skip the newest (where the effect is now)
+            batcher.SetBlendState(_screenBlendState.Value);
+
+            for (int i = 1; i < _trailCount; i++)
+            {
+                Vector3 trailHue = hueVec;
+                trailHue.Z = 0.4f * (1f - i / (float)TRAIL_LENGTH);
+
+                DrawStaticRotated(
+                    batcher,
+                    AnimationGraphic,
+                    (int)(_trail[i].X - offset.X),
+                    (int)(_trail[i].Y - offset.Y),
+                    AngleToTarget,
+                    trailHue,
+                    depth - 0.01f * i
+                );
+            }
+
+            batcher.SetBlendState(null);
         }
 
         public override bool CheckMouseSelection()

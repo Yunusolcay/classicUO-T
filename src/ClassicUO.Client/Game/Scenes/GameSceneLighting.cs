@@ -39,6 +39,7 @@ namespace ClassicUO.Game.Scenes
                 // the ambient fade only runs while the enhanced path draws
                 _ambientLight.Reset();
                 LightingDebug.RecordLegacy();
+                EffectLights.Clear();
             }
 
             return enhanced;
@@ -117,6 +118,8 @@ namespace ClassicUO.Game.Scenes
 
             // storm lightning lights up the night as well (docs/WATER_WEATHER_PLAN.md, H3)
             ambient = Vector3.Lerp(ambient, Vector3.One, WeatherRenderer.Flash * 0.7f);
+
+            EffectLights.AddBursts(_offset);
 
             LightingQualityPreset preset = LightingSettings.GetQualityPreset(profile.LightingQuality);
 
