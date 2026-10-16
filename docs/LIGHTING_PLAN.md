@@ -38,7 +38,10 @@ renk düzenlemeye sokar. Görsel sonuç L15'te test edilecek; Enhanced kapalıyk
   Gündüz: ambient 0.5 → sahne değişmez. Tonemap/renk düzenleme gerekirse M5'te shader'lı kompozite geçilir.
 - **Kendi light RT'miz** (`SurfaceFormat.Color`, ölçek 1, 1/2, 1/4). Upstream `LightRenderTarget`
   backbuffer formatında ve tam boyutlu; ona dokunmuyoruz. Kompozit `GameScene` içinde (E10) yapılır;
-  `RenderTargets`'a yalnızca enhanced iken Light RT çizimini atlayan bayrak eklenir (§3, L6, D-001).
+  `RenderTargets` değişmez: enhanced iken upstream Light RT'si, upstream'in kendi "ışık yok" yolundaki gibi
+  şeffaf temizlenip boş blend ile verilir (L6 uygulaması). FNA bir `DiscardContents` hedefini bağlarken
+  temizlediği için dünya önce ikinci bir hedefe (`GetPostProcessWorldRenderTarget`) çizilir; kompozit
+  hedefe tek bağlamada yazılır (dünya opak + ışık ×2).
 - **Gecikmesiz:** ışık listesi aynı karede (`DrawWorld` sonrası) çizilir.
 - **Işık sprite'ları:** yeni `Lighting.fx`: `LightTexture` (atlas'tan light.mul şekli, linear)
   **veya** `LightRadial` (prosedürel radyal düşüş) × RGB × yoğunluk × flicker. Renk RGB olarak taşınır;
@@ -75,7 +78,7 @@ Upstream kancaları (hepsi `EnhancedLighting` kapalıyken eski yol):
 - `GameScene.AddLight` → başta `if (enhanced) { _lightManager.Add(...); return; }`.
 - `GameScene.Draw` → enhanced iken `PrepareLightsRendering` atlanır; `DrawWorld`/`UpscaleWorld` sonrası,
   `ApplyModernLook` öncesi `LightMapRenderer.Draw` + kompozit (dünya hedefine ×2 blend).
-- `RenderTargets` → enhanced iken ışık RT çizimini atlayan bayrak (ör. `DrawLightsLayer`), tek satırlık koşul.
+- `RenderTargets` değişmez; `GameSceneLighting.cs` (partial) upstream Light RT katmanını boşaltır.
 - `Batcher2D.cs` `Resources` → `[FileEmbed("shaders/Lighting.fxc")] GetLightingShader()`.
 - `Profile.cs` → yeni property'ler; `OptionsGump.cs` → ayar bölümü.
 
@@ -123,8 +126,11 @@ ID'ler sabittir (PLAN.md ile eşleşir).
 ### L5 – ~~Shader derleme scripti~~ · kaldırıldı
 - Upstream `fxc.exe` + `compile_shaders.bat` içeriyor; Lighting.fx satırı L4'e dahil.
 
-### L6 – `LightMapRenderer` + kompozit (çekirdek) · Z · Claude Code
-- Dosyalar: yeni `Game/Lighting/LightMapRenderer.cs`, `ClassicUO.Renderer/Lighting/LightMapTarget.cs`; `GameScene.cs` (`Draw` kancası, E10), `RenderTargets.cs` (ışık katmanını atlama bayrağı).
+### L6 – `LightMapRenderer` + kompozit (çekirdek) · Z · Claude Code · 🔶 kod hazır (build + 298 test), oyun içi kabul bekliyor
+- Not: Bu aşamada ışık sprite'ları upstream renkleriyle (s2 tablosu / hue) varsayılan effect ile, `BlendFactor` 0.5'li additive
+  ile çizilir; RGB/prosedürel ışık L9'da, blur L10'da `LightingEffect`'e geçer. Sınırlama: Enhanced yalnız normal gece
+  karanlığında; gündüz, `UseAltLights` ve ölü siyah-beyaz görünümde eski yol.
+- Dosyalar: yeni `Game/Lighting/LightMapRenderer.cs`, `ClassicUO.Renderer/Lighting/LightMapTarget.cs`; `Game/Scenes/GameSceneLighting.cs` (partial: `UseEnhancedLighting`, `DisableLegacyLightLayer`, `DrawEnhancedLights`); `GameScene.cs` (`Draw` kancası E10, `Unload` dispose).
 - Kabul: `LightingEffect` D3D11 ve OpenGL arka uçlarında yükleniyor (yüklenemezse Modern look gibi loglanıp Enhanced kapanıyor); Enhanced açıkken ışıklar aynı karede, ölçekli RT'de, ×2 blend ile dünya hedefine gömülüyor; Modern look açık/kapalı, xBR zoom filtresi açık/kapalı ve HD world pack ile doğru; gündüz sahnesi enhanced açık/kapalı aynı; zoom ve pencere/DPI değişiminde RT doğru yeniden kuruluyor, sızıntı yok.
 
 ### L7 – `AmbientLight`: yumuşak geçiş + gün/gece tonu · O · Claude Code

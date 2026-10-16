@@ -326,6 +326,7 @@ namespace ClassicUO.Game.Scenes
             _world.DelayedObjectClickManager.Clear();
 
             _useItemQueue?.Clear();
+            _lightMapRenderer.Dispose();
             _world.MessageManager.MessageReceived -= ChatOnMessageReceived;
 
             Settings.GlobalSettings.WindowSize = new Point(
@@ -806,8 +807,17 @@ namespace ClassicUO.Game.Scenes
             Matrix matrix = Camera.ViewTransformMatrix;
 
             bool can_draw_lights = false;
+            bool enhancedLights = UseEnhancedLighting(batcher.GraphicsDevice, renderTargets);
 
-            can_draw_lights = PrepareLightsRendering(batcher, ref matrix, renderTargets);
+            if (enhancedLights)
+            {
+                DisableLegacyLightLayer(batcher, renderTargets);
+            }
+            else
+            {
+                can_draw_lights = PrepareLightsRendering(batcher, ref matrix, renderTargets);
+            }
+
             batcher.GraphicsDevice.Viewport = camera_viewport;
 
             RenderTarget2D worldTarget = renderTargets.WorldRenderTarget;
@@ -828,7 +838,8 @@ namespace ClassicUO.Game.Scenes
             RenderTarget2D finalTarget = worldTarget;
             bool modernLook = ProfileManager.CurrentProfile.ModernLook && worldTarget != null && EnsureModernLookEffect(batcher.GraphicsDevice);
 
-            if (modernLook)
+            // enhanced lighting also needs the world in a second target: binding a target clears it
+            if (modernLook || enhancedLights)
             {
                 worldTarget = renderTargets.GetPostProcessWorldRenderTarget(batcher.GraphicsDevice);
             }
@@ -852,6 +863,17 @@ namespace ClassicUO.Game.Scenes
             else
             {
                 DrawWorld(batcher, ref matrix, renderTargets, worldTarget);
+            }
+
+            if (enhancedLights)
+            {
+                // lights before the post-process, so Modern look also grades the lit scene
+                RenderTarget2D litTarget = modernLook
+                    ? _lightMapRenderer.GetLitWorldTarget(batcher.GraphicsDevice, worldTarget.Width, worldTarget.Height)
+                    : finalTarget;
+
+                DrawEnhancedLights(batcher, worldTarget, litTarget, matrix);
+                worldTarget = litTarget;
             }
 
             if (modernLook)
