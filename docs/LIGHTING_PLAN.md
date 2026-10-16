@@ -40,8 +40,8 @@ renk düzenlemeye sokar. Görsel sonuç L15'te test edilecek; Enhanced kapalıyk
   backbuffer formatında ve tam boyutlu; ona dokunmuyoruz. Kompozit `GameScene` içinde (E10) yapılır;
   `RenderTargets`'a yalnızca enhanced iken Light RT çizimini atlayan bayrak eklenir (§3, L6, D-001).
 - **Gecikmesiz:** ışık listesi aynı karede (`DrawWorld` sonrası) çizilir.
-- **Işık sprite'ları:** yeni `Lighting.fx` / `LightSprite` tekniği: atlas'tan light.mul şekli (linear)
-  **veya** prosedürel radyal düşüş × RGB × yoğunluk × flicker. Renk RGB olarak taşınır;
+- **Işık sprite'ları:** yeni `Lighting.fx`: `LightTexture` (atlas'tan light.mul şekli, linear)
+  **veya** `LightRadial` (prosedürel radyal düşüş) × RGB × yoğunluk × flicker. Renk RGB olarak taşınır;
   mevcut `lightshaders.txt` (s2 tablosu) ve hue renkleri RGB'ye çevrilerek kullanılır.
 - **Ambient:** `AmbientLight` sunucu seviyesinden hedef yoğunluk + gün/gece tonu üretir, zamanla yaklaşır.
 - **Işık toplama:** `GameScene.AddLight` → `LightManager.Add` (aynı örtme testi, aynı ID/renk kuralları
@@ -69,7 +69,7 @@ Yeni dosyalar:
 | `LightMapRenderer` | `ClassicUO.Client/Game/Lighting/` | Light RT'yi doldurma (ışıklar, blur), kalite seviyeleri |
 | `LightMapTarget` | `ClassicUO.Renderer/Lighting/` | Ölçekli RT'lerin yaşam döngüsü (oluştur/boyutla/dispose) |
 | `LightingEffect` | `ClassicUO.Renderer/Effects/` | `Lighting.fx` sarmalayıcısı |
-| `Lighting.fx` / `.fxc` | `ClassicUO.Renderer/shaders/` | `LightSprite`, `BlurH`, `BlurV` |
+| `Lighting.fx` / `.fxc` | `ClassicUO.Renderer/shaders/` | `LightTexture`, `LightRadial`, `BlurH`, `BlurV` |
 
 Upstream kancaları (hepsi `EnhancedLighting` kapalıyken eski yol):
 - `GameScene.AddLight` → başta `if (enhanced) { _lightManager.Add(...); return; }`.
@@ -116,7 +116,7 @@ ID'ler sabittir (PLAN.md ile eşleşir).
 - Dosyalar: yeni `Game/Lighting/LightManager.cs`, `LightSource.cs`; `GameScene.cs` (`AddLight`, `PrepareLightsRendering` delegasyonu).
 - Kabul: Enhanced kapalıyken gece ekran görüntüleri değişiklik öncesiyle aynı; `GameScene.cs` diff'i < 30 satır.
 
-### L4 – `Lighting.fx` + `LightingEffect` · O · Claude Code
+### L4 – `Lighting.fx` + `LightingEffect` · O · Claude Code · ✅ 2026-10-16 (derleme + gömme + birim testi; GPU'da yükleme L6 kabulüne taşındı)
 - Dosyalar: yeni `ClassicUO.Renderer/shaders/Lighting.fx` + `.fxc`, `Effects/LightingEffect.cs`; `Batcher2D.cs` `Resources` getter; `compile_shaders.bat`'e satır.
 - Kabul: Teknikler `fxc /T fx_2_0` ile derleniyor, FileEmbed ile yükleniyor; tek ışık sprite testi D3D11 ve OpenGL'de doğru.
 
@@ -125,7 +125,7 @@ ID'ler sabittir (PLAN.md ile eşleşir).
 
 ### L6 – `LightMapRenderer` + kompozit (çekirdek) · Z · Claude Code
 - Dosyalar: yeni `Game/Lighting/LightMapRenderer.cs`, `ClassicUO.Renderer/Lighting/LightMapTarget.cs`; `GameScene.cs` (`Draw` kancası, E10), `RenderTargets.cs` (ışık katmanını atlama bayrağı).
-- Kabul: Enhanced açıkken ışıklar aynı karede, ölçekli RT'de, ×2 blend ile dünya hedefine gömülüyor; Modern look açık/kapalı, xBR zoom filtresi açık/kapalı ve HD world pack ile doğru; gündüz sahnesi enhanced açık/kapalı aynı; zoom ve pencere/DPI değişiminde RT doğru yeniden kuruluyor, sızıntı yok.
+- Kabul: `LightingEffect` D3D11 ve OpenGL arka uçlarında yükleniyor (yüklenemezse Modern look gibi loglanıp Enhanced kapanıyor); Enhanced açıkken ışıklar aynı karede, ölçekli RT'de, ×2 blend ile dünya hedefine gömülüyor; Modern look açık/kapalı, xBR zoom filtresi açık/kapalı ve HD world pack ile doğru; gündüz sahnesi enhanced açık/kapalı aynı; zoom ve pencere/DPI değişiminde RT doğru yeniden kuruluyor, sızıntı yok.
 
 ### L7 – `AmbientLight`: yumuşak geçiş + gün/gece tonu · O · Claude Code
 - Dosyalar: yeni `Game/Lighting/AmbientLight.cs`; `LightMapRenderer` clear rengi; birim testi `tests/ClassicUO.UnitTests/`.
@@ -138,7 +138,7 @@ ID'ler sabittir (PLAN.md ile eşleşir).
 - Kabul: meşale/mum/lamba/brazier/şamdan/ateş alanı/enerji alanı için ≥ 25 varsayılan giriş; dosya silinince yeniden oluşuyor.
 
 ### L9 – Prosedürel ışık + RGB renk + flicker · O · Claude Code
-- Dosyalar: `LightMapRenderer.cs`, `Lighting.fx` (`LightSprite`), `LightManager.cs`.
+- Dosyalar: `LightMapRenderer.cs`, `Lighting.fx` (`LightTexture`, `LightRadial`), `LightManager.cs`.
 - Kabul: Ateş ışıkları `Time.Ticks` tabanlı titriyor (FPS'ten bağımsız), seed konumdan; `LightFlicker` kapalıyken sabit; `lightshaders.txt` renkleri korunuyor.
 
 ### L10 – Yumuşak light map: blur + kalite seviyeleri · O · Claude Code
