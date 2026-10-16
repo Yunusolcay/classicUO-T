@@ -130,6 +130,13 @@ Kaynak: [SHADOWS_PLAN.md](SHADOWS_PLAN.md).
 - [x] Claude Code / MIG-8: ışık kompoziti dünya çizimi/xBR büyütme sonrasında, Modern look öncesinde E10'a konumlandırıldı. R2/R5 belge bulguları kapatıldı; bu tasarım uygulaması ve görsel kabul L6/L15'te.
 - [ ] Bloom zinciri (1/4 çözünürlük bright pass + 2× blur + additive; Modern look glow'u devralır), bkz. [BLOOM_PLAN.md](BLOOM_PLAN.md). 🔶 kod hazır (361 test), oyun içi kabul bekliyor.
 
+## M7 — Ek görseller (2026-10-17)
+
+- [ ] Büyü/efekt görselleri: renkli efekt ışıkları, mermi izi, çarpma parlaması ([EFFECTS_PLAN.md](EFFECTS_PLAN.md)). 🔶 yayında, oyun içi kabul bekliyor.
+- [ ] Hedef/hover konturu, notoriety renginde ([OUTLINE_PLAN.md](OUTLINE_PLAN.md)). 🔶 yayında, oyun içi kabul bekliyor.
+- [ ] Bölge atmosferi: zindan/kar/çöl/jungle/bataklık/volkanik/void tonu ve pusu ([ATMOSPHERE_PLAN.md](ATMOSPHERE_PLAN.md)). 🔶 yayında, oyun içi kabul bekliyor.
+- [x] ~~Zemin geçişleri~~ — iptal (2026-10-17). İki sürüm denendi (komşu texmap'in kenardan sönen saydam şeridi; ardından opak, gürültülü, tek taraflı kıyı). Oyun içi testte ikisi de doğal görünmedi (hayalet/çamur görüntü, karo ızgarasını vurgulayan desen); kod geri alındı (`2328cbce8`, `f8f75b8a1`). UO'nun kendi geçiş karoları yeterli kabul edildi; tekrar ele alınırsa çözüm büyük olasılıkla sanatçı yapımı geçiş dokuları (M6 içerik katmanı) olur, shader değil.
+
 ## M6 — Değiştirilebilir art paketleri
 
 M6, [DECISIONS.md D-005](DECISIONS.md#d-005--asset-soyutlaması-iki-katman-içerik--sunum) gereği iki katmandır. İçerik neyin var olduğunu ve mantıksal piksel anlamını belirler; sunum bunun nasıl çizildiğini değiştirir. HD kapalı veya paket eksik durumunda oyun içeriği kaybolmamalı. Bu görev katmanların hiçbirini uygulamaz.
