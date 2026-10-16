@@ -13,6 +13,8 @@ namespace ClassicUO.Renderer
             TextureSize = Parameters["textureSize"];
             Strength = Parameters["Strength"];
             LitScene = Parameters["LitScene"];
+            GlowAmount = Parameters["GlowAmount"];
+            GlowAmount.SetValue(1f);
         }
 
         public EffectParameter MatrixTransform { get; }
@@ -20,5 +22,7 @@ namespace ClassicUO.Renderer
         public EffectParameter Strength { get; }
         // 1 when enhanced lighting already lit the image (highlight protection), 0 otherwise
         public EffectParameter LitScene { get; }
+        // 0 while the bloom pass draws the glow instead
+        public EffectParameter GlowAmount { get; }
     }
 }

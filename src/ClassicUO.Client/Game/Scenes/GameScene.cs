@@ -327,6 +327,7 @@ namespace ClassicUO.Game.Scenes
 
             _useItemQueue?.Clear();
             _lightMapRenderer.Dispose();
+            _bloomRenderer.Dispose();
             _world.MessageManager.MessageReceived -= ChatOnMessageReceived;
 
             Settings.GlobalSettings.WindowSize = new Point(
@@ -844,8 +845,10 @@ namespace ClassicUO.Game.Scenes
             RenderTarget2D finalTarget = worldTarget;
             bool modernLook = ProfileManager.CurrentProfile.ModernLook && worldTarget != null && EnsureModernLookEffect(batcher.GraphicsDevice);
 
-            // enhanced lighting also needs the world in a second target: binding a target clears it
-            if (modernLook || enhancedLights)
+            bool bloom = UseBloom(batcher.GraphicsDevice, worldTarget);
+
+            // enhanced lighting and bloom also need the world in a second target: binding a target clears it
+            if (modernLook || enhancedLights || bloom)
             {
                 worldTarget = renderTargets.GetPostProcessWorldRenderTarget(batcher.GraphicsDevice);
             }
@@ -874,7 +877,7 @@ namespace ClassicUO.Game.Scenes
             if (enhancedLights)
             {
                 // lights before the post-process, so Modern look also grades the lit scene
-                RenderTarget2D litTarget = modernLook
+                RenderTarget2D litTarget = modernLook || bloom
                     ? _lightMapRenderer.GetLitWorldTarget(batcher.GraphicsDevice, worldTarget.Width, worldTarget.Height)
                     : finalTarget;
 
@@ -882,9 +885,18 @@ namespace ClassicUO.Game.Scenes
                 worldTarget = litTarget;
             }
 
+            if (bloom)
+            {
+                PrepareBloom(batcher, worldTarget);
+            }
+
             if (modernLook)
             {
-                ApplyModernLook(batcher, worldTarget, finalTarget, enhancedLights);
+                ApplyModernLook(batcher, worldTarget, finalTarget, enhancedLights, bloom);
+            }
+            else if (bloom)
+            {
+                _bloomRenderer.Composite(batcher, worldTarget, finalTarget);
             }
 
             batcher.GraphicsDevice.Viewport = r_viewport;
@@ -945,11 +957,13 @@ namespace ClassicUO.Game.Scenes
             }
         }
 
-        private void ApplyModernLook(UltimaBatcher2D batcher, RenderTarget2D source, RenderTarget2D target, bool litScene)
+        private void ApplyModernLook(UltimaBatcher2D batcher, RenderTarget2D source, RenderTarget2D target, bool litScene, bool bloom)
         {
             GraphicsDevice device = batcher.GraphicsDevice;
 
             _modernLookEffect.LitScene.SetValue(litScene ? 1f : 0f);
+            // the bloom pass makes the glow
+            _modernLookEffect.GlowAmount.SetValue(bloom ? 0f : 1f);
 
             _modernLookEffect.TextureSize.SetValue(new Vector2(source.Width, source.Height));
             _modernLookEffect.Strength.SetValue(1f);
@@ -966,6 +980,11 @@ namespace ClassicUO.Game.Scenes
             batcher.Draw(source, Vector2.Zero, null, Vector3.UnitZ, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
             batcher.SetSampler(null);
             batcher.End();
+
+            if (bloom)
+            {
+                _bloomRenderer.DrawAdditive(batcher, target.Width, target.Height);
+            }
 
             device.SetRenderTarget(null);
         }

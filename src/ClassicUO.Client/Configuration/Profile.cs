@@ -267,6 +267,8 @@ namespace ClassicUO.Configuration
         public bool AnimatedWaterEffect { get; set; } = true;
         // layered rain, soft snow, storm sky (docs/WATER_WEATHER_PLAN.md)
         public bool EnhancedWeather { get; set; } = true;
+        // soft glow around bright light (docs/BLOOM_PLAN.md)
+        public bool Bloom { get; set; } = true;
         // storm lightning brightens the screen; off for players sensitive to flashes
         public bool LightningFlashes { get; set; } = true;
         // fork: livelier grass colors and wind sway for plants and trees (client-side only)

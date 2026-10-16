@@ -23,6 +23,8 @@ namespace ClassicUO.UnitTests.Renderer
         [InlineData("BlurH")]
         [InlineData("BlurV")]
         [InlineData("Composite")]
+        [InlineData("BrightPass")]
+        [InlineData("BloomThreshold")]
         [InlineData("MatrixTransform")]
         [InlineData("TexelSize")]
         [InlineData("FalloffPower")]
@@ -52,6 +54,7 @@ namespace ClassicUO.UnitTests.Renderer
         [Theory]
         [InlineData("Strength")]
         [InlineData("LitScene")]
+        [InlineData("GlowAmount")]
         public void Embedded_ModernLook_Shader_Has_The_Parameters_ModernLookEffect_Looks_Up(string name)
         {
             string blob = Encoding.ASCII.GetString(ShaderResources.GetModernLookShader());
