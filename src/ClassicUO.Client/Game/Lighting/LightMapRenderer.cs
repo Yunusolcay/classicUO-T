@@ -19,6 +19,8 @@ namespace ClassicUO.Game.Lighting
         private const float OVERBRIGHT_LIMIT = 0.35f;
         // the light colors keep this much of their saturation
         private const float LIGHT_SATURATION = 0.75f;
+        // sampler register of WorldTexture in Lighting.fx
+        private const int WORLD_TEXTURE_SLOT = 3;
 
         // additive at half strength: the light map encoding
         private static readonly BlendState _halfAdditive = new BlendState
@@ -132,9 +134,10 @@ namespace ClassicUO.Game.Lighting
             batcher.SetBlendState(null);
             batcher.End();
 
-            // the world target is drawn into again next frame: do not leave it bound as a texture
+            // the world target is drawn into again next frame: do not leave it bound as a texture.
+            // Only slot 3: slots 1 and 2 are the hue tables bound once at startup.
             _effect.WorldTexture.SetValue((Texture2D) null);
-            device.Textures[1] = null;
+            device.Textures[WORLD_TEXTURE_SLOT] = null;
             device.SetRenderTarget(null);
         }
 
