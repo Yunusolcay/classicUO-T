@@ -4,6 +4,7 @@ using ClassicUO.Assets;
 using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
+using ClassicUO.Game.Lighting;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Input;
@@ -51,10 +52,7 @@ namespace ClassicUO.Game.Scenes
         private HealthLinesManager _healthLinesManager;
 
         private Point _lastSelectedMultiPositionInHouseCustomization;
-        private int _lightCount;
-        private readonly LightData[] _lights = new LightData[
-            LightsLoader.MAX_LIGHTS_DATA_INDEX_COUNT
-        ];
+        private readonly LightManager _lightManager;
         private Item _multi;
         private Rectangle _rectangleObj = Rectangle.Empty,
             _rectanglePlayer;
@@ -74,6 +72,7 @@ namespace ClassicUO.Game.Scenes
         {
             _world = world;
             _useItemQueue = new UseItemQueue(world);
+            _lightManager = new LightManager(world);
         }
 
         public bool UpdateDrawPosition { get; set; }
@@ -327,6 +326,7 @@ namespace ClassicUO.Game.Scenes
             _world.DelayedObjectClickManager.Clear();
 
             _useItemQueue?.Clear();
+            _lightMapRenderer.Dispose();
             _world.MessageManager.MessageReceived -= ChatOnMessageReceived;
 
             Settings.GlobalSettings.WindowSize = new Point(
@@ -402,148 +402,12 @@ namespace ClassicUO.Game.Scenes
 
         public void AddLight(GameObject obj, GameObject lightObject, int x, int y)
         {
-            if (
-                _lightCount >= LightsLoader.MAX_LIGHTS_DATA_INDEX_COUNT
-                || !UseLights && !UseAltLights
-                || obj == null
-            )
+            if (!UseLights && !UseAltLights)
             {
                 return;
             }
 
-            bool canBeAdded = true;
-
-            int testX = obj.X + 1;
-            int testY = obj.Y + 1;
-
-            GameObject tile = _world.Map.GetTile(testX, testY);
-
-            if (tile != null)
-            {
-                sbyte z5 = (sbyte)(obj.Z + 5);
-
-                for (GameObject o = tile; o != null; o = o.TNext)
-                {
-                    if (
-                        (!(o is Static s) || s.ItemData.IsTransparent)
-                            && (!(o is Multi m) || m.ItemData.IsTransparent)
-                        || !o.AllowedToDraw
-                    )
-                    {
-                        continue;
-                    }
-
-                    if (o.Z < _maxZ && o.Z >= z5)
-                    {
-                        canBeAdded = false;
-
-                        break;
-                    }
-                }
-            }
-
-            if (canBeAdded)
-            {
-                ref LightData light = ref _lights[_lightCount];
-
-                ushort graphic = lightObject.Graphic;
-
-                if (
-                    graphic >= 0x3E02 && graphic <= 0x3E0B
-                    || graphic >= 0x3914 && graphic <= 0x3929
-                    || graphic == 0x0B1D
-                )
-                {
-                    light.ID = 2;
-                }
-                else
-                {
-                    if (obj == lightObject && obj is Item item)
-                    {
-                        light.ID = item.LightID;
-                    }
-                    else if (lightObject is Item it)
-                    {
-                        light.ID = (byte)it.ItemData.LightIndex;
-
-                        if (obj is Mobile mob)
-                        {
-                            switch (mob.Direction)
-                            {
-                                case Direction.Right:
-                                    y += 33;
-                                    x += 22;
-
-                                    break;
-
-                                case Direction.Left:
-                                    y += 33;
-                                    x -= 22;
-
-                                    break;
-
-                                case Direction.East:
-                                    x += 22;
-                                    y += 55;
-
-                                    break;
-
-                                case Direction.Down:
-                                    y += 55;
-
-                                    break;
-
-                                case Direction.South:
-                                    x -= 22;
-                                    y += 55;
-
-                                    break;
-                            }
-                        }
-                    }
-                    else if (obj is Mobile _)
-                    {
-                        light.ID = 1;
-                    }
-                    else
-                    {
-                        ref StaticTiles data = ref Client.Game.UO.FileManager.TileData.StaticData[obj.Graphic];
-                        light.ID = data.Layer;
-                    }
-                }
-
-                light.Color = 0;
-                light.IsHue = false;
-
-                if (ProfileManager.CurrentProfile.UseColoredLights)
-                {
-                    if (light.ID > 200)
-                    {
-                        light.Color = (ushort)(light.ID - 200);
-                        light.ID = 1;
-                    }
-
-                    if (LightColors.GetHue(graphic, out ushort color, out bool ishue))
-                    {
-                        light.Color = color;
-                        light.IsHue = ishue;
-                    }
-                }
-
-                if (light.ID >= LightsLoader.MAX_LIGHTS_DATA_INDEX_COUNT)
-                {
-                    return;
-                }
-
-                if (light.Color != 0)
-                {
-                    light.Color++;
-                }
-
-                light.DrawX = x;
-                light.DrawY = y;
-                _lightCount++;
-            }
+            _lightManager.Add(obj, lightObject, x, y, _maxZ);
         }
 
         private void FillGameObjectList()
@@ -943,8 +807,17 @@ namespace ClassicUO.Game.Scenes
             Matrix matrix = Camera.ViewTransformMatrix;
 
             bool can_draw_lights = false;
+            bool enhancedLights = UseEnhancedLighting(batcher.GraphicsDevice, renderTargets);
 
-            can_draw_lights = PrepareLightsRendering(batcher, ref matrix, renderTargets);
+            if (enhancedLights)
+            {
+                DisableLegacyLightLayer(batcher, renderTargets);
+            }
+            else
+            {
+                can_draw_lights = PrepareLightsRendering(batcher, ref matrix, renderTargets);
+            }
+
             batcher.GraphicsDevice.Viewport = camera_viewport;
 
             RenderTarget2D worldTarget = renderTargets.WorldRenderTarget;
@@ -965,7 +838,8 @@ namespace ClassicUO.Game.Scenes
             RenderTarget2D finalTarget = worldTarget;
             bool modernLook = ProfileManager.CurrentProfile.ModernLook && worldTarget != null && EnsureModernLookEffect(batcher.GraphicsDevice);
 
-            if (modernLook)
+            // enhanced lighting also needs the world in a second target: binding a target clears it
+            if (modernLook || enhancedLights)
             {
                 worldTarget = renderTargets.GetPostProcessWorldRenderTarget(batcher.GraphicsDevice);
             }
@@ -989,6 +863,17 @@ namespace ClassicUO.Game.Scenes
             else
             {
                 DrawWorld(batcher, ref matrix, renderTargets, worldTarget);
+            }
+
+            if (enhancedLights)
+            {
+                // lights before the post-process, so Modern look also grades the lit scene
+                RenderTarget2D litTarget = modernLook
+                    ? _lightMapRenderer.GetLitWorldTarget(batcher.GraphicsDevice, worldTarget.Width, worldTarget.Height)
+                    : finalTarget;
+
+                DrawEnhancedLights(batcher, worldTarget, litTarget, matrix);
+                worldTarget = litTarget;
             }
 
             if (modernLook)
@@ -1253,41 +1138,7 @@ namespace ClassicUO.Game.Scenes
             batcher.Begin(null, matrix);
             batcher.SetBlendState(BlendState.Additive);
 
-            Vector3 hue = Vector3.Zero;
-
-            hue.Z = 1f;
-
-            for (int i = 0; i < _lightCount; i++)
-            {
-                ref LightData l = ref _lights[i];
-                ref readonly var lightInfo = ref Client.Game.UO.Lights.GetLight(l.ID);
-
-                if (lightInfo.Texture == null)
-                {
-                    continue;
-                }
-
-                hue.X = l.Color;
-                hue.Y =
-                    hue.X > 1.0f
-                        ? l.IsHue
-                            ? ShaderHueTranslator.SHADER_HUED
-                            : ShaderHueTranslator.SHADER_LIGHTS
-                        : ShaderHueTranslator.SHADER_NONE;
-
-                batcher.Draw(
-                    lightInfo.Texture,
-                    new Vector2(
-                        l.DrawX - lightInfo.UV.Width * 0.5f,
-                        l.DrawY - lightInfo.UV.Height * 0.5f
-                    ),
-                    lightInfo.UV,
-                    hue,
-                    0f
-                );
-            }
-
-            _lightCount = 0;
+            _lightManager.Draw(batcher);
 
             batcher.SetBlendState(null);
             batcher.End();
@@ -1425,15 +1276,6 @@ namespace ClassicUO.Game.Scenes
                     TextType.CLIENT
                 );
             }
-        }
-
-        private struct LightData
-        {
-            public byte ID;
-            public ushort Color;
-            public bool IsHue;
-            public int DrawX,
-                DrawY;
         }
     }
 }

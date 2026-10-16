@@ -11,7 +11,7 @@ Taban: classicUO-T `main` (upstream `ee79d7eb` + fork özellikleri). Önkoşul o
 4. Protokol uyumu: `0x4F`, `0x4E`, item `LightID` aynen kullanılır; sunucu otoritedir. Mevcut
    `Data/Client/lights.txt` ve `lightshaders.txt` dosyaları geçerli kalır.
 5. Her şey ayarlardan kapatılabilir; kapalıyken upstream yolu birebir çalışır.
-6. Performans: orta GPU (GTX 1050 / RX 560 sınıfı), 1080p, 200 ışık → **60+ FPS**; ışık sistemi ≤ 1.5 ms GPU/kare.
+6. Performans: orta GPU (GTX 1050 / RX 560 sınıfı), 1080p, 200 ışık → **60+ FPS**; ışık sistemi ≤ 1.5 ms GPU/kare (ölçüm yöntemi: L14).
 
 Kapsam dışı (M2): ışığın duvar/kat arkasına geçmemesi (gerçek occlusion).
 
@@ -27,19 +27,24 @@ RenderTargets.Draw                             ──► enhanced iken ışık �
 ```
 
 **Neden Modern look'tan önce?** classicUO-T'de Modern look ışıklardan önce uygulanıyor ve ışık sonra
-`RenderTargets.Draw`'da çarpılıyor; bu yüzden glow, karanlıkta parlayan meşaleleri görmüyor ve gece sahnesinde
-Modern look'un parlatması karanlığı da kaldırıyor. Işığı dünya hedefine Modern look'tan önce gömmek, iki özelliği
-birlikte doğru çalıştırır. Enhanced kapalıyken classicUO-T'nin mevcut sırası aynen kalır.
+`RenderTargets.Draw`'da çarpılıyor. Bu yüzden glow yalnızca dünya görüntüsünde zaten parlak olan pikselleri
+işler: ışık kaynağının kendi art'ı (alev, lav) eşiği (luma > 0.62) aşarsa glow alabilir, ama **Light RT'nin
+çevreye kattığı aydınlık glow'a hiç girmez**; ayrıca gece sahnesinde Modern look'un parlatması karanlığın
+çarpımından önce uygulanır. Işığı dünya hedefine Modern look'tan önce gömmek, Light RT katkısını da glow ve
+renk düzenlemeye sokar. Görsel sonuç L15'te test edilecek; Enhanced kapalıyken classicUO-T'nin mevcut sırası aynen kalır.
 
 - **×2 kompozit shader'sız:** blend `ColorSourceBlend = DestinationColor`, `ColorDestinationBlend = SourceColor`
   → `src·dst + dst·src = 2·src·dst`. Light RT'de 0.5 = nötr, 1.0 = 2× parlak (overbright).
   Gündüz: ambient 0.5 → sahne değişmez. Tonemap/renk düzenleme gerekirse M5'te shader'lı kompozite geçilir.
 - **Kendi light RT'miz** (`SurfaceFormat.Color`, ölçek 1, 1/2, 1/4). Upstream `LightRenderTarget`
-  backbuffer formatında ve tam boyutlu; ona dokunmuyoruz. `RenderTargets` yalnızca "hangi ışık texture'ı
-  çizilecek" kancası alır.
+  backbuffer formatında ve tam boyutlu; ona dokunmuyoruz. Kompozit `GameScene` içinde (E10) yapılır;
+  `RenderTargets` değişmez: enhanced iken upstream Light RT'si, upstream'in kendi "ışık yok" yolundaki gibi
+  şeffaf temizlenip boş blend ile verilir (L6 uygulaması). FNA bir `DiscardContents` hedefini bağlarken
+  temizlediği için dünya önce ikinci bir hedefe (`GetPostProcessWorldRenderTarget`) çizilir; kompozit
+  hedefe tek bağlamada yazılır (dünya opak + ışık ×2).
 - **Gecikmesiz:** ışık listesi aynı karede (`DrawWorld` sonrası) çizilir.
-- **Işık sprite'ları:** yeni `Lighting.fx` / `LightSprite` tekniği: atlas'tan light.mul şekli (linear)
-  **veya** prosedürel radyal düşüş × RGB × yoğunluk × flicker. Renk RGB olarak taşınır;
+- **Işık sprite'ları:** yeni `Lighting.fx`: `LightTexture` (atlas'tan light.mul şekli, linear)
+  **veya** `LightRadial` (prosedürel radyal düşüş) × RGB × yoğunluk × flicker. Renk RGB olarak taşınır;
   mevcut `lightshaders.txt` (s2 tablosu) ve hue renkleri RGB'ye çevrilerek kullanılır.
 - **Ambient:** `AmbientLight` sunucu seviyesinden hedef yoğunluk + gün/gece tonu üretir, zamanla yaklaşır.
 - **Işık toplama:** `GameScene.AddLight` → `LightManager.Add` (aynı örtme testi, aynı ID/renk kuralları
@@ -67,13 +72,13 @@ Yeni dosyalar:
 | `LightMapRenderer` | `ClassicUO.Client/Game/Lighting/` | Light RT'yi doldurma (ışıklar, blur), kalite seviyeleri |
 | `LightMapTarget` | `ClassicUO.Renderer/Lighting/` | Ölçekli RT'lerin yaşam döngüsü (oluştur/boyutla/dispose) |
 | `LightingEffect` | `ClassicUO.Renderer/Effects/` | `Lighting.fx` sarmalayıcısı |
-| `Lighting.fx` / `.fxc` | `ClassicUO.Renderer/shaders/` | `LightSprite`, `BlurH`, `BlurV` |
+| `Lighting.fx` / `.fxc` | `ClassicUO.Renderer/shaders/` | `LightTexture`, `LightRadial`, `BlurH`, `BlurV` |
 
 Upstream kancaları (hepsi `EnhancedLighting` kapalıyken eski yol):
 - `GameScene.AddLight` → başta `if (enhanced) { _lightManager.Add(...); return; }`.
 - `GameScene.Draw` → enhanced iken `PrepareLightsRendering` atlanır; `DrawWorld`/`UpscaleWorld` sonrası,
   `ApplyModernLook` öncesi `LightMapRenderer.Draw` + kompozit (dünya hedefine ×2 blend).
-- `RenderTargets` → enhanced iken ışık RT çizimini atlayan bayrak (ör. `DrawLightsLayer`), tek satırlık koşul.
+- `RenderTargets` değişmez; `GameSceneLighting.cs` (partial) upstream Light RT katmanını boşaltır.
 - `Batcher2D.cs` `Resources` → `[FileEmbed("shaders/Lighting.fxc")] GetLightingShader()`.
 - `Profile.cs` → yeni property'ler; `OptionsGump.cs` → ayar bölümü.
 
@@ -102,28 +107,31 @@ Mevcut `UseColoredLights`, `UseCustomLightLevel`/`LightLevel`/`LightLevelType`, 
 Zorluk: K (<½ gün) · O (~1 gün) · Z (2+ gün). **[Codex]** = Codex'e verilebilecek kadar net.
 ID'ler sabittir (PLAN.md ile eşleşir).
 
-### L1 – Işık limitini ID limitinden ayır **[Codex]** · K
-- Dosyalar: `ClassicUO.Client/Game/Constants.cs` (yeni `MAX_LIGHTS_PER_FRAME = 512`), `Game/Scenes/GameScene.cs` (`_lights` boyutu ve `AddLight` başındaki limit).
-- Kabul: `LightsLoader.MAX_LIGHTS_DATA_INDEX_COUNT` yalnızca ID kontrolünde kalıyor; 100'den fazla ışıklı sahnede hepsi çiziliyor; başka görsel fark yok.
+### L1 – Işık limitini ID limitinden ayır **[Codex]** · K · L2 ve L3'e bağlı
+- Dosyalar: `ClassicUO.Client/Game/Lighting/LightManager.cs` (dizi kapasitesi `MAX_LIGHTS_PER_FRAME = 512`; yeni `LEGACY_MAX_LIGHTS = 100`; `Add` limiti yeni `MaxLights` özelliğinden), `Game/Scenes/GameScene.cs` (her kare `MaxLights = EnhancedLighting ? <kalite tablosundaki maks> : LEGACY_MAX_LIGHTS`).
+- Kabul: Enhanced **kapalıyken** limit 100 → görüntü birebir eski (101+ ışıklı sahnede de); Enhanced açıkken §4 kalite tablosundaki limit; `LightsLoader.MAX_LIGHTS_DATA_INDEX_COUNT` yalnızca ışık ID kontrolünde kalıyor.
 
 ### L2 – `LightingSettings` + Profile ayarları **[Codex]** · K
 - Dosyalar: yeni `Game/Lighting/LightingSettings.cs`; `Configuration/Profile.cs` (§4 property'leri; serileştirme `ProfileJsonContext` source-gen ile, mevcut property kalıbına uy).
 - Kabul: Eski `profile.json` ile açılış hatasız; varsayılanlar §4; kaydet/yükle döngüsü çalışıyor.
 
-### L3 – `LightManager`'a taşıma (davranış değişmeden) · O · Claude Code
+### L3 – `LightManager`'a taşıma (davranış değişmeden) · O · Claude Code · ✅ 2026-10-16 (`6c96b7c0`, oyun içi görsel kontrol bekliyor)
 - Dosyalar: yeni `Game/Lighting/LightManager.cs`, `LightSource.cs`; `GameScene.cs` (`AddLight`, `PrepareLightsRendering` delegasyonu).
 - Kabul: Enhanced kapalıyken gece ekran görüntüleri değişiklik öncesiyle aynı; `GameScene.cs` diff'i < 30 satır.
 
-### L4 – `Lighting.fx` + `LightingEffect` · O · Claude Code
+### L4 – `Lighting.fx` + `LightingEffect` · O · Claude Code · ✅ 2026-10-16 (derleme + gömme + birim testi; GPU'da yükleme L6 kabulüne taşındı)
 - Dosyalar: yeni `ClassicUO.Renderer/shaders/Lighting.fx` + `.fxc`, `Effects/LightingEffect.cs`; `Batcher2D.cs` `Resources` getter; `compile_shaders.bat`'e satır.
 - Kabul: Teknikler `fxc /T fx_2_0` ile derleniyor, FileEmbed ile yükleniyor; tek ışık sprite testi D3D11 ve OpenGL'de doğru.
 
 ### L5 – ~~Shader derleme scripti~~ · kaldırıldı
 - Upstream `fxc.exe` + `compile_shaders.bat` içeriyor; Lighting.fx satırı L4'e dahil.
 
-### L6 – `LightMapRenderer` + kompozit (çekirdek) · Z · Claude Code
-- Dosyalar: yeni `Game/Lighting/LightMapRenderer.cs`, `ClassicUO.Renderer/Lighting/LightMapTarget.cs`; `GameScene.cs` (`Draw` kancası, E10), `RenderTargets.cs` (ışık katmanını atlama bayrağı).
-- Kabul: Enhanced açıkken ışıklar aynı karede, ölçekli RT'de, ×2 blend ile dünya hedefine gömülüyor; Modern look açık/kapalı, xBR zoom filtresi açık/kapalı ve HD world pack ile doğru; gündüz sahnesi enhanced açık/kapalı aynı; zoom ve pencere/DPI değişiminde RT doğru yeniden kuruluyor, sızıntı yok.
+### L6 – `LightMapRenderer` + kompozit (çekirdek) · Z · Claude Code · 🔶 kod hazır (build + 298 test), oyun içi kabul bekliyor
+- Not: Bu aşamada ışık sprite'ları upstream renkleriyle (s2 tablosu / hue) varsayılan effect ile, `BlendFactor` 0.5'li additive
+  ile çizilir; RGB/prosedürel ışık L9'da, blur L10'da `LightingEffect`'e geçer. Sınırlama: Enhanced yalnız normal gece
+  karanlığında; gündüz, `UseAltLights` ve ölü siyah-beyaz görünümde eski yol.
+- Dosyalar: yeni `Game/Lighting/LightMapRenderer.cs`, `ClassicUO.Renderer/Lighting/LightMapTarget.cs`; `Game/Scenes/GameSceneLighting.cs` (partial: `UseEnhancedLighting`, `DisableLegacyLightLayer`, `DrawEnhancedLights`); `GameScene.cs` (`Draw` kancası E10, `Unload` dispose).
+- Kabul: `LightingEffect` D3D11 ve OpenGL arka uçlarında yükleniyor (yüklenemezse Modern look gibi loglanıp Enhanced kapanıyor); Enhanced açıkken ışıklar aynı karede, ölçekli RT'de, ×2 blend ile dünya hedefine gömülüyor; Modern look açık/kapalı, xBR zoom filtresi açık/kapalı ve HD world pack ile doğru; gündüz sahnesi enhanced açık/kapalı aynı; zoom ve pencere/DPI değişiminde RT doğru yeniden kuruluyor, sızıntı yok.
 
 ### L7 – `AmbientLight`: yumuşak geçiş + gün/gece tonu · O · Claude Code
 - Dosyalar: yeni `Game/Lighting/AmbientLight.cs`; `LightMapRenderer` clear rengi; birim testi `tests/ClassicUO.UnitTests/`.
@@ -136,7 +144,7 @@ ID'ler sabittir (PLAN.md ile eşleşir).
 - Kabul: meşale/mum/lamba/brazier/şamdan/ateş alanı/enerji alanı için ≥ 25 varsayılan giriş; dosya silinince yeniden oluşuyor.
 
 ### L9 – Prosedürel ışık + RGB renk + flicker · O · Claude Code
-- Dosyalar: `LightMapRenderer.cs`, `Lighting.fx` (`LightSprite`), `LightManager.cs`.
+- Dosyalar: `LightMapRenderer.cs`, `Lighting.fx` (`LightTexture`, `LightRadial`), `LightManager.cs`.
 - Kabul: Ateş ışıkları `Time.Ticks` tabanlı titriyor (FPS'ten bağımsız), seed konumdan; `LightFlicker` kapalıyken sabit; `lightshaders.txt` renkleri korunuyor.
 
 ### L10 – Yumuşak light map: blur + kalite seviyeleri · O · Claude Code
@@ -153,16 +161,19 @@ ID'ler sabittir (PLAN.md ile eşleşir).
 
 ### L13 – Debug overlay + ölçüm **[Codex]** · K
 - Dosyalar: yeni `Game/Lighting/LightingDebug.cs`; `CommandManager`'a komut (ör. `lightdebug`); `Profiler` bağlamı.
-- Kabul: Işık sayısı, light RT boyutu, ışık pass süresi (ms) ekranda; light map'i tek başına gösterme modu.
+- Kabul: Işık sayısı, light RT boyutu, ışık pass'inin **CPU** süresi (ms, açıkça "CPU" etiketli; `Profiler` Stopwatch tabanlıdır, GPU süresi değildir) ekranda; light map'i tek başına gösterme modu.
 
 ### L15 – Modern look ile ışık uyumu · K · Claude Code
 - Dosyalar: `ClassicUO.Renderer/shaders/ModernLook.fx` (+ `.fxc`), gerekirse `GameScene.ApplyModernLook`.
 - Kabul: Enhanced + Modern look açıkken meşale/lamba glow alıyor ama gece karanlığı Modern look'un parlatmasıyla kaybolmuyor (glow eşiği ve gamma ışıklı sahne için ayarlı); Enhanced kapalıyken Modern look çıktısı değişmemiş.
 
 ### L14 – Performans doğrulama ve kabul · O · Claude Code (+ Codex ölçüm)
-- Kabul: §1/6 hedefi; açık alan gece, şehir gece, zindan × Low/Medium/High FPS tablosu `docs/PLAN.md`'de.
+- GPU ölçüm yöntemi (FNA3D timer query sunmadığı için harici):
+  1. **Birincil:** PIX veya RenderDoc kare yakalaması; ölçüm arka ucu sabitlenir (`FNA3D_FORCE_DRIVER`, ör. D3D11) ve raporda yazılır; ışık pass'i (light RT çizimi + blur + kompozit) draw call'larının GPU süresi toplamı.
+  2. **Destek:** VSync kapalı, FPS limiti 250, GPU-bound sahnede Enhanced açık/kapalı ortalama kare süresi farkı (`Profiler` RENDER_FRAME değil, 10 sn ortalama FPS'ten).
+- Kabul: §1.6 hedefi yöntem 1 ile doğrulanmış; açık alan gece, şehir gece, zindan × Low/Medium/High için GPU ms + FPS tablosu `docs/PLAN.md`'de. Yalnız CPU overlay'i veya FPS ile GPU bütçesi "doğrulandı" sayılmaz.
 
-**Sıra:** L1, L2 paralel → L3 → L4 → L6 → (L7, L8, L9, L10, L15 paralel) → L11, L12, L13 → L14.
+**Sıra:** L3 ✅ → L2 → L1; L4 → L6 → (L7, L8, L9, L10, L15 paralel) → L11, L12, L13 → L14.
 Toplam **14 aktif görev** (L5 kaldırıldı, L15 eklendi); Codex'e uygun: L1, L2, L8, L12, L13.
 
 ## 6. Riskler

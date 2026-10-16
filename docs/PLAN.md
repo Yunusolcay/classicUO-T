@@ -2,6 +2,8 @@
 
 Son güncelleme: 16 Ekim 2026. D-004 ile ana repo `Yunusolcay/classicUO-T` (`origin`), taban upstream `ee79d7eb` + classicUO-T özellikleri. MIG-9 incelemesi `fe0244de4` üzerinden yapıldı; MIG-7 Codex incelemesi için `main` (`c7cb63d92`) `codex/dev` dalına çakışmasız fast-forward ile birleştirildi. Eski repo `old-origin`, 2020 tabanı `legacy/2020` yalnız referanstır. Göç ayrıntısı: [MIGRATION.md](MIGRATION.md).
 
+L2 için `main` (`a8a65b83a`) zaten `codex/dev` içindeydi; `claude/dev` önce `6af2e43a5`, ardından çalışma sırasında gelen L4 (`8effbef48`) ile çakışmasız fast-forward birleştirildi. Aşağıdaki L2 doğrulaması bu birleşik tabana aittir.
+
 M3–M6'daki işaretli özellikler classicUO-T'de zaten bulunan uygulamaları gösterir; MIG-9 kaynak/ayar bağlantılarını ve derlemeyi doğrular. Bu işaretler bütün görsel hedeflerin, performans ölçümlerinin veya oyun içi kabul testlerinin tamamlandığı anlamına gelmez.
 
 ## M0 — Analiz ve dokümantasyon / taban geçişi
@@ -14,15 +16,15 @@ M3–M6'daki işaretli özellikler classicUO-T'de zaten bulunan uygulamaları g�
 | MIG-4 — ışık planını uyarlama | Claude Code | Tamamlandı: upstream uyarlaması bu dalda mevcut; D-004 sonrası kancalar/Modern look sırası MIG-8'de |
 | MIG-5 — veri/protokol testi | Codex + kullanıcı | **Kısmi:** 7.0.112.75 + 7.0.20.0 açılış, Nimloth'a giriş, yürüme, koşma, ışınlanma geçti. Kalan oyun testleri ve shard özel asset eşlemeleri aşağıda |
 | MIG-6 — yeni ağ/asset haritası | Codex | Tamamlandı: `docs/arch/network-assets.md`; yeni paket/taşıma ve Assets/IO/Renderer ayrımı |
-| MIG-7 — çapraz inceleme | Claude Code + Codex | İki araç incelemesini tamamladı: Claude BUILD/network-assets (D-005), Codex rendering/LIGHTING_PLAN ve §8 kaynak doğrulaması. Aşağıdaki R1–R5 bulguları açık; doküman düzeltmesi/onayı Claude Code'da |
+| MIG-7 — çapraz inceleme | Claude Code + Codex | İki araç incelemesini tamamladı: Claude BUILD/network-assets (D-005), Codex rendering/LIGHTING_PLAN ve §8 kaynak doğrulaması. R1–R5 doküman düzeltmeleri Claude Code tarafından `395f2e7d` ile yapıldı; `6af2e43a5` ile kapatıldı |
 | MIG-8 — classicUO-T render/ışık uyarlaması | Claude Code | Tamamlandı: main'den nature, HD, zoom xBR, Modern look ve E10 ışık kompoziti kancası belgeleri alındı; Codex inceleme bulguları aşağıda |
 | MIG-9 — mevcut özellikler, launcher ve CI | Codex | Tamamlandı: M3/M4/M5/M6 mevcut özellikleri kaynaklarıyla işaretlendi; BUILD.md launcher/CI ve yerel betik ayrımını içeriyor. `build.ps1` temiz klonda PowerShell 5.1 ile geçti; Windows CI restore/build/test (279 test) ve launcher publish başarılı. Betik/workflow değişikliği gerekmedi; sınırlar BUILD.md'de |
 
 - [x] Eski `.gitignore` eklemeleri `e5595b222` üzerinden aynen taşındı; yeni tabanın mevcut kuralları korundu.
 - [x] Oyun/protokol/asset/shader kaynakları değiştirilmeden build ve açılış doğrulandı.
-- [ ] Kalan MIG-5 ve MIG-7 bulguları kapatılınca M0 kapanışı; çalışma dalları ana dalda uzlaştırılsın. İncelemenin tamamlanması açık bulguların kabulü anlamına gelmez.
+- [ ] Kalan MIG-5 kabulü tamamlanınca M0 kapanışı; çalışma dalları ana dalda uzlaştırılsın. MIG-7 R1–R5 belge bulguları kapalıdır; oyun içi kabulün yerine geçmez.
 
-### MIG-7 — Codex kaynak doğrulaması ve açık bulgular
+### MIG-7 — Codex kaynak doğrulaması ve bulgu kaydı
 
 İnceleme tabanı `c7cb63d92`; `docs/arch/rendering.md` ve `docs/LIGHTING_PLAN.md` kaynakla karşılaştırıldı. Render haritasındaki 44 mevcut dosya/yol veya kısa dosya adı, ışık planındaki 12 mevcut dosya referansı Git'in izlediği kaynaklarla eşleşti; açıkça yeni olarak tanımlanan Lighting dosyaları eksik dosya hatası sayılmadı. Ana döngü, batcher/shader, ışık toplama ve §8 nature/Decor, xBR, HD world/karakter, Modern look ve movement kancaları kontrol edildi. Yöntemler genel olarak mevcut; R4 sınıf adı istisnasıdır.
 
@@ -30,13 +32,13 @@ Bu görev kaynak incelemesidir; oyun kodu değişmediği için build/oyun testle
 
 | Bulgu | Kanıt ve etkisi | Takip / sahip |
 | --- | --- | --- |
-| R1 — P2: L1 ile kapalı durum sözleşmesi çelişiyor | LIGHTING_PLAN §1.5 / L3, Enhanced kapalıyken aynı görüntüyü istiyor; L1 (105–107) `_lights` dizisini ve `AddLight` limitini koşulsuz 512 yapıp 100 üzerindeki tüm ışıkları çizdirmeyi istiyor. Mevcut `src/ClassicUO.Client/Game/Scenes/GameScene.cs:55` ve `:407` 100 sınırını kullanır. 101–512 ışıklı sahnede koşulsuz artış kapalı görüntüyü değiştirir | [ ] Claude Code: legacy 100 sınırını koruyan koşulu veya açık sözleşme değişikliğini planda netleştir; L1 uygulanmadan çözülmeli |
-| R2 — P2: RenderTargets kancası iki farklı tarifte | LIGHTING_PLAN §2 (37–39) “hangi ışık texture'ı çizilecek” kancası diyor; §3 (74–76) ve L6 (125–126) kompoziti GameScene/E10'da yapıp yalnız ışık katmanını atlama bayrağı istiyor. Mevcut `src/ClassicUO.Renderer/RenderTargets.cs:147` Light RT'yi doğrudan çizer; iki tarif farklı API/değişiklik gerektirir | [ ] Claude Code: §2'de kalan eski tarifi §3/L6 ve D-001'deki E10 + atlama bayrağı sözleşmesiyle uzlaştır |
-| R3 — P2: GPU kabulü için ölçüm yöntemi eksik | LIGHTING_PLAN §1.6 GPU/kare ≤1.5 ms ister; L13 Profiler bağlamı, L14 FPS tablosu tarif eder. `src/ClassicUO.Utility/Profiler.cs:17`, `:26`, `:121` Stopwatch ile CPU geçen süreyi ölçer; bu değer GPU pass süresi değildir | [ ] Claude Code + Codex ölçüm: GPU ölçüm aracını/yöntemini ayrıca tanımla; CPU overlay/FPS ile GPU bütçesi doğrulandı sayılmasın |
-| R4 — P3: View sınıfı adı yanlış | rendering §5 (152) `View.CalculateDepthZ()` diyor; `src/ClassicUO.Client/Game/GameObjects/Views/View.cs:23` sınıfı `GameObject` abstract partial, metot `:36`'da. Dosya adı doğru ama `View` adlı sınıf yok | [ ] Claude Code: çağrı sahibini `GameObject.CalculateDepthZ()` olarak belgelemeli |
-| R5 — P3: “meşale glow almaz” sonucu fazla kesin | rendering §8 (200) ve LIGHTING_PLAN §2 (29–31) ışık geçişinin Modern look'tan sonra olmasından meşalenin glow alamayacağı sonucunu çıkarıyor. `src/ClassicUO.Renderer/shaders/ModernLook.fx:36`–`:41` dünya görüntüsündeki parlak pikselleri işler; ışık kaynağının art'ı bu eşiği aşarsa glow üretebilir. Dışarıda kalan, sonradan eklenen Light RT katkısıdır | [ ] Claude Code: kaynak art glow'u ile Light RT katkısını ayırarak ifadeyi sınırla; görsel sonucu test olmadan genelleme |
+| R1 — P2: L1 ile kapalı durum sözleşmesi çelişiyor | LIGHTING_PLAN §1.5 / L3, Enhanced kapalıyken aynı görüntüyü istiyor; L1 (105–107) `_lights` dizisini ve `AddLight` limitini koşulsuz 512 yapıp 100 üzerindeki tüm ışıkları çizdirmeyi istiyor. Mevcut `src/ClassicUO.Client/Game/Scenes/GameScene.cs:55` ve `:407` 100 sınırını kullanır. 101–512 ışıklı sahnede koşulsuz artış kapalı görüntüyü değiştirir | [x] Claude Code (`395f2e7d`): L1 artık Enhanced kapalıyken 100 sınırını koruyor, L2+L3 sonrası. Önceki metin: legacy 100 sınırını koruyan koşulu veya açık sözleşme değişikliğini planda netleştir; L1 uygulanmadan çözülmeli |
+| R2 — P2: RenderTargets kancası iki farklı tarifte | LIGHTING_PLAN §2 (37–39) “hangi ışık texture'ı çizilecek” kancası diyor; §3 (74–76) ve L6 (125–126) kompoziti GameScene/E10'da yapıp yalnız ışık katmanını atlama bayrağı istiyor. Mevcut `src/ClassicUO.Renderer/RenderTargets.cs:147` Light RT'yi doğrudan çizer; iki tarif farklı API/değişiklik gerektirir | [x] Claude Code (`395f2e7d`): §2 E10 + atlama bayrağıyla uzlaştırıldı. Önceki metin: §2'de kalan eski tarifi §3/L6 ve D-001'deki E10 + atlama bayrağı sözleşmesiyle uzlaştır |
+| R3 — P2: GPU kabulü için ölçüm yöntemi eksik | LIGHTING_PLAN §1.6 GPU/kare ≤1.5 ms ister; L13 Profiler bağlamı, L14 FPS tablosu tarif eder. `src/ClassicUO.Utility/Profiler.cs:17`, `:26`, `:121` Stopwatch ile CPU geçen süreyi ölçer; bu değer GPU pass süresi değildir | [x] Claude Code (`395f2e7d`): L14 PIX/RenderDoc birincil yöntem, kare süresi farkı destek; L13 CPU etiketli. Ölçüm uygulaması L14'te. Önceki metin: GPU ölçüm aracını/yöntemini ayrıca tanımla; CPU overlay/FPS ile GPU bütçesi doğrulandı sayılmasın |
+| R4 — P3: View sınıfı adı yanlış | rendering §5 (152) `View.CalculateDepthZ()` diyor; `src/ClassicUO.Client/Game/GameObjects/Views/View.cs:23` sınıfı `GameObject` abstract partial, metot `:36`'da. Dosya adı doğru ama `View` adlı sınıf yok | [x] Claude Code (`395f2e7d`): düzeltildi. Önceki metin: çağrı sahibini `GameObject.CalculateDepthZ()` olarak belgelemeli |
+| R5 — P3: “meşale glow almaz” sonucu fazla kesin | rendering §8 (200) ve LIGHTING_PLAN §2 (29–31) ışık geçişinin Modern look'tan sonra olmasından meşalenin glow alamayacağı sonucunu çıkarıyor. `src/ClassicUO.Renderer/shaders/ModernLook.fx:36`–`:41` dünya görüntüsündeki parlak pikselleri işler; ışık kaynağının art'ı bu eşiği aşarsa glow üretebilir. Dışarıda kalan, sonradan eklenen Light RT katkısıdır | [x] Claude Code (`395f2e7d`): rendering §8 ve LIGHTING_PLAN §2 sınırlandı. Önceki metin: kaynak art glow'u ile Light RT katkısını ayırarak ifadeyi sınırla; görsel sonucu test olmadan genelleme |
 
-M1 görevleri aşağıda orijinal ID/sahipleriyle aktarıldı. R1/R2/R3, ilgili uygulama ve kabul adımları öncesinde netleştirilmeli; bu kayıt ışık planının metnini değiştirmez.
+M1 görevleri aşağıda orijinal ID/sahipleriyle aktarıldı. R1/R2/R3 sözleşmeleri Claude Code'un belge düzeltmelerinde netleştirildi; uygulama ve görsel/GPU kabul adımları ilgili L görevlerinde izlenir.
 
 ### Eski fork takip işlerinin kapanışı
 
@@ -57,15 +59,15 @@ M1 görevleri aşağıda orijinal ID/sahipleriyle aktarıldı. R1/R2/R3, ilgili 
 
 ## M1 — Dinamik ışık sistemi
 
-Kaynak: [LIGHTING_PLAN.md §5](LIGHTING_PLAN.md#5-görevler), inceleme tabanı `c7cb63d92`. **14 aktif görev**; L11 opsiyoneldir. **L5 kaldırıldı:** mevcut `fxc.exe`/`compile_shaders.bat` kullanımı L4'e dahildir; ID yeniden kullanılmaz. Yeni dosyalar bu aşamada oluşturulmadı. K (<½ gün), O (~1 gün), Z (2+ gün) planın zorluk tahminleridir.
+Kaynak: [LIGHTING_PLAN.md §5](LIGHTING_PLAN.md#5-görevler), güncel taban `8effbef48`. **14 aktif görev**; L11 opsiyoneldir. **L5 kaldırıldı:** mevcut `fxc.exe`/`compile_shaders.bat` kullanımı L4'e dahildir; ID yeniden kullanılmaz. L3 ve L4 Claude Code'dan birleştirildi; L2 aşağıdaki doğrulamayla tamamlandı. K (<½ gün), O (~1 gün), Z (2+ gün) planın zorluk tahminleridir.
 
 | Durum / görev | Sahip | Zorluk | Kapsam ve kabul özeti |
 | --- | --- | --- | --- |
-| [ ] L1 — Işık limitini ID limitinden ayır | **Codex** | K | `Game/Constants.cs`: `MAX_LIGHTS_PER_FRAME=512`; `GameScene` dizi/limit kullanımı. ID kontrolü `LightsLoader`'da kalır; 100 üzeri ışık sahnesi doğrulanır. Kapalı durum sözleşmesi için önce R1 netleştirilsin |
-| [ ] L2 — LightingSettings + Profile ayarları | **Codex** | K | Yeni `Game/Lighting/LightingSettings.cs`, `Configuration/Profile.cs`; §4 varsayılanları ve kalite önayarları. Eski profil açılışı ve source-gen `ProfileJsonContext` kaydet/yükle döngüsü |
-| [ ] L3 — LightManager'a taşıma | **Claude Code** | O | Yeni `LightManager.cs`, `LightSource.cs`; `GameScene.AddLight` / `PrepareLightsRendering` delegasyonu. Enhanced kapalı gece görüntüsü aynı; GameScene diff'i <30 satır hedefi |
-| [ ] L4 — Lighting.fx + LightingEffect | **Claude Code** | O | Yeni renderer `shaders/Lighting.fx` + `.fxc`, `Effects/LightingEffect.cs`; `Batcher2D.Resources` getter ve `compile_shaders.bat` satırı. `fx_2_0`/FileEmbed, D3D11 + OpenGL tek ışık testi |
-| [ ] L6 — LightMapRenderer + kompozit | **Claude Code** | Z | Yeni client `Game/Lighting/LightMapRenderer.cs`, renderer `Lighting/LightMapTarget.cs`; GameScene E10 ve RenderTargets ışık katmanı bayrağı. Aynı kare/ölçekli RT/×2 kompozit; Modern look, xBR ve HD world kombinasyonları; gündüz eşliği ve zoom/DPI/resize/dispose. Önce R2 netleştirilsin |
+| [ ] L1 — Işık limitini ID limitinden ayır | **Codex** | K | L2+L3'e bağlı. `Game/Lighting/LightManager.cs`: `MAX_LIGHTS_PER_FRAME=512`, `LEGACY_MAX_LIGHTS=100`, `MaxLights` özelliği; `GameScene` her kare Enhanced açıkken kalite önayarı, kapalıyken 100 seçer. ID kontrolü `LightsLoader`'da kalır; 100 üzeri sahnede kapalı görüntüsü korunur |
+| [x] L2 — LightingSettings + Profile ayarları | **Codex** | K | Yeni `Game/Lighting/LightingSettings.cs`, altı düz `Profile` özelliği, §4 varsayılanları ve kalite önayarları. `ProfileJsonContext` ile eski profil yükleme/kaydetme ve tüm kalite seviyelerinde round-trip testleri geçti; render bağlantısı yok. Doğrulama aşağıda |
+| [x] L3 — LightManager'a taşıma | **Claude Code** | O | ✅ `6c96b7c0` (build + 279 test; oyun içi görsel kontrol bekliyor). GameScene +6/−186. Yeni `LightManager.cs`, `LightSource.cs`; `GameScene.AddLight` / `PrepareLightsRendering` delegasyonu. Enhanced kapalı gece görüntüsü aynı; GameScene diff'i <30 satır hedefi |
+| [x] L4 — Lighting.fx + LightingEffect | **Claude Code** | O | `8effbef48`: renderer `shaders/Lighting.fx` + `.fxc`, `Effects/LightingEffect.cs`, `Batcher2D.Resources` getter ve `compile_shaders.bat` satırı birleştirildi. `fx_2_0`/FileEmbed birim testleri geçti; D3D11 + OpenGL tek ışık/GPU yükleme kabulü L6'da bekliyor |
+| [ ] L6 — LightMapRenderer + kompozit | **Claude Code** | Z | Yeni client `Game/Lighting/LightMapRenderer.cs`, renderer `Lighting/LightMapTarget.cs`; GameScene E10 ve RenderTargets ışık katmanı bayrağı. Aynı kare/ölçekli RT/×2 kompozit; Modern look, xBR ve HD world kombinasyonları; gündüz eşliği ve zoom/DPI/resize/dispose; L4 GPU yükleme ve tek ışık kabulü |
 | [ ] L7 — AmbientLight: geçiş + gün/gece tonu | **Claude Code** | O | Yeni `Game/Lighting/AmbientLight.cs`, light RT clear ve birim testleri. `0x4F` değişiminde smoothstep; tint kapalı son değer eski IsometricLevel ile eş; özel ışık + LightLevelType uyumu |
 | [ ] L8 — lights_ex.txt tanımları | **Codex** | K–O | Yeni `Game/Lighting/LightDefinitions.cs`; mevcut `lights.txt`/`lightshaders.txt` korunur. `ITEM_ID RADIUS INTENSITY FLICKER`, bozuk satırları logla/atla; ≥25 varsayılan giriş, dosya yoksa örnekli yeniden üretim |
 | [ ] L9 — Prosedürel ışık + RGB + flicker | **Claude Code** | O | LightMapRenderer, Lighting.fx/LightSprite, LightManager. Konum seed'i ve Time.Ticks ile FPS'ten bağımsız flicker; ayar kapalıyken sabit; mevcut ışık shader renkleri korunur |
@@ -73,14 +75,23 @@ Kaynak: [LIGHTING_PLAN.md §5](LIGHTING_PLAN.md#5-görevler), inceleme tabanı `
 | [ ] L11 — Kişisel ışık görselleştirmesi (opsiyonel) | **Claude Code** | O | LightManager/AmbientLight; `0x4E > 0` oyuncu çevresinde yumuşak hale, eski sistemden az görüş yok; IsometricLevel ölçek şüphesi doğrulanıp kaydedilir |
 | [ ] L12 — Ayarlar arayüzü | **Codex** | O | `Game/UI/Gumps/OptionsGump.cs`, `Resources/ResGumps` kalıbı; §4 ayarları yeniden başlatmadan uygulanır |
 | [ ] L13 — Debug overlay + ölçüm | **Codex** | K | Yeni `Game/Lighting/LightingDebug.cs`, CommandManager komutu ve Profiler bağlamı. Işık sayısı, RT boyutu, pass süresi, yalnız light map görüntüleme; R3 uyarınca CPU/GPU ölçümü açık etiketlenmeli |
-| [ ] L14 — Performans ve kabul | **Claude Code**, Codex ölçüm desteği | O | Açık alan gece/şehir gece/zindan × Low/Medium/High FPS tablosu PLAN.md'ye. Hedef: GTX 1050/RX 560 sınıfı, 1080p, 200 ışıkta 60+ FPS ve GPU ışık süresi ≤1.5 ms; GPU yöntemi R3 ile tanımlansın |
+| [ ] L14 — Performans ve kabul | **Claude Code**, Codex ölçüm desteği | O | Açık alan gece/şehir gece/zindan × Low/Medium/High FPS tablosu PLAN.md'ye. Hedef: GTX 1050/RX 560 sınıfı, 1080p, 200 ışıkta 60+ FPS ve GPU ışık süresi ≤1.5 ms; PIX/RenderDoc birincil ölçüm, kare süresi farkı destek; CPU Profiler GPU ölçümü sayılmaz |
 | [ ] L15 — Modern look ile ışık uyumu | **Claude Code** | K | ModernLook.fx + `.fxc`, gerekirse GameScene.ApplyModernLook. Enhanced+Modern açıkken ışık/glow ve gece karanlığı; Enhanced kapalı Modern look görüntüsü aynı |
 
-Tabloda client dosyaları `src/ClassicUO.Client/`, renderer dosyaları `src/ClassicUO.Renderer/` altındadır. Yeni `LightManager`, `LightSource`, `AmbientLight`, `LightDefinitions` client `Game/Lighting/` altında planlanır. §4 varsayılanları: Enhanced açık, kalite Medium, flicker/tint açık, geçiş 2 s, yoğunluk 1.0 (0.5–2.0).
+Tabloda client dosyaları `src/ClassicUO.Client/`, renderer dosyaları `src/ClassicUO.Renderer/` altındadır. `LightManager`, `LightSource`, `LightingSettings` client `Game/Lighting/` altında mevcut; `AmbientLight`, `LightDefinitions` aynı dizinde planlanır. §4 varsayılanları: Enhanced açık, kalite Medium, flicker/tint açık, geçiş 2 s, yoğunluk 1.0 (0.5–2.0).
 
-**Bağımlılık sırası (planın aktarımı):** L1/L2 → L3 → L4 → L6 → L7/L8/L9/L10/L15 → L11/L12/L13 → L14. Bu sıralama M1 uygulaması başlatma talimatı değildir; aynı dosyalara paralel yazılacak işler sahipleri arasında koordine edilmeli.
+**Bağımlılık sırası:** L3 ✅ → L2 ✅ → L1; L4 ✅ → L6 → L7/L8/L9/L10/L15 → L11/L12/L13 → L14. Kalan görevler ayrıca atanır; aynı dosyalara paralel yazılacak işler sahipleri arasında koordine edilmeli.
 
-`UseColoredLights`, `UseCustomLightLevel`/`LightLevel`/`LightLevelType`, `UseDarkNights`, `UseAlternativeLights` ve sunucu `World.Light.Real*` değerleri korunur. `SetTime(0x5B)` hâlâ boş; gece/gündüz hedefi `0x4F` seviyesine dayanır. D-003'ün kalan oyun testleri açık izlenir; bu görev hiçbir L işini uygulanmış olarak işaretlemez.
+`UseColoredLights`, `UseCustomLightLevel`/`LightLevel`/`LightLevelType`, `UseDarkNights`, `UseAlternativeLights` ve sunucu `World.Light.Real*` değerleri korunur. `SetTime(0x5B)` hâlâ boş; gece/gündüz hedefi `0x4F` seviyesine dayanır. D-003'ün kalan oyun testleri açık izlenir.
+
+### L2 — Uygulama ve doğrulama (Codex)
+
+- Altı ayar `Profile` içinde mevcut düz property kalıbıyla saklanır; mevcut `ProfileJsonContext` source-gen kullanılır. JSON anahtarları `enhanced_lighting`, `lighting_quality`, `light_flicker`, `day_night_tint`, `light_transition_seconds`, `light_intensity`; kalite sayısaldır: Low=0, Medium=1, High=2.
+- `LightingSettings` §4 varsayılanlarını ve Low/Medium/High kalite verisini içerir: ¼/½/½ RT, 128/256/512 ışık, yalnız High'da iki geçişli 9-tap blur, Low'da prosedürel düşüş kapalı. Bilinmeyen kalite değeri önayar sorgusunda Medium'a döner. Bu veriyi henüz hiçbir çizim/oyun yolu tüketmez; L1/L6/L7/L9/L10/L12 uygulanmadı.
+- Eski ayarları içeren, yeni altı anahtarı bulunmayan profil dosyası `ConfigurationResolver.Load` ile açıldı; eski ışık ve ses değerleri korundu, §4 varsayılanları geldi. Aynı dosya source-gen üzerinden kaydedilip yeniden yüklendi. Tüm kalite değerleri, açıkça kapalı bayraklar, 0 saniye geçiş, kesirli süre/yoğunluk ve 0.5/2.0 yoğunluk uçları dosya round-trip testlerinden geçti. Bu kayıt profil yükleme testidir; yeni bir oyun içi giriş testi yapılmadı.
+- İlk test Türkçe kültürde `LightIntensity` için mevcut `ToLower()` politikasının noktasız `ı` ürettiğini ve kaydet/yükle değerinin kaybolduğunu yakaladı. Yalnız yeni alana `[JsonPropertyName("light_intensity")]` eklendi; en-US/tr-TR bağımsız context testleri geçti. Mevcut profil anahtarlarının adlandırma politikası değiştirilmedi.
+- .NET SDK 10.0.113: `dotnet build ClassicUO.sln -c Release /p:PublishAot=false` başarılı, **0 hata**; tabanın mevcut NuGet/derleyici/analiz uyarıları sürüyor. `dotnet test tests/ClassicUO.UnitTests/ClassicUO.UnitTests.csproj -c Release --no-build`: **298/298 geçti**, 0 atlanan (279 önceki + 8 L4 + 11 L2). Yerel kanıtlar: `artifacts/build/l2-build.log`, `artifacts/build/l2-test.log`, `artifacts/test-results/l2/l2-tests.trx` (ignore kapsamında).
+- [ ] Claude Code: L2 çapraz review. Oyun içi ışık/GPU kabulü sonraki M1 görevlerinde kalır.
 
 ## M2 — Gölgeler
 
@@ -100,7 +111,7 @@ Tabloda client dosyaları `src/ClassicUO.Client/`, renderer dosyaları `src/Clas
 ## M5 — Post-processing
 
 - [x] classicUO-T: Modern look; renk düzenleme, parlak bölgelerde glow, keskinlik ve vignette. `Profile.ModernLook` ve Options aç/kapa; `src/ClassicUO.Renderer/Effects/ModernLookEffect.cs`, `shaders/ModernLook.fx`, `src/ClassicUO.Client/Game/Scenes/GameScene.cs` içindeki `ApplyModernLook()` ile uygulanmış.
-- [x] Claude Code / MIG-8: ışık kompoziti dünya çizimi/xBR büyütme sonrasında, Modern look öncesinde E10'a konumlandırıldı. Bu tasarım uygulaması L6/L15'te; R2/R5 belge bulguları açık.
+- [x] Claude Code / MIG-8: ışık kompoziti dünya çizimi/xBR büyütme sonrasında, Modern look öncesinde E10'a konumlandırıldı. R2/R5 belge bulguları kapatıldı; bu tasarım uygulaması ve görsel kabul L6/L15'te.
 - [ ] Glow ile tam bloom zincirini aynı kabul etmeden kalan kalite/performans ihtiyacını ve kapalı durum görsel eşliğini değerlendir.
 
 ## M6 — Değiştirilebilir art paketleri
@@ -127,4 +138,4 @@ Detay: [ağ/asset haritası](arch/network-assets.md), Claude Code'un MIG-7 HD ek
 
 ## Çalışma düzeni
 
-Bu MIG-7 Codex görevinde `main` birleştirildi; yalnız `docs/PLAN.md` düzenlendi. `rendering.md`, `LIGHTING_PLAN.md`, `DECISIONS.md` ve oyun koduna elle müdahale edilmedi. Her iş diğer araç tarafından incelenir; açık R1–R5 ve kalan MIG-5 kabulü ayrıca izlenir. M1 tablosu plan aktarımıdır; ışık uygulaması bu görevde başlamadı.
+L2 Codex görevinde `main` ve `claude/dev` birleştirildi; doğrudan değişiklikler `LightingSettings.cs`, `Profile.cs`, L2 testleri ve bu planla sınırlıdır. Ayarlar henüz çizim/oyun davranışına bağlı değildir. `rendering.md`, `LIGHTING_PLAN.md`, `DECISIONS.md` için elle düzeltme yapılmadı; Claude Code'un doküman ve L3/L4 kaynakları merge ile alındı. Her iş diğer araç tarafından incelenir; L2 çapraz review ve kalan MIG-5 kabulü ayrıca izlenir.
