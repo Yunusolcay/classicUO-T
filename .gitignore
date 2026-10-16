@@ -265,3 +265,23 @@ __pycache__/
 *.pyc
 /.svn
 Data
+
+# Local client settings, profiles, and assistants
+settings*.json
+*.settings.json
+[Dd]ata/[Pp]rofiles/
+[Dd]ata/[Pp]lugins/
+[Aa]ssistant/
+[Ll]ogs/
+
+# Ultima Online data must never be committed (including mixed-case names)
+*.[Mm][Uu][Ll]
+*.[Uu][Oo][Pp]
+*.[Ii][Dd][Xx]
+*.[Dd][Ee][Ff]
+*.[Rr][Ll][Ee]
+*.[Ii][Ff][Ff]
+*.[Vv][Ee][Rr]
+*.[Dd][Aa][Tt]
+[Cc][Ll][Ii][Ll][Oo][Cc].*
+[Mm]usic/
