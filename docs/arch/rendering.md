@@ -58,7 +58,7 @@ flowchart TD
 ### View'lar (`ClassicUO.Client/Game/GameObjects/Views/`)
 | View | Not |
 |---|---|
-| `View.cs` | `Draw(batcher, x, y, depth)`, `CalculateDepthZ()` (tile X/Y + `PriorityZ` + hareket ofseti → derinlik) |
+| `View.cs` (sınıf: `GameObject` abstract partial) | `GameObject.Draw(batcher, x, y, depth)`, `GameObject.CalculateDepthZ()` (tile X/Y + `PriorityZ` + hareket ofseti → derinlik) |
 | `LandView.cs` | Düz land / `DrawStretchedLand` (köşe normalleri, `SHADER_LAND*`) |
 | `StaticView.cs`, `ItemView.cs`, `MultiView.cs` | Mesh dışında kalanlar (animasyonlu, hareketli, hue'lu vb.); `IsLight` → `AddLight` |
 | `MobileView.cs` | Katmanlı animasyon, `DrawShadow`; elde ışık → `AddLight(this, item, …)` |
@@ -149,7 +149,7 @@ Birleştirme sampler'ı: tam sayı DPI'da `PointClamp`, değilse `LinearClamp`.
 - `RenderLists.DrawRenderLists` sırası: chunk mesh land → mesh dışı land (`_tiles`, `_stretchedTiles`)
   → chunk mesh statikler → mesh dışı statikler → `_animations` (mobil, ceset) → `_effects`
   → `_transparentObjects` → dünya içi gump sprite/yazıları.
-- Derinlik `View.CalculateDepthZ()`; mesh layer'lar `SetWorldOffset(offsetX, offsetY)` ile kaydırılır.
+- Derinlik `GameObject.CalculateDepthZ()` (`Views/View.cs`); mesh layer'lar `SetWorldOffset(offsetX, offsetY)` ile kaydırılır.
 - `UpdateMaxDrawZ` çatı/üst kat kesmesini (`_maxZ`, `_maxGroundZ`, `_noDrawRoofs`) yönetir.
 
 ## 6. Genişletme noktaları
@@ -197,5 +197,5 @@ Hepsi profil ayarıyla açılır/kapanır (`Configuration/Profile.cs`); varsayı
 | Zoom pixel art filtresi | `ZoomPixelArtFilter` | `GameScene.Draw` (`UpscaleWorld`, `_worldRenderScale`), `RenderTargets.GetLowResWorldRenderTarget`, `XBREffect` | Zoom ≥ 1.25× iken dünya 1:1 çizilip xBR ile büyütülür. HD world pack varsa devre dışı. |
 | HD karakterler | `HdCharacters` | `Game/Managers/HdCharacterSprites.cs`, `ClassicUO.Renderer/Animations/HdSpriteCache.cs`, `XbrSprite.cs` | Mobil kareleri zoom'da 2× xBR kopyalarından çizilir (`MobileView`). |
 | HD world pack | `HdWorld` | `Game/Managers/HdWorldPack.cs`, `tools/hdpack/` (Python), `Data/HD/world/` | Land/texmap/statik için 2× görüntüler (zoom dışı yarıya indirilir); ayrı atlas; geometri/seçim/sıra orijinalle aynı, yalnız texture değişir. Mesh'ler `BuiltHdGeneration` değişince yeniden kurulur. |
-| Modern look | `ModernLook` | `shaders/ModernLook.fx`, `Effects/ModernLookEffect.cs`, `GameScene.ApplyModernLook` | Dünya görüntüsüne keskinlik, glow (luma > 0.62), renk düzenleme, vignette. **Işıklardan önce** uygulanır → mevcut halde meşale/ışık glow almaz. |
+| Modern look | `ModernLook` | `shaders/ModernLook.fx`, `Effects/ModernLookEffect.cs`, `GameScene.ApplyModernLook` | Dünya görüntüsüne keskinlik, glow (luma > 0.62), renk düzenleme, vignette. **Işıklardan önce** uygulanır → Light RT katkısı glow almaz; yalnız dünya görüntüsünde zaten parlak olan kaynak art (alev, lav) eşiği aşarsa glow alır. |
 | Smooth movement | `Movement*` | `PlayerMobile`, `Mobile`, `Data/MovementSpeed.cs`, `Managers/MovementDiagnostics.cs`, `GameController` (`timeBeginPeriod(1)`) | Render yolu değişmez; kare zamanlaması düzgünleşir. `EnableVSync` ayarı eklendi. |
