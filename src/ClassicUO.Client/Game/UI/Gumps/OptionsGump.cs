@@ -126,7 +126,7 @@ namespace ClassicUO.Game.UI.Gumps
         private Combobox _overrideContainerLocationSetting;
         private ClickableColorBox _poisonColorPickerBox, _paralyzedColorPickerBox, _invulnerableColorPickerBox;
         private NiceButton _randomizeColorsButton;
-        private Checkbox _restorezoomCheckbox, _zoomCheckbox;
+        private Checkbox _restorezoomCheckbox, _zoomCheckbox, _smoothZoom, _subPixelCamera;
         private InputField _rows, _columns, _highlightAmount, _abbreviatedAmount;
 
         // speech
@@ -1864,6 +1864,30 @@ namespace ClassicUO.Game.UI.Gumps
                     null,
                     ResGumps.ReleasingCtrlRestoresScale,
                     _currentProfile.RestoreScaleAfterUnpressCtrl,
+                    startX,
+                    startY
+                )
+            );
+
+            section2.Add
+            (
+                _smoothZoom = AddCheckBox
+                (
+                    null,
+                    "Smooth zoom",
+                    _currentProfile.SmoothZoom,
+                    startX,
+                    startY
+                )
+            );
+
+            section2.Add
+            (
+                _subPixelCamera = AddCheckBox
+                (
+                    null,
+                    "Smooth camera scrolling when zoomed in",
+                    _currentProfile.SubPixelCamera,
                     startX,
                     startY
                 )
@@ -3954,6 +3978,8 @@ namespace ClassicUO.Game.UI.Gumps
                     _windowBorderless.IsChecked = false;
                     _zoomCheckbox.IsChecked = false;
                     _restorezoomCheckbox.IsChecked = false;
+                    _smoothZoom.IsChecked = true;
+                    _subPixelCamera.IsChecked = true;
                     _gameWindowWidth.SetText("600");
                     _gameWindowHeight.SetText("480");
                     _gameWindowPositionX.SetText("20");
@@ -4310,6 +4336,8 @@ namespace ClassicUO.Game.UI.Gumps
 
             _currentProfile.EnableMousewheelScaleZoom = _zoomCheckbox.IsChecked;
             _currentProfile.RestoreScaleAfterUnpressCtrl = _restorezoomCheckbox.IsChecked;
+            _currentProfile.SmoothZoom = _smoothZoom.IsChecked;
+            _currentProfile.SubPixelCamera = _subPixelCamera.IsChecked;
 
             if (_use_old_status_gump.IsChecked != _currentProfile.UseOldStatusGump)
             {

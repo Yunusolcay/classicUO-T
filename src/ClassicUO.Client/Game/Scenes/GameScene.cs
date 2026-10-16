@@ -286,7 +286,7 @@ namespace ClassicUO.Game.Scenes
                 Camera.Bounds.Width,
                 Camera.Bounds.Height
             );
-            ProfileManager.CurrentProfile.DefaultScale = Camera.Zoom;
+            ProfileManager.CurrentProfile.DefaultScale = Camera.TargetZoom;
 
             Client.Game.Audio?.StopMusic();
             Client.Game.Audio?.StopSounds();
@@ -829,6 +829,8 @@ namespace ClassicUO.Game.Scenes
             bool xbrWorld = ProfileManager.CurrentProfile.ZoomPixelArtFilter && !HdWorldPack.HasPack
                 && zoomScale >= ZOOM_FILTER_MIN_SCALE && worldTarget != null
                 && EnsureXbrEffect(batcher.GraphicsDevice);
+
+            matrix = ApplySubPixelCamera(matrix, zoomScale, xbrWorld);
 
             // HD characters only help where art pixels are drawn larger than screen pixels; the xBR
             // world filter draws at 1:1 art scale and upscales afterwards
