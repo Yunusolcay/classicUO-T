@@ -12,10 +12,13 @@ namespace ClassicUO.Renderer
             MatrixTransform = Parameters["MatrixTransform"];
             TextureSize = Parameters["textureSize"];
             Strength = Parameters["Strength"];
+            LitScene = Parameters["LitScene"];
         }
 
         public EffectParameter MatrixTransform { get; }
         public EffectParameter TextureSize { get; }
         public EffectParameter Strength { get; }
+        // 1 when enhanced lighting already lit the image (highlight protection), 0 otherwise
+        public EffectParameter LitScene { get; }
     }
 }

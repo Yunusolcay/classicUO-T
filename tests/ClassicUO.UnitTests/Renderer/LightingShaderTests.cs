@@ -36,5 +36,15 @@ namespace ClassicUO.UnitTests.Renderer
 
             Assert.Contains(name, blob);
         }
+
+        [Theory]
+        [InlineData("Strength")]
+        [InlineData("LitScene")]
+        public void Embedded_ModernLook_Shader_Has_The_Parameters_ModernLookEffect_Looks_Up(string name)
+        {
+            string blob = Encoding.ASCII.GetString(ShaderResources.GetModernLookShader());
+
+            Assert.Contains(name, blob);
+        }
     }
 }
