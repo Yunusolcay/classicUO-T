@@ -7,6 +7,7 @@ using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Renderer;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace ClassicUO.Game.Lighting
 {
@@ -141,6 +142,8 @@ namespace ClassicUO.Game.Lighting
 
             light.DrawX = x;
             light.DrawY = y;
+            light.HasDefinition = LightDefinitions.TryGet(lightObject.Graphic, out light.Definition);
+            light.Seed = lightObject is Entity entity ? (int)entity.Serial : lightObject.X * 7919 + lightObject.Y * 104729;
             TryAdd(light);
         }
 
@@ -161,9 +164,14 @@ namespace ClassicUO.Game.Lighting
         // then starts a new frame of collection.
         public void Draw(UltimaBatcher2D batcher)
         {
-            Vector3 hue = Vector3.Zero;
+            Draw(batcher, default);
+        }
 
-            hue.Z = 1f;
+        // options.UseDefinitions (enhanced lighting): lights_ex.txt size, strength, flicker and
+        // round shape. Without it every light draws exactly like the original code.
+        public void Draw(UltimaBatcher2D batcher, in LightDrawOptions options)
+        {
+            Vector3 hue = Vector3.Zero;
 
             for (int i = 0; i < _count; i++)
             {
@@ -175,6 +183,8 @@ namespace ClassicUO.Game.Lighting
                     continue;
                 }
 
+                hue.Z = 1f;
+
                 hue.X = l.Color;
                 hue.Y =
                     hue.X > 1.0f
@@ -182,6 +192,13 @@ namespace ClassicUO.Game.Lighting
                             ? ShaderHueTranslator.SHADER_HUED
                             : ShaderHueTranslator.SHADER_LIGHTS
                         : ShaderHueTranslator.SHADER_NONE;
+
+                if (options.UseDefinitions && l.HasDefinition)
+                {
+                    DrawDefined(batcher, ref l, lightInfo.Texture, lightInfo.UV, hue, options);
+
+                    continue;
+                }
 
                 batcher.Draw(
                     lightInfo.Texture,
@@ -196,6 +213,60 @@ namespace ClassicUO.Game.Lighting
             }
 
             _count = 0;
+        }
+
+        private static void DrawDefined(
+            UltimaBatcher2D batcher,
+            ref LightSource l,
+            Texture2D texture,
+            Rectangle uv,
+            Vector3 hue,
+            in LightDrawOptions options
+        )
+        {
+            float intensity = l.Definition.Intensity;
+            float scale = l.Definition.Radius;
+
+            if (options.Flicker)
+            {
+                LightFlicker.Sample(l.Definition.Flicker, options.Ticks, l.Seed, out float flickerIntensity, out float flickerScale);
+                intensity *= flickerIntensity;
+                scale *= flickerScale;
+            }
+
+            // the hue alpha multiplies the light color; above 1 it would mean "circle of transparency"
+            hue.Z = Math.Clamp(intensity, 0f, 1f);
+
+            if (hue.Z <= 0.004f)
+            {
+                return;
+            }
+
+            if (l.Definition.Shape == LightShape.Round && options.RoundTexture != null)
+            {
+                int size = (int)(Math.Max(uv.Width, uv.Height) * scale);
+
+                batcher.Draw(
+                    options.RoundTexture,
+                    new Rectangle(l.DrawX - size / 2, l.DrawY - size / 2, size, size),
+                    hue,
+                    0f
+                );
+
+                return;
+            }
+
+            batcher.Draw(
+                texture,
+                new Vector2(l.DrawX, l.DrawY),
+                uv,
+                hue,
+                0f,
+                new Vector2(uv.Width * 0.5f, uv.Height * 0.5f),
+                new Vector2(scale, scale),
+                SpriteEffects.None,
+                0f
+            );
         }
 
         // A light is hidden when an opaque static or multi sits on the tile south-east of it,

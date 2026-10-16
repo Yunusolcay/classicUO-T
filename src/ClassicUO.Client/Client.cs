@@ -91,6 +91,7 @@ namespace ClassicUO
             FontGlyphAtlas = new Renderer.FontGlyphAtlas(FileManager.Fonts, game.GraphicsDevice);
 
             LightColors.LoadLights();
+            Game.Lighting.LightDefinitions.Load();
 
             World = new World();
             GameCursor = new GameCursor(World, game.DpiScale);
