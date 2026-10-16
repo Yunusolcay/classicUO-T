@@ -12,6 +12,7 @@ using ClassicUO.Configuration.Json;
 using ClassicUO.Game;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
+using ClassicUO.Game.Lighting;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Utility.Logging;
@@ -180,6 +181,14 @@ namespace ClassicUO.Configuration
         public int LightLevelType { get; set; } // 0 = absolute, 1 = minimum
         public bool UseColoredLights { get; set; } = true;
         public bool UseDarkNights { get; set; }
+        public bool EnhancedLighting { get; set; } = LightingSettings.DEFAULT_ENHANCED_LIGHTING;
+        public LightingQuality LightingQuality { get; set; } = LightingSettings.DEFAULT_QUALITY;
+        public bool LightFlicker { get; set; } = LightingSettings.DEFAULT_LIGHT_FLICKER;
+        public bool DayNightTint { get; set; } = LightingSettings.DEFAULT_DAY_NIGHT_TINT;
+        public float LightTransitionSeconds { get; set; } = LightingSettings.DEFAULT_LIGHT_TRANSITION_SECONDS;
+        // Keep the JSON key stable when the legacy naming policy runs under Turkish culture.
+        [JsonPropertyName("light_intensity")]
+        public float LightIntensity { get; set; } = LightingSettings.DEFAULT_LIGHT_INTENSITY;
         public int CloseHealthBarType { get; set; } // 0 = none, 1 == not exists, 2 == is dead
         public bool ActivateChatAfterEnter { get; set; }
         public bool ActivateChatAdditionalButtons { get; set; } = true;
