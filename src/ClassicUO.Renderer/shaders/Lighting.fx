@@ -17,9 +17,10 @@ float LightSaturation;
 
 sampler Source : register(s0);
 
-// composite: the world image, same size as the target so the batcher's point sampling on s1 is exact
+// composite: the world image, same size as the target so the batcher's point sampling on s3 is exact.
+// s1 and s2 hold the hue tables for the whole session (Client.cs): never sample the world there.
 texture WorldTexture;
-sampler World : register(s1) = sampler_state
+sampler World : register(s3) = sampler_state
 {
     Texture = <WorldTexture>;
 };
@@ -97,7 +98,7 @@ float4 blur_vertical(PS_INPUT IN) : COLOR0
     return float4(blur(IN.TexCoord.xy, float2(0, TexelSize.y)), 1.0);
 }
 
-// Light map drawn over the whole target (s0, linear), multiplied into the world (s1). The map stores
+// Light map drawn over the whole target (s0, linear), multiplied into the world (s3). The map stores
 // half the light: up to 1 the art is darkened as before, above it the extra light rolls off
 // towards OverbrightLimit so overlapping lights cannot burn the art into flat color.
 float4 composite(PS_INPUT IN) : COLOR0

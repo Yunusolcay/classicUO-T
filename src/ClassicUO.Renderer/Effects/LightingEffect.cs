@@ -42,7 +42,7 @@ namespace ClassicUO.Renderer
         public EffectTechnique LightRadial { get; }
         public EffectTechnique BlurH { get; }
         public EffectTechnique BlurV { get; }
-        // light map over the target (s0) multiplied into WorldTexture (s1) with a soft overbright limit
+        // light map over the target (s0) multiplied into WorldTexture (s3) with a soft overbright limit
         public EffectTechnique Composite { get; }
 
         // Same projection the batcher uses for its own effect: the batcher does not set it on
