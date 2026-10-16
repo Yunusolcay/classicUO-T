@@ -4,6 +4,7 @@ using ClassicUO.Assets;
 using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
+using ClassicUO.Game.Lighting;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Controls;
@@ -152,6 +153,10 @@ namespace ClassicUO.Game.UI.Gumps
         // video
         private Checkbox _use_old_status_gump, _statusGumpBarMutuallyExclusive, _windowBorderless, _enableDeathScreen, _enableBlackWhiteEffect, _altLights, _enableLight, _enableShadows, _enableShadowsStatics, _auraMouse, _runMouseInSeparateThread, _useColoredLights, _darkNights, _partyAura, _hideChatGradient, _animatedWaterEffect, _natureEffects, _zoomPixelArtFilter, _hdCharacters, _hdWorld, _modernLook;
         private Combobox _lightLevelType;
+        // enhanced lighting (docs/LIGHTING_PLAN.md, L12)
+        private Checkbox _enhancedLighting, _lightFlicker, _dayNightTint;
+        private Combobox _lightingQuality;
+        private HSliderBar _lightTransition, _lightIntensity;
         private Checkbox _use_smooth_boat_movement;
         private HSliderBar _terrainShadowLevel;
 
@@ -1942,6 +1947,89 @@ namespace ClassicUO.Game.UI.Gumps
                     _currentProfile.UseColoredLights,
                     startX,
                     startY
+                )
+            );
+
+            section3.Add
+            (
+                _enhancedLighting = AddCheckBox
+                (
+                    null,
+                    "Enhanced lighting (soft lights, night tint, flicker)",
+                    _currentProfile.EnhancedLighting,
+                    startX,
+                    startY
+                )
+            );
+
+            section3.Add(AddLabel(null, "Lighting quality", startX, startY));
+
+            section3.AddRight
+            (
+                _lightingQuality = AddCombobox
+                (
+                    null,
+                    new[] { "Low", "Medium", "High" },
+                    Math.Clamp((int) _currentProfile.LightingQuality, 0, 2),
+                    startX,
+                    startY,
+                    150
+                )
+            );
+
+            section3.Add
+            (
+                _lightFlicker = AddCheckBox
+                (
+                    null,
+                    "Flickering fire and magic lights",
+                    _currentProfile.LightFlicker,
+                    startX,
+                    startY
+                )
+            );
+
+            section3.Add
+            (
+                _dayNightTint = AddCheckBox
+                (
+                    null,
+                    "Moonlight tint at night",
+                    _currentProfile.DayNightTint,
+                    startX,
+                    startY
+                )
+            );
+
+            section3.Add(AddLabel(null, "Light change fade (seconds)", startX, startY));
+
+            section3.AddRight
+            (
+                _lightTransition = AddHSlider
+                (
+                    null,
+                    0,
+                    5,
+                    (int) Math.Round(Math.Clamp(_currentProfile.LightTransitionSeconds, 0f, 5f)),
+                    startX,
+                    startY,
+                    150
+                )
+            );
+
+            section3.Add(AddLabel(null, "Light intensity (%)", startX, startY));
+
+            section3.AddRight
+            (
+                _lightIntensity = AddHSlider
+                (
+                    null,
+                    50,
+                    200,
+                    (int) Math.Round(Math.Clamp(_currentProfile.LightIntensity, 0.5f, 2f) * 100f),
+                    startX,
+                    startY,
+                    150
                 )
             );
 
@@ -3870,6 +3958,12 @@ namespace ClassicUO.Game.UI.Gumps
                     _lightLevelType.SelectedIndex = 0;
                     _useColoredLights.IsChecked = false;
                     _darkNights.IsChecked = false;
+                    _enhancedLighting.IsChecked = LightingSettings.DEFAULT_ENHANCED_LIGHTING;
+                    _lightingQuality.SelectedIndex = (int) LightingSettings.DEFAULT_QUALITY;
+                    _lightFlicker.IsChecked = LightingSettings.DEFAULT_LIGHT_FLICKER;
+                    _dayNightTint.IsChecked = LightingSettings.DEFAULT_DAY_NIGHT_TINT;
+                    _lightTransition.Value = (int) LightingSettings.DEFAULT_LIGHT_TRANSITION_SECONDS;
+                    _lightIntensity.Value = (int) (LightingSettings.DEFAULT_LIGHT_INTENSITY * 100f);
                     _enableShadows.IsChecked = true;
                     _enableShadowsStatics.IsChecked = true;
                     _terrainShadowLevel.Value = 15;
@@ -4321,6 +4415,12 @@ namespace ClassicUO.Game.UI.Gumps
 
             _currentProfile.UseColoredLights = _useColoredLights.IsChecked;
             _currentProfile.UseDarkNights = _darkNights.IsChecked;
+            _currentProfile.EnhancedLighting = _enhancedLighting.IsChecked;
+            _currentProfile.LightingQuality = (LightingQuality) _lightingQuality.SelectedIndex;
+            _currentProfile.LightFlicker = _lightFlicker.IsChecked;
+            _currentProfile.DayNightTint = _dayNightTint.IsChecked;
+            _currentProfile.LightTransitionSeconds = _lightTransition.Value;
+            _currentProfile.LightIntensity = _lightIntensity.Value / 100f;
             _currentProfile.ShadowsEnabled = _enableShadows.IsChecked;
             _currentProfile.ShadowsStatics = _enableShadowsStatics.IsChecked;
             _currentProfile.TerrainShadowsLevel = _terrainShadowLevel.Value;

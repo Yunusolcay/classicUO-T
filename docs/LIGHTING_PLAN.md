@@ -177,7 +177,10 @@ ID'ler sabittir (PLAN.md ile eşleşir).
 - Dosyalar: `LightManager.cs`, `AmbientLight.cs`.
 - Kabul: `0x4E` > 0 iken oyuncu çevresinde yumuşak hale; oyuncu karanlıkta eski sistemden daha az görmüyor; `IsometricLevel` formülündeki ölçek şüphesi doğrulanıp not edilmiş.
 
-### L12 – Ayarlar arayüzü **[Codex]** · O
+### L12 – Ayarlar arayüzü · O · Claude Code (Codex yerine) · 🔶 kod hazır, oyun içi kabul bekliyor
+- Uygulama notu: Video → Lights bölümüne Enhanced lighting, kalite, titreme, gece tonu, geçiş süresi (0–5 sn, tam
+  saniye) ve ışık yoğunluğu (%50–200) eklendi. Metinler classicUO-T'nin diğer eklemeleri (Modern look vb.) gibi
+  doğrudan İngilizce; ResGumps'a taşıma çeviri işi gelince. Default düğmesi §4 varsayılanlarına döner.
 - Dosyalar: `Game/UI/Gumps/OptionsGump.cs` (mevcut ışık bölümünün yanına: `LightLevelType` civarı); metinler `Resources/ResGumps` kalıbıyla.
 - Kabul: §4 ayarları UI'dan değişiyor, yeniden başlatmadan uygulanıyor.
 
