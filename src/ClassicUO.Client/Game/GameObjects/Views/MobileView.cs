@@ -27,6 +27,27 @@ namespace ClassicUO.Game.GameObjects
 
         public override bool Draw(UltimaBatcher2D batcher, int posX, int posY, float depth)
         {
+            // sub-pixel camera (docs/CAMERA_PLAN.md): the world is shifted by the fraction of the
+            // player's step that whole pixels drop, the player is shifted back so it stays centered
+            if (this != World.Player || !GameScene.SubPixelCameraActive)
+            {
+                return DrawMobile(batcher, posX, posY, depth);
+            }
+
+            batcher.SpriteOffset = GameScene.PlayerSubPixelOffset;
+
+            try
+            {
+                return DrawMobile(batcher, posX, posY, depth);
+            }
+            finally
+            {
+                batcher.SpriteOffset = Vector2.Zero;
+            }
+        }
+
+        private bool DrawMobile(UltimaBatcher2D batcher, int posX, int posY, float depth)
+        {
             if (IsDestroyed || !AllowedToDraw)
             {
                 return false;
