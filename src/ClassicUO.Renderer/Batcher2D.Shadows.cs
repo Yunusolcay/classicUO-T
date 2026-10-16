@@ -122,6 +122,8 @@ namespace ClassicUO.Renderer
 
             Texture2D texture = GetContactTexture();
             float half = 0.5f / CONTACT_TEXTURE_SIZE;
+            x += SpriteOffset.X;
+            y += SpriteOffset.Y;
 
             ref ShadowCaster caster = ref AddCaster();
             caster.Texture = texture;

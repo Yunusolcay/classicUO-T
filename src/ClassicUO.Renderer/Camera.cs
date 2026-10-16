@@ -12,12 +12,16 @@ namespace ClassicUO.Renderer
         private const float MAX_PEEK_DISTANCE = 250f;
         private const float MIN_PEEK_SPEED = 0.01f;
         private const float PEEK_TIME_FACTOR = 5;
+        // smooth zoom: share of the remaining distance covered per second (exponential approach)
+        private const float ZOOM_SPEED = 14f;
+        private const float ZOOM_SNAP = 0.0005f;
 
         private Matrix _transform = Matrix.Identity;
         private Matrix _inverseTransform = Matrix.Identity;
         private bool _updateMatrixes = true;
         private float _lerpZoom;
         private float _zoom;
+        private float _targetZoom;
         private Vector2 _lerpOffset;
 
 
@@ -28,6 +32,13 @@ namespace ClassicUO.Renderer
             ZoomStep = zoomStep;
             Zoom = _lerpZoom = 1f;
         }
+
+        // ZoomIn/ZoomOut move towards the new zoom over a short time instead of jumping
+        // (docs/CAMERA_PLAN.md). Setting Zoom directly still jumps.
+        public bool SmoothZoom { get; set; }
+
+        // where an animated zoom is heading; equals Zoom when no zoom animation runs
+        public float TargetZoom => _targetZoom;
 
 
         public Rectangle Bounds;
@@ -50,16 +61,43 @@ namespace ClassicUO.Renderer
             get => _zoom;
             set
             {
-                _zoom = MathHelper.Clamp(value, ZoomMin, ZoomMax);
+                _zoom = _targetZoom = MathHelper.Clamp(value, ZoomMin, ZoomMax);
                 _updateMatrixes = true;
             }
         }
 
 
 
-        public void ZoomIn() => Zoom -= ZoomStep;
+        public void ZoomIn() => ZoomTo(_targetZoom - ZoomStep);
 
-        public void ZoomOut() => Zoom += ZoomStep;
+        public void ZoomOut() => ZoomTo(_targetZoom + ZoomStep);
+
+        private void ZoomTo(float zoom)
+        {
+            if (SmoothZoom)
+            {
+                _targetZoom = MathHelper.Clamp(zoom, ZoomMin, ZoomMax);
+                _updateMatrixes = true;
+            }
+            else
+            {
+                Zoom = zoom;
+            }
+        }
+
+        // Moves the shown zoom towards the target, the same speed at any frame rate
+        private void AnimateZoom(float timeDelta)
+        {
+            if (_zoom == _targetZoom)
+            {
+                return;
+            }
+
+            float remaining = (_zoom - _targetZoom) * MathF.Exp(-ZOOM_SPEED * Math.Max(timeDelta, 0f));
+
+            _zoom = Math.Abs(remaining) < ZOOM_SNAP ? _targetZoom : _targetZoom + remaining;
+            _updateMatrixes = true;
+        }
 
         public Viewport GetViewport() => new Viewport(Bounds.X, Bounds.Y, Bounds.Width, Bounds.Height);
 
@@ -81,6 +119,8 @@ namespace ClassicUO.Renderer
 
             _timeDelta= timeDelta;
             _mousePos = mousePos;
+
+            AnimateZoom(timeDelta);
 
             UpdateMatrices();
         }

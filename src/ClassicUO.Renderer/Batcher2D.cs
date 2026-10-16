@@ -56,6 +56,10 @@ namespace ClassicUO.Renderer
         private Texture2D[] _textureInfo;
         private PositionNormalTextureColor4[] _vertexInfo;
 
+        // Added to the position of sprites, shadows and sitting characters. The game scene sets it
+        // around the player's draw for the sub-pixel camera (docs/CAMERA_PLAN.md); zero otherwise.
+        public Vector2 SpriteOffset;
+
 
         public UltimaBatcher2D(GraphicsDevice device)
         {
@@ -324,6 +328,8 @@ namespace ClassicUO.Renderer
 
         public void DrawShadow(Texture2D texture, Vector2 position, Rectangle sourceRect, bool flip, float depth)
         {
+            position += SpriteOffset;
+
             if (_deferShadows)
             {
                 DeferShadowCaster(texture, position, sourceRect, flip, depth);
@@ -397,6 +403,8 @@ namespace ClassicUO.Renderer
         )
         {
             EnsureSize();
+
+            position += SpriteOffset;
 
             float h03 = sourceRect.Height * mod.X;
             float h06 = sourceRect.Height * mod.Y;
@@ -897,6 +905,9 @@ namespace ClassicUO.Renderer
         )
         {
             EnsureSize();
+
+            destinationX += SpriteOffset.X;
+            destinationY += SpriteOffset.Y;
 
             SetVertex
             (

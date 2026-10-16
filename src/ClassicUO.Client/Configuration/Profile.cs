@@ -132,6 +132,10 @@ namespace ClassicUO.Configuration
         public bool EnableMousewheelScaleZoom { get; set; }
         public bool SaveScaleAfterClose { get; set; }
         public bool RestoreScaleAfterUnpressCtrl { get; set; }
+        // zoom steps animate instead of jumping (docs/CAMERA_PLAN.md)
+        public bool SmoothZoom { get; set; } = true;
+        // zoomed in, the world scrolls by fractions of a pixel while walking (docs/CAMERA_PLAN.md)
+        public bool SubPixelCamera { get; set; } = true;
         public bool BandageSelfOld { get; set; } = true;
         public bool EnableDeathScreen { get; set; } = true;
         public bool EnableBlackWhiteEffect { get; set; } = true;
