@@ -808,6 +808,9 @@ namespace ClassicUO.Game.Scenes
 
             bool can_draw_lights = false;
             bool enhancedLights = UseEnhancedLighting(batcher.GraphicsDevice, renderTargets);
+            _lightManager.MaxLights = enhancedLights
+                ? LightingSettings.GetQualityPreset(ProfileManager.CurrentProfile.LightingQuality).MaxLights
+                : LightManager.LEGACY_MAX_LIGHTS;
 
             if (enhancedLights)
             {
