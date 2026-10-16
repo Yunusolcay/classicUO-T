@@ -151,7 +151,7 @@ namespace ClassicUO.Game.UI.Gumps
         private NiceButton _setAsNewDefault;
 
         // video
-        private Checkbox _use_old_status_gump, _statusGumpBarMutuallyExclusive, _windowBorderless, _enableDeathScreen, _enableBlackWhiteEffect, _altLights, _enableLight, _enableShadows, _enableShadowsStatics, _auraMouse, _runMouseInSeparateThread, _useColoredLights, _darkNights, _partyAura, _hideChatGradient, _animatedWaterEffect, _enhancedWeather, _lightningFlashes, _natureEffects, _zoomPixelArtFilter, _hdCharacters, _hdWorld, _modernLook, _bloom;
+        private Checkbox _use_old_status_gump, _statusGumpBarMutuallyExclusive, _windowBorderless, _enableDeathScreen, _enableBlackWhiteEffect, _altLights, _enableLight, _enableShadows, _enableShadowsStatics, _auraMouse, _runMouseInSeparateThread, _useColoredLights, _darkNights, _partyAura, _hideChatGradient, _animatedWaterEffect, _enhancedWeather, _lightningFlashes, _natureEffects, _zoomPixelArtFilter, _hdCharacters, _hdWorld, _modernLook, _bloom, _enhancedEffects;
         private Combobox _lightLevelType;
         // enhanced lighting (docs/LIGHTING_PLAN.md, L12)
         private Checkbox _enhancedLighting, _lightFlicker, _dayNightTint, _softShadows;
@@ -2217,6 +2217,18 @@ namespace ClassicUO.Game.UI.Gumps
                 )
             );
 
+            section4.Add
+            (
+                _enhancedEffects = AddCheckBox
+                (
+                    null,
+                    "Enhanced spell effects (light, trails, impact flash)",
+                    _currentProfile.EnhancedEffects,
+                    startX,
+                    startY
+                )
+            );
+
 
             SettingsSection section5 = AddSettingsSection(box, "Shadows");
             section5.Y = section4.Bounds.Bottom + 40;
@@ -4054,6 +4066,7 @@ namespace ClassicUO.Game.UI.Gumps
                     _hdWorld.IsChecked = false;
                     _modernLook.IsChecked = false;
                     _bloom.IsChecked = true;
+                    _enhancedEffects.IsChecked = true;
                     _partyAuraColorPickerBox.Hue = 0x0044;
 
                     break;
@@ -4519,6 +4532,7 @@ namespace ClassicUO.Game.UI.Gumps
             _currentProfile.HdWorld = _hdWorld.IsChecked;
             _currentProfile.ModernLook = _modernLook.IsChecked;
             _currentProfile.Bloom = _bloom.IsChecked;
+            _currentProfile.EnhancedEffects = _enhancedEffects.IsChecked;
             _currentProfile.PartyAura = _partyAura.IsChecked;
             _currentProfile.PartyAuraHue = _partyAuraColorPickerBox.Hue;
             _currentProfile.HideChatGradient = _hideChatGradient.IsChecked;

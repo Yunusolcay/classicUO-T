@@ -269,6 +269,8 @@ namespace ClassicUO.Configuration
         public bool EnhancedWeather { get; set; } = true;
         // soft glow around bright light (docs/BLOOM_PLAN.md)
         public bool Bloom { get; set; } = true;
+        // effect lights, projectile trails and impact flashes (docs/EFFECTS_PLAN.md)
+        public bool EnhancedEffects { get; set; } = true;
         // storm lightning brightens the screen; off for players sensitive to flashes
         public bool LightningFlashes { get; set; } = true;
         // fork: livelier grass colors and wind sway for plants and trees (client-side only)

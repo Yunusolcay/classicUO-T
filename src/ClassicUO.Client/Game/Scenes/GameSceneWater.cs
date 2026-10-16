@@ -15,6 +15,7 @@ namespace ClassicUO.Game.Scenes
         {
             // vertex positions are relative to the draw offset: this makes the water pattern absolute
             batcher.SetWorldOrigin(new Vector2(_offset.X, _offset.Y));
+            DrawOffset = _offset;
             batcher.SetAmbientTint(_enhancedLightingActive ? _waterTint : Vector3.One);
         }
 

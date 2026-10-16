@@ -137,6 +137,8 @@ namespace ClassicUO.Game.Lighting
             batcher.SetBlendState(null);
             batcher.End();
 
+            DrawEffectLights(batcher, toLightMap);
+
             // each blur pair: horizontal into the blur target, vertical back into the light map
             for (int i = 0; i + 1 < blurPasses; i += 2)
             {
@@ -185,6 +187,41 @@ namespace ClassicUO.Game.Lighting
             batcher.SetSampler(null);
             batcher.SetBlendState(null);
             batcher.End();
+        }
+
+        // Spell/effect lights (docs/EFFECTS_PLAN.md): plain RGB round lights, LightingEffect.LightRadial
+        // takes the color from the vertex hue. Same half strength encoding as the other lights.
+        private void DrawEffectLights(UltimaBatcher2D batcher, Matrix toLightMap)
+        {
+            ReadOnlySpan<EffectLight> lights = EffectLights.Lights;
+
+            if (lights.IsEmpty)
+            {
+                return;
+            }
+
+            _effect.CurrentTechnique = _effect.LightRadial;
+            _effect.SetProjection(toLightMap);
+
+            batcher.Begin(_effect, Matrix.Identity);
+            batcher.SetBlendState(_halfAdditive);
+
+            foreach (ref readonly EffectLight light in lights)
+            {
+                int size = (int)(light.Radius * 2f);
+
+                batcher.Draw(
+                    _roundLight,
+                    new Rectangle((int)light.Position.X - size / 2, (int)light.Position.Y - size / 2, size, size),
+                    light.Color,
+                    0f
+                );
+            }
+
+            batcher.SetBlendState(null);
+            batcher.End();
+
+            EffectLights.Clear();
         }
 
         // Gray radial gradient read like a light.mul shape: the light color tables map its red
