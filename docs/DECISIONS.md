@@ -21,6 +21,12 @@ Format: her karar için tarih, durum, bağlam, karar, gerekçe, sonuçlar.
   Referans orijinal kurulum: `D:\Games\Electronic Arts\Ultima Online Classic`, client **7.0.112.75**, art/gump/map/sound UOP (`*LegacyMUL.uop`, `tileart.uop`, `AnimationFrame1-6.uop`). Işık verisi her iki kurulumda da `light.mul` + `lightidx.mul` (MUL) → LIGHTING_PLAN'deki `LightsLoader` varsayımı geçerli. Güncel veri setiyle test için modern upstream tabanı daha güvenli (UOP/yeni client sürümü desteği).
 - **Seçilen:** (b).
 
+## D-004 – Proje repo'su: classicUO-T
+- **Tarih:** 2026-10-16 · **Durum:** Kabul edildi (kullanıcı kararı)
+- **Bağlam:** Kullanıcının `Yunusolcay/classicUO-T` repo'su aynı upstream commit'i (`ee79d7eb`) üzerine 19 commit içeriyor: HD world pack (`HdWorldPack`, `tools/hdpack`), HD karakterler (`HdSpriteCache`, xBR), Modern look (`ModernLook.fx`, renk düzenleme/glow/keskinlik/vignette), nature effects (`NatureTiles`, rüzgâr salınımı), smooth movement, zoom xBR filtresi, launcher + release pipeline.
+- **Karar:** Proje `classicUO-T` `main` üzerinde devam eder. AGENTS/CLAUDE/docs ve Codex'in build/ağ/asset işleri bu tabana aktarıldı (çakışmasız). `origin` = classicUO-T; eski repo `old-origin`.
+- **Sonuçlar:** M3/M4/M5/M6'nın bir kısmı mevcut sayılır; `rendering.md` ve `LIGHTING_PLAN.md` bu özelliklere göre güncellenir (MIG-8). Işık kompoziti Modern look post-process'iyle aynı noktaya (`RenderTargets.Draw`) dokunur → sıralama birlikte tasarlanır (ışık önce, post-process sonra).
+
 ## D-003 – Client verisi 7.0.112, protokol 7.0.20
 - **Tarih:** 2026-10-16 · **Durum:** Kabul edildi (MIG-5 doğrulamasına bağlı)
 - **Bağlam:** ClassicUO'da veri dosyaları ile sunucuya bildirilen protokol sürümü (`settings.json` → `clientversion`) ayrı. Kullanıcı 7.x üzeri her sürüme geçebiliyor; Nimloth Sphere/Source-X, ileride SphereNet.

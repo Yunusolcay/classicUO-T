@@ -6,8 +6,11 @@ kendi emülatörüm SphereNet) için çok daha kaliteli görüntü sunan bir UO 
 Oynanış ve protokol uyumluluğu korunur; değişiklikler görsel katmanda yoğunlaşır.
 
 ## Taban
-- Kod: upstream ClassicUO `main` (`ee79d7eb`, 2025-11-26), .NET 10, submodule'ler `external/` altında.
-  Eski 2020 kopyası `legacy/2020` dalında, yalnızca referans.
+- Repo: https://github.com/Yunusolcay/classicUO-T (`origin`). Upstream ClassicUO `main` (`ee79d7eb`,
+  2025-11-26) + classicUO-T özellikleri (HD world/karakter paketleri, Modern look post-process,
+  nature effects, smooth movement, zoom xBR, launcher). .NET 10, submodule'ler `external/` altında.
+  Eski repo `Yunusolcay/ClassicUO` (`old-origin`) ve 2020 kopyası (`legacy/2020`) yalnızca referans.
+- Not: upstream `.gitignore`'daki `Data` kuralı yüzünden `Data` adlı klasörlere yeni dosya `git add -f` ile eklenir.
 - Referans UO verisi: `D:\Games\Electronic Arts\Ultima Online Classic` (7.0.112.75).
   Protokol hedefi: 7.0.20 (bkz. docs/DECISIONS.md D-003).
 

@@ -7,7 +7,8 @@ Bu görevler M0'ın parçasıdır (M0.5); bitince `docs/PLAN.md`'de işaretlenir
 
 | Dal | İçerik |
 |---|---|
-| `main` | upstream `main` (`ee79d7eb`) + bizim AGENTS/CLAUDE/docs commit'leri. **Yeni ana dal.** |
+| `main` | **classicUO-T** `main` (upstream `ee79d7eb` + classicUO-T özellikleri) + AGENTS/CLAUDE/docs + Codex build/ağ/asset işi (D-004). `origin` = classicUO-T |
+| `old/main` | Eski repo'daki (`old-origin`) upstream tabanlı `main`, yalnızca referans |
 | `legacy/2020` | Eski `master` (`2bd06713`), yalnızca referans |
 | `master` | Geçiş tamamlanınca `main`'e yönlendirilir veya silinir (MIG-1) |
 | `analiz/render`, `analiz/build-network` | Eski tabanda açılmış analiz dalları; yeni tabanda `-v2` ile yeniden açılır |
@@ -43,6 +44,14 @@ Upstream senkronu: `git fetch upstream && git merge upstream/main` (main üzerin
 
 ### MIG-7 – Çapraz inceleme · Her ikisi · K
 - Claude Code: BUILD.md + network-assets.md; Codex: rendering.md + LIGHTING_PLAN.md (Adım 2'deki gibi).
+
+### MIG-8 – classicUO-T özelliklerini haritalara işle · **Claude Code** · O
+- `rendering.md`: HD world/karakter paketleri, Modern look, nature effects, zoom xBR'nin render yoluna etkisi (`GameScene`, `RenderTargets`, `ChunkMesh`, `IsometricWorld.fx`, `Batcher2D`).
+- `LIGHTING_PLAN.md`: kancaları bu koda göre güncelle; ışık kompoziti ↔ Modern look sırası.
+- Kabul: Haritadaki yollar/metotlar `origin/main` ile eşleşiyor.
+
+### MIG-9 – PLAN.md'yi classicUO-T'ye göre güncelle · **Codex** · K
+- M3/M4/M5/M6'da classicUO-T'de zaten yapılmış işleri işaretle (nature effects, smooth movement, Modern look, HD paketleri); launcher ve CI'ı BUILD.md'ye ekle; `build.ps1`'in mevcut CI ile çakışmadığını doğrula.
 
 **Sıra:** MIG-1 → (MIG-2, MIG-3, MIG-6 paralel) → MIG-4, MIG-5 → MIG-7 → M1 başlar.
 
