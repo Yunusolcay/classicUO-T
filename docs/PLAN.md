@@ -130,13 +130,6 @@ Kaynak: [SHADOWS_PLAN.md](SHADOWS_PLAN.md).
 - [x] Claude Code / MIG-8: ışık kompoziti dünya çizimi/xBR büyütme sonrasında, Modern look öncesinde E10'a konumlandırıldı. R2/R5 belge bulguları kapatıldı; bu tasarım uygulaması ve görsel kabul L6/L15'te.
 - [ ] Bloom zinciri (1/4 çözünürlük bright pass + 2× blur + additive; Modern look glow'u devralır), bkz. [BLOOM_PLAN.md](BLOOM_PLAN.md). 🔶 kod hazır (361 test), oyun içi kabul bekliyor.
 
-## M7 — Ek görseller (2026-10-17)
-
-- [ ] Büyü/efekt görselleri: renkli efekt ışıkları, mermi izi, çarpma parlaması ([EFFECTS_PLAN.md](EFFECTS_PLAN.md)). 🔶 kod hazır.
-- [ ] Hedef/hover konturu, notoriety renginde ([OUTLINE_PLAN.md](OUTLINE_PLAN.md)). 🔶 kod hazır.
-- [ ] Bölge atmosferi: zindan/kar/çöl/jungle/bataklık/volkanik/void tonu ve pusu ([ATMOSPHERE_PLAN.md](ATMOSPHERE_PLAN.md)). 🔶 kod hazır.
-- [ ] Zemin geçişleri: komşu texmap'in kenardan sönen şeridi ([TERRAIN_BLEND_PLAN.md](TERRAIN_BLEND_PLAN.md)). 🔶 kod hazır.
-
 ## M6 — Değiştirilebilir art paketleri
 
 M6, [DECISIONS.md D-005](DECISIONS.md#d-005--asset-soyutlaması-iki-katman-içerik--sunum) gereği iki katmandır. İçerik neyin var olduğunu ve mantıksal piksel anlamını belirler; sunum bunun nasıl çizildiğini değiştirir. HD kapalı veya paket eksik durumunda oyun içeriği kaybolmamalı. Bu görev katmanların hiçbirini uygulamaz.

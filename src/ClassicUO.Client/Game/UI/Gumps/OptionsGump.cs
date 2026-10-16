@@ -151,7 +151,7 @@ namespace ClassicUO.Game.UI.Gumps
         private NiceButton _setAsNewDefault;
 
         // video
-        private Checkbox _use_old_status_gump, _statusGumpBarMutuallyExclusive, _windowBorderless, _enableDeathScreen, _enableBlackWhiteEffect, _altLights, _enableLight, _enableShadows, _enableShadowsStatics, _auraMouse, _runMouseInSeparateThread, _useColoredLights, _darkNights, _partyAura, _hideChatGradient, _animatedWaterEffect, _enhancedWeather, _lightningFlashes, _natureEffects, _zoomPixelArtFilter, _hdCharacters, _hdWorld, _modernLook, _bloom, _enhancedEffects, _mobileOutline, _regionAtmosphere, _terrainBlending;
+        private Checkbox _use_old_status_gump, _statusGumpBarMutuallyExclusive, _windowBorderless, _enableDeathScreen, _enableBlackWhiteEffect, _altLights, _enableLight, _enableShadows, _enableShadowsStatics, _auraMouse, _runMouseInSeparateThread, _useColoredLights, _darkNights, _partyAura, _hideChatGradient, _animatedWaterEffect, _enhancedWeather, _lightningFlashes, _natureEffects, _zoomPixelArtFilter, _hdCharacters, _hdWorld, _modernLook, _bloom, _enhancedEffects, _mobileOutline, _regionAtmosphere;
         private Combobox _lightLevelType;
         // enhanced lighting (docs/LIGHTING_PLAN.md, L12)
         private Checkbox _enhancedLighting, _lightFlicker, _dayNightTint, _softShadows;
@@ -2253,18 +2253,6 @@ namespace ClassicUO.Game.UI.Gumps
                 )
             );
 
-            section4.Add
-            (
-                _terrainBlending = AddCheckBox
-                (
-                    null,
-                    "Soft terrain transitions",
-                    _currentProfile.TerrainBlending,
-                    startX,
-                    startY
-                )
-            );
-
 
             SettingsSection section5 = AddSettingsSection(box, "Shadows");
             section5.Y = section4.Bounds.Bottom + 40;
@@ -4105,7 +4093,6 @@ namespace ClassicUO.Game.UI.Gumps
                     _enhancedEffects.IsChecked = true;
                     _mobileOutline.IsChecked = true;
                     _regionAtmosphere.IsChecked = true;
-                    _terrainBlending.IsChecked = true;
                     _partyAuraColorPickerBox.Hue = 0x0044;
 
                     break;
@@ -4574,7 +4561,6 @@ namespace ClassicUO.Game.UI.Gumps
             _currentProfile.EnhancedEffects = _enhancedEffects.IsChecked;
             _currentProfile.MobileOutline = _mobileOutline.IsChecked;
             _currentProfile.RegionAtmosphere = _regionAtmosphere.IsChecked;
-            _currentProfile.TerrainBlending = _terrainBlending.IsChecked;
             _currentProfile.PartyAura = _partyAura.IsChecked;
             _currentProfile.PartyAuraHue = _partyAuraColorPickerBox.Hue;
             _currentProfile.HideChatGradient = _hideChatGradient.IsChecked;

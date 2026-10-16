@@ -106,11 +106,6 @@ namespace ClassicUO.Game.Map
         public readonly MeshLayer Statics = new();
         // nature effects: grass tufts, drawn right after the land layer
         public readonly MeshLayer Decor = new();
-        // terrain transitions: neighbour texmaps fading in over tile edges (docs/TERRAIN_BLEND_PLAN.md)
-        public readonly MeshLayer LandBlend = new();
-
-        // drawn this frame (set by the game scene): off with the option, and while the world is gray
-        public static bool DrawTerrainBlend;
         private readonly System.Collections.Generic.List<GameObjects.Land> _tuftTiles = new();
 
         public bool IsDirty = true;
@@ -127,17 +122,6 @@ namespace ClassicUO.Game.Map
         public bool BuiltWithNatureEffects => _natureEffects;
         // water effect state the mesh was built with: the water shader mode is baked in
         public bool BuiltWithWaterEffect => _animatedWaterEffect;
-        public bool BuiltWithTerrainBlend => _terrainBlend;
-        private bool _terrainBlend;
-        private readonly System.Collections.Generic.List<BlendEdge> _blendEdges = new();
-
-        private struct BlendEdge
-        {
-            public GameObjects.Land Land;
-            public Texture2D Texture;
-            public Rectangle Uv;
-            public byte Edge;
-        }
         private ClassicUO.Game.Map.Map _map;
         private TextureBucketTracker _landBuckets = new(16);
         private TextureBucketTracker _staticsBuckets = new(32);
@@ -154,7 +138,6 @@ namespace ClassicUO.Game.Map
             Land.Reset();
             Statics.Reset();
             Decor.Reset();
-            LandBlend.Reset();
             IsDirty = false;
 
             var profile = ProfileManager.CurrentProfile;
@@ -162,7 +145,6 @@ namespace ClassicUO.Game.Map
                 return;
 
             _animatedWaterEffect = profile.AnimatedWaterEffect;
-            _terrainBlend = profile.TerrainBlending;
             _map = world.Map;
             _natureEffects = profile.NatureEffects;
             BuiltHdGeneration = HdWorldPack.MeshGeneration;
@@ -243,15 +225,9 @@ namespace ClassicUO.Game.Map
                 BuildDecor(chunk, graphicsDevice);
             }
 
-            if (_terrainBlend)
-            {
-                BuildTerrainBlend(chunk);
-            }
-
             Land.UploadVertexBuffer(graphicsDevice);
             Statics.UploadVertexBuffer(graphicsDevice);
             Decor.UploadVertexBuffer(graphicsDevice);
-            LandBlend.UploadVertexBuffer(graphicsDevice);
         }
 
         private void BuildDecor(Chunk chunk, GraphicsDevice graphicsDevice)
@@ -368,8 +344,6 @@ namespace ClassicUO.Game.Map
             Statics.Dispose();
             Decor.Reset();
             Decor.Dispose();
-            LandBlend.Reset();
-            LandBlend.Dispose();
             IsDirty = true;
         }
 
@@ -381,7 +355,6 @@ namespace ClassicUO.Game.Map
             Land.SoftReset();
             Statics.SoftReset();
             Decor.SoftReset();
-            LandBlend.SoftReset();
             _landBuckets.Clear();
             _staticsBuckets.Clear();
             IsDirty = true;
@@ -652,133 +625,6 @@ namespace ClassicUO.Game.Map
             }
         }
 
-        // Terrain transitions (docs/TERRAIN_BLEND_PLAN.md). Every stretched tile maps its texmap over the
-        // whole diamond and texmaps tile, so a neighbour's texture continues seamlessly in this tile's
-        // texture coordinates: for each edge whose neighbour shows another texmap, this tile gets a
-        // copy of its diamond textured with the neighbour's texmap, faded from that edge by the shader.
-        private void BuildTerrainBlend(Chunk chunk)
-        {
-            _blendEdges.Clear();
-
-            for (int x = 0; x < 8; x++)
-            {
-                for (int y = 0; y < 8; y++)
-                {
-                    for (var obj = chunk.GetHeadObject(x, y); obj != null; obj = obj.TNext)
-                    {
-                        if (obj is GameObjects.Land land)
-                        {
-                            AddBlendEdges(land);
-
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (_blendEdges.Count == 0)
-            {
-                return;
-            }
-
-            // grouped by texture: one draw per texture
-            _blendEdges.Sort((a, b) => RuntimeHelpers.GetHashCode(a.Texture).CompareTo(RuntimeHelpers.GetHashCode(b.Texture)));
-
-            LandBlend.EnsureCapacity(_blendEdges.Count);
-            LandBlend.Count = _blendEdges.Count;
-
-            for (int i = 0; i < _blendEdges.Count; i++)
-            {
-                BlendEdge e = _blendEdges[i];
-                GameObjects.Land land = e.Land;
-
-                WriteStretchedLand(
-                    LandBlend,
-                    i,
-                    e.Texture,
-                    e.Uv,
-                    (land.X - land.Y) * 22 - 22,
-                    (land.X + land.Y) * 22 - 22,
-                    ref land.YOffsets,
-                    ref land.NormalTop,
-                    ref land.NormalRight,
-                    ref land.NormalLeft,
-                    ref land.NormalBottom,
-                    Vector3.Zero,
-                    land.CalculateDepthZ() + 0.5f
-                );
-
-                ref var vertex = ref LandBlend.Vertices[i];
-
-                // the tile's own light per corner (as get_light computes it from the corner normal)
-                vertex.Hue0 = new Vector3(e.Edge, ShaderHueTranslator.SHADER_TERRAIN_BLEND, GetLandLight(land.NormalTop));
-                vertex.Hue1 = new Vector3(e.Edge, ShaderHueTranslator.SHADER_TERRAIN_BLEND, GetLandLight(land.NormalRight));
-                vertex.Hue2 = new Vector3(e.Edge, ShaderHueTranslator.SHADER_TERRAIN_BLEND, GetLandLight(land.NormalLeft));
-                vertex.Hue3 = new Vector3(e.Edge, ShaderHueTranslator.SHADER_TERRAIN_BLEND, GetLandLight(land.NormalBottom));
-
-                // position inside the tile: top (0, 0), right (1, 0), left (0, 1), bottom (1, 1)
-                vertex.Normal0 = new Vector3(0, 0, 0);
-                vertex.Normal1 = new Vector3(1, 0, 0);
-                vertex.Normal2 = new Vector3(0, 1, 0);
-                vertex.Normal3 = new Vector3(1, 1, 0);
-
-                // always drawn while its chunk is: land tiles are never hidden one by one
-                LandBlend.SetVisible(i, 0xFF);
-            }
-
-            _blendEdges.Clear();
-        }
-
-        private void AddBlendEdges(GameObjects.Land land)
-        {
-            if (!land.InChunkMesh || !land.IsStretched || land.Hue != 0 || land.TileData.IsWet)
-                return;
-
-            if (!ResolveLand(land, out Texture2D texture, out Rectangle uv, out bool texmap) || !texmap)
-                return;
-
-            // 0 NE (x, y - 1), 1 NW (x - 1, y), 2 SE (x + 1, y), 3 SW (x, y + 1)
-            TryAddBlendEdge(land, texture, uv, land.X, land.Y - 1, 0);
-            TryAddBlendEdge(land, texture, uv, land.X - 1, land.Y, 1);
-            TryAddBlendEdge(land, texture, uv, land.X + 1, land.Y, 2);
-            TryAddBlendEdge(land, texture, uv, land.X, land.Y + 1, 3);
-        }
-
-        private void TryAddBlendEdge(GameObjects.Land land, Texture2D texture, Rectangle uv, int x, int y, byte edge)
-        {
-            if (_map == null || x < 0 || y < 0)
-                return;
-
-            for (GameObject obj = _map.GetTile(x, y, false); obj != null; obj = obj.TNext)
-            {
-                if (obj is not GameObjects.Land neighbour)
-                    continue;
-
-                if (!neighbour.IsStretched || neighbour.Hue != 0 || neighbour.TileData.IsWet || !neighbour.AllowedToDraw)
-                    return;
-
-                if (!ResolveLand(neighbour, out Texture2D other, out Rectangle otherUv, out bool texmap) || !texmap)
-                    return;
-
-                if (ReferenceEquals(other, texture) && otherUv == uv)
-                    return;
-
-                _blendEdges.Add(new BlendEdge { Land = land, Texture = other, Uv = otherUv, Edge = edge });
-
-                return;
-            }
-        }
-
-        // get_light in IsometricWorld.fx before the Brightlight contrast, which the shader applies
-        private static float GetLandLight(Vector3 normal)
-        {
-            Vector3 light = Vector3.Normalize(new Vector3(0f, 1f, 1f));
-            float length = normal.Length();
-            float dot = length > 0f ? Vector3.Dot(normal / length, light) : 0f;
-
-            return Math.Max(dot, 0f) / 2f + 0.5f;
-        }
-
         // Shore foam edges of a water tile: 1 NE (x, y - 1), 2 NW (x - 1, y), 4 SE (x + 1, y),
         // 8 SW (x, y + 1) when that neighbour is land that is not water. Unloaded neighbours count as water.
         private float GetShoreMask(int x, int y)
@@ -816,21 +662,7 @@ namespace ClassicUO.Game.Map
             ref Vector3 normalLeft, ref Vector3 normalBottom,
             Vector3 hue, float depth)
         {
-            WriteStretchedLand(Land, index, texture, sourceRect, posX, posY, ref yOffsets,
-                ref normalTop, ref normalRight, ref normalLeft, ref normalBottom, hue, depth);
-        }
-
-        private static void WriteStretchedLand(
-            MeshLayer layer,
-            int index,
-            Texture2D texture, Rectangle sourceRect,
-            int posX, int posY,
-            ref YOffsets yOffsets,
-            ref Vector3 normalTop, ref Vector3 normalRight,
-            ref Vector3 normalLeft, ref Vector3 normalBottom,
-            Vector3 hue, float depth)
-        {
-            ref var vertex = ref layer.Vertices[index];
+            ref var vertex = ref Land.Vertices[index];
 
             // Half-pixel inset to prevent texture bleeding at tile seams
             float sourceX = (sourceRect.X + 0.5f) / (float)texture.Width;
@@ -869,7 +701,7 @@ namespace ClassicUO.Game.Map
 
             vertex.Hue0 = vertex.Hue1 = vertex.Hue2 = vertex.Hue3 = hue;
 
-            layer.Textures[index] = texture;
+            Land.Textures[index] = texture;
         }
 
         #endregion

@@ -275,8 +275,6 @@ namespace ClassicUO.Configuration
         public bool MobileOutline { get; set; } = true;
         // place-dependent tint and haze: dungeon, snow, desert, swamp... (docs/ATMOSPHERE_PLAN.md)
         public bool RegionAtmosphere { get; set; } = true;
-        // neighbour ground textures fading in over tile edges (docs/TERRAIN_BLEND_PLAN.md)
-        public bool TerrainBlending { get; set; } = true;
         // storm lightning brightens the screen; off for players sensitive to flashes
         public bool LightningFlashes { get; set; } = true;
         // fork: livelier grass colors and wind sway for plants and trees (client-side only)
