@@ -49,6 +49,11 @@ namespace ClassicUO.Game.Lighting
                 ? "- Shadows: original\n"
                 : string.Format(CultureInfo.InvariantCulture, "- Shadows: {0} soft shadows\n", _shadows);
 
+            if (WeatherRenderer.LastParticleCount > 0)
+            {
+                shadows += string.Format(CultureInfo.InvariantCulture, "- Weather: {0} particles\n", WeatherRenderer.LastParticleCount);
+            }
+
             if (!_enhanced)
             {
                 return "- Lighting: original path (day, alternative lights or enhanced off)\n" + shadows;

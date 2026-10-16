@@ -208,6 +208,20 @@ namespace ClassicUO.Renderer
         /// </summary>
         public float GetShaderMode(int index) => Vertices[index].Hue0.Y;
 
+        /// <summary>
+        /// Water: the quad corners carry their position inside the tile (0..1) in Normal.xy, the shader
+        /// measures the distance to the diamond edges for the shore foam (docs/WATER_WEATHER_PLAN.md).
+        /// </summary>
+        public void SetWaterCorners(int index)
+        {
+            ref var vertex = ref Vertices[index];
+
+            vertex.Normal0 = new Vector3(0, 0, 0);
+            vertex.Normal1 = new Vector3(1, 0, 0);
+            vertex.Normal2 = new Vector3(0, 1, 0);
+            vertex.Normal3 = new Vector3(1, 1, 0);
+        }
+
         public void SetSway(int index, float amplitude, float phase)
         {
             ref var vertex = ref Vertices[index];

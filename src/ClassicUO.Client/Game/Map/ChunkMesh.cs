@@ -120,6 +120,9 @@ namespace ClassicUO.Game.Map
         // nature effects state the mesh was built with: wind sway is baked into the vertices,
         // so toggling the option needs a rebuild
         public bool BuiltWithNatureEffects => _natureEffects;
+        // water effect state the mesh was built with: the water shader mode is baked in
+        public bool BuiltWithWaterEffect => _animatedWaterEffect;
+        private ClassicUO.Game.Map.Map _map;
         private TextureBucketTracker _landBuckets = new(16);
         private TextureBucketTracker _staticsBuckets = new(32);
 
@@ -142,6 +145,7 @@ namespace ClassicUO.Game.Map
                 return;
 
             _animatedWaterEffect = profile.AnimatedWaterEffect;
+            _map = world.Map;
             _natureEffects = profile.NatureEffects;
             BuiltHdGeneration = HdWorldPack.MeshGeneration;
             _hdWorld = BuiltHdGeneration >= 0;
@@ -363,9 +367,6 @@ namespace ClassicUO.Game.Map
             if (!land.AllowedToDraw || land.IsDestroyed)
                 return;
 
-            if (_animatedWaterEffect && land.TileData.IsWet)
-                return;
-
             if (ResolveLand(land, out Texture2D texture, out _, out _))
                 _landBuckets.Count(texture);
         }
@@ -405,9 +406,6 @@ namespace ClassicUO.Game.Map
         private void TryAddLand(GameObjects.Land land)
         {
             if (!land.AllowedToDraw || land.IsDestroyed)
-                return;
-
-            if (_animatedWaterEffect && land.TileData.IsWet)
                 return;
 
             if (!ResolveLand(land, out Texture2D texture, out Rectangle uv, out bool texmap))
@@ -459,8 +457,22 @@ namespace ClassicUO.Game.Map
             }
             else
             {
+                // water shader with the shore edges in Hue.X (unhued flat water only)
+                bool water = _animatedWaterEffect && land.TileData.IsWet && hue == 0 && !land.IsStretched;
+
+                if (water)
+                {
+                    hueVec.X = GetShoreMask(land.X, land.Y);
+                    hueVec.Y = ShaderHueTranslator.SHADER_WATER;
+                }
+
                 // always the 44x44 world diamond, also when the texture is the 2x HD version
                 Land.WriteQuadAt(idx, texture, uv, baseX, land.IsStretched ? baseY + (land.Z << 2) : baseY, 44, 44, hueVec, depth);
+
+                if (water)
+                {
+                    Land.SetWaterCorners(idx);
+                }
             }
 
             land.InChunkMesh = true;
@@ -576,6 +588,12 @@ namespace ClassicUO.Game.Map
 
             Vector3 hueVec = ShaderHueTranslator.GetHueVector(hue, itemData.IsPartialHue, 1f);
 
+            if (_animatedWaterEffect && itemData.IsWet && hueVec.Y == ShaderHueTranslator.SHADER_NONE)
+            {
+                // water statics: light pattern, no shore foam
+                hueVec.Y = ShaderHueTranslator.SHADER_WATER;
+            }
+
             float depth = obj.CalculateDepthZ() + 0.5f;
             int baseX = (obj.X - obj.Y) * 22 - 22;
             int baseY = (obj.X + obj.Y) * 22 - (obj.Z << 2) - 22;
@@ -605,6 +623,34 @@ namespace ClassicUO.Game.Map
                     Statics.SetSway(idx, sway.X, sway.Y);
                 }
             }
+        }
+
+        // Shore foam edges of a water tile: 1 NE (x, y - 1), 2 NW (x - 1, y), 4 SE (x + 1, y),
+        // 8 SW (x, y + 1) when that neighbour is land that is not water. Unloaded neighbours count as water.
+        private float GetShoreMask(int x, int y)
+        {
+            int mask = 0;
+
+            if (IsDryLand(x, y - 1)) mask |= 1;
+            if (IsDryLand(x - 1, y)) mask |= 2;
+            if (IsDryLand(x + 1, y)) mask |= 4;
+            if (IsDryLand(x, y + 1)) mask |= 8;
+
+            return mask;
+        }
+
+        private bool IsDryLand(int x, int y)
+        {
+            if (_map == null || x < 0 || y < 0)
+                return false;
+
+            for (GameObject obj = _map.GetTile(x, y, false); obj != null; obj = obj.TNext)
+            {
+                if (obj is GameObjects.Land land)
+                    return !land.TileData.IsWet;
+            }
+
+            return false;
         }
 
         private void WriteStretchedLand(
