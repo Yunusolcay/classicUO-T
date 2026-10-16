@@ -78,7 +78,7 @@ namespace ClassicUO.Game.Lighting
             Texture2D world,
             RenderTarget2D destination,
             Matrix worldMatrix,
-            float ambient,
+            Vector3 ambient,
             float lightMapScale,
             float intensity
         )
@@ -88,8 +88,8 @@ namespace ClassicUO.Game.Lighting
 
             device.SetRenderTarget(lightMap);
 
-            float encodedAmbient = MathHelper.Clamp(ambient, 0f, 1f) * 0.5f;
-            device.Clear(ClearOptions.Target, new Vector4(encodedAmbient, encodedAmbient, encodedAmbient, 1f), 0f, 0);
+            Vector3 encodedAmbient = Vector3.Clamp(ambient, Vector3.Zero, Vector3.One) * 0.5f;
+            device.Clear(ClearOptions.Target, new Vector4(encodedAmbient, 1f), 0f, 0);
 
             Matrix toLightMap = worldMatrix * Matrix.CreateScale(
                 lightMap.Width / (float)world.Width,

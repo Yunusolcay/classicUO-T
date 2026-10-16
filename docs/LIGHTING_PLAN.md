@@ -139,7 +139,10 @@ ID'ler sabittir (PLAN.md ile eşleşir).
 - Dosyalar: yeni `Game/Lighting/LightMapRenderer.cs`, `ClassicUO.Renderer/Lighting/LightMapTarget.cs`; `Game/Scenes/GameSceneLighting.cs` (partial: `UseEnhancedLighting`, `DisableLegacyLightLayer`, `DrawEnhancedLights`); `GameScene.cs` (`Draw` kancası E10, `Unload` dispose).
 - Kabul: `LightingEffect` D3D11 ve OpenGL arka uçlarında yükleniyor (yüklenemezse Modern look gibi loglanıp Enhanced kapanıyor); Enhanced açıkken ışıklar aynı karede, ölçekli RT'de, ×2 blend ile dünya hedefine gömülüyor; Modern look açık/kapalı, xBR zoom filtresi açık/kapalı ve HD world pack ile doğru; gündüz sahnesi enhanced açık/kapalı aynı; zoom ve pencere/DPI değişiminde RT doğru yeniden kuruluyor, sızıntı yok.
 
-### L7 – `AmbientLight`: yumuşak geçiş + gün/gece tonu · O · Claude Code
+### L7 – `AmbientLight`: yumuşak geçiş + gün/gece tonu · O · Claude Code · 🔶 kod hazır (319 test), oyun içi kabul bekliyor
+- Not: Hedef seviye `IsometricLevel` (custom light level ve dark nights dahil). Geçiş yalnız Enhanced yolu çizerken
+  çalışır; yol kapanınca sıfırlanır, tekrar açılınca hedefe atlar. Gece tonu (`day_night_tint`): karanlık arttıkça en fazla
+  %60 ay ışığı tonu (0.86, 1, 1.24), parlaklık korunur; gündüz nötr.
 - Dosyalar: yeni `Game/Lighting/AmbientLight.cs`; `LightMapRenderer` clear rengi; birim testi `tests/ClassicUO.UnitTests/`.
 - Kabul: `0x4F` değişiminde ambient `LightTransitionSeconds` içinde smoothstep geçiyor; tint kapalıyken son değer eski `IsometricLevel` ile aynı; `UseCustomLightLevel` + `LightLevelType` çalışıyor; test seviye/zaman → beklenen RGB.
 

@@ -16,10 +16,24 @@ namespace ClassicUO.Game.Scenes
         private static readonly Func<Vector3> _noLightsHue = () => Vector3.UnitZ;
 
         private readonly LightMapRenderer _lightMapRenderer = new LightMapRenderer();
+        private readonly AmbientLight _ambientLight = new AmbientLight();
 
         // Enhanced lighting replaces the normal night darkness only: daylight, alternative lights and
         // the dead black and white view keep the original path.
         private bool UseEnhancedLighting(GraphicsDevice device, RenderTargets renderTargets)
+        {
+            bool enhanced = CanUseEnhancedLighting(device, renderTargets);
+
+            if (!enhanced)
+            {
+                // the ambient fade only runs while the enhanced path draws
+                _ambientLight.Reset();
+            }
+
+            return enhanced;
+        }
+
+        private bool CanUseEnhancedLighting(GraphicsDevice device, RenderTargets renderTargets)
         {
             Profile profile = ProfileManager.CurrentProfile;
 
@@ -59,12 +73,14 @@ namespace ClassicUO.Game.Scenes
         {
             Profile profile = ProfileManager.CurrentProfile;
 
-            float ambient = _world.Light.IsometricLevel;
+            float level = _world.Light.IsometricLevel;
 
             if (profile.UseDarkNights)
             {
-                ambient -= 0.04f;
+                level -= 0.04f;
             }
+
+            Vector3 ambient = _ambientLight.Update(level, Time.Ticks, profile.LightTransitionSeconds, profile.DayNightTint);
 
             LightingQualityPreset preset = LightingSettings.GetQualityPreset(profile.LightingQuality);
 
