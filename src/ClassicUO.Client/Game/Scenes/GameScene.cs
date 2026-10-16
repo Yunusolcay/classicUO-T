@@ -1065,6 +1065,8 @@ namespace ClassicUO.Game.Scenes
             // https://shawnhargreaves.com/blog/depth-sorting-alpha-blended-objects.html
             batcher.SetStencil(DepthStencilState.Default);
 
+            bool softShadows = BeginSoftShadows(batcher);
+
             RenderedObjectsCount = _renderLists.DrawRenderLists(
                 batcher,
                 _maxGroundZ,
@@ -1072,6 +1074,11 @@ namespace ClassicUO.Game.Scenes
                 _offset.X,
                 _offset.Y
             );
+
+            if (softShadows)
+            {
+                batcher.DrawDeferredShadows(target.Width, target.Height);
+            }
 
 
             if (
