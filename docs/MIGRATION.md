@@ -45,7 +45,7 @@ Upstream senkronu: `git fetch upstream && git merge upstream/main` (main üzerin
 ### MIG-7 – Çapraz inceleme · Her ikisi · K
 - Claude Code: BUILD.md + network-assets.md; Codex: rendering.md + LIGHTING_PLAN.md (Adım 2'deki gibi).
 
-### MIG-8 – classicUO-T özelliklerini haritalara işle · **Claude Code** · O
+### MIG-8 – classicUO-T özelliklerini haritalara işle · **Claude Code** · O · ✅ 2026-10-16
 - `rendering.md`: HD world/karakter paketleri, Modern look, nature effects, zoom xBR'nin render yoluna etkisi (`GameScene`, `RenderTargets`, `ChunkMesh`, `IsometricWorld.fx`, `Batcher2D`).
 - `LIGHTING_PLAN.md`: kancaları bu koda göre güncelle; ışık kompoziti ↔ Modern look sırası.
 - Kabul: Haritadaki yollar/metotlar `origin/main` ile eşleşiyor.

@@ -1,6 +1,6 @@
 # Dinamik Işık Sistemi – Tasarım Planı (M1)
 
-Taban: upstream `main` `ee79d7eb`. Önkoşul okuma: `docs/arch/rendering.md` §3 (mevcut ışık sistemi),
+Taban: classicUO-T `main` (upstream `ee79d7eb` + fork özellikleri). Önkoşul okuma: `docs/arch/rendering.md` §3 (mevcut ışık sistemi),
 §6 (genişletme noktaları). Teknik kararı: `docs/DECISIONS.md` D-001.
 
 ## 1. Hedefler
@@ -18,11 +18,18 @@ Kapsam dışı (M2): ışığın duvar/kat arkasına geçmemesi (gerçek occlusi
 ## 2. Teknik: ayrı light map RT + çarpımsal kompozit (×2)
 
 ```
-GameScene.DrawWorld (değişmez)       ──► WorldRenderTarget
-LightMapRenderer (yeni, dünyadan SONRA) ──► kendi light RT'miz (ölçekli; ambient/2 ile temizle,
-                                            ışıkları additive çiz /2, opsiyonel blur)
-RenderTargets.Draw (kanca)            ──► World × Light × 2  (blend: Src=DestColor, Dst=SourceColor)
+GameScene.DrawWorld / UpscaleWorld (değişmez) ──► dünya hedefi (WorldRenderTarget veya PostProcessWorld RT)
+LightMapRenderer (yeni, dünyadan SONRA)       ──► kendi light RT'miz (ölçekli; ambient/2 ile temizle,
+                                                  ışıkları additive çiz /2, opsiyonel blur)
+Kompozit (yeni, GameScene içinde, E10)        ──► dünya hedefi ×= Light × 2  (blend: Src=DestColor, Dst=SourceColor)
+ApplyModernLook (classicUO-T, değişmez)       ──► glow artık ışıkları da yakalar (meşale bloom'u)
+RenderTargets.Draw                             ──► enhanced iken ışık çizimini atlar
 ```
+
+**Neden Modern look'tan önce?** classicUO-T'de Modern look ışıklardan önce uygulanıyor ve ışık sonra
+`RenderTargets.Draw`'da çarpılıyor; bu yüzden glow, karanlıkta parlayan meşaleleri görmüyor ve gece sahnesinde
+Modern look'un parlatması karanlığı da kaldırıyor. Işığı dünya hedefine Modern look'tan önce gömmek, iki özelliği
+birlikte doğru çalıştırır. Enhanced kapalıyken classicUO-T'nin mevcut sırası aynen kalır.
 
 - **×2 kompozit shader'sız:** blend `ColorSourceBlend = DestinationColor`, `ColorDestinationBlend = SourceColor`
   → `src·dst + dst·src = 2·src·dst`. Light RT'de 0.5 = nötr, 1.0 = 2× parlak (overbright).
@@ -64,9 +71,9 @@ Yeni dosyalar:
 
 Upstream kancaları (hepsi `EnhancedLighting` kapalıyken eski yol):
 - `GameScene.AddLight` → başta `if (enhanced) { _lightManager.Add(...); return; }`.
-- `GameScene.Draw` → enhanced iken `PrepareLightsRendering` atlanır, `DrawWorld` sonrası `LightMapRenderer.Draw`.
-- `GameScene.InitializeRenderTargets` → enhanced iken ×2 blend + bizim light texture.
-- `RenderTargets` → `SetLightsConfiguration`'a opsiyonel `Func<Texture2D>` (ışık texture'ı override).
+- `GameScene.Draw` → enhanced iken `PrepareLightsRendering` atlanır; `DrawWorld`/`UpscaleWorld` sonrası,
+  `ApplyModernLook` öncesi `LightMapRenderer.Draw` + kompozit (dünya hedefine ×2 blend).
+- `RenderTargets` → enhanced iken ışık RT çizimini atlayan bayrak (ör. `DrawLightsLayer`), tek satırlık koşul.
 - `Batcher2D.cs` `Resources` → `[FileEmbed("shaders/Lighting.fxc")] GetLightingShader()`.
 - `Profile.cs` → yeni property'ler; `OptionsGump.cs` → ayar bölümü.
 
@@ -115,8 +122,8 @@ ID'ler sabittir (PLAN.md ile eşleşir).
 - Upstream `fxc.exe` + `compile_shaders.bat` içeriyor; Lighting.fx satırı L4'e dahil.
 
 ### L6 – `LightMapRenderer` + kompozit (çekirdek) · Z · Claude Code
-- Dosyalar: yeni `Game/Lighting/LightMapRenderer.cs`, `ClassicUO.Renderer/Lighting/LightMapTarget.cs`; `GameScene.cs` (`Draw`, `InitializeRenderTargets` kancaları), `RenderTargets.cs` (ışık texture override).
-- Kabul: Enhanced açıkken ışıklar aynı karede, ölçekli RT'de, ×2 blend ile birleşiyor; gündüz sahnesi enhanced açık/kapalı aynı görünüyor; zoom ve pencere/DPI değişiminde RT doğru yeniden kuruluyor, sızıntı yok.
+- Dosyalar: yeni `Game/Lighting/LightMapRenderer.cs`, `ClassicUO.Renderer/Lighting/LightMapTarget.cs`; `GameScene.cs` (`Draw` kancası, E10), `RenderTargets.cs` (ışık katmanını atlama bayrağı).
+- Kabul: Enhanced açıkken ışıklar aynı karede, ölçekli RT'de, ×2 blend ile dünya hedefine gömülüyor; Modern look açık/kapalı, xBR zoom filtresi açık/kapalı ve HD world pack ile doğru; gündüz sahnesi enhanced açık/kapalı aynı; zoom ve pencere/DPI değişiminde RT doğru yeniden kuruluyor, sızıntı yok.
 
 ### L7 – `AmbientLight`: yumuşak geçiş + gün/gece tonu · O · Claude Code
 - Dosyalar: yeni `Game/Lighting/AmbientLight.cs`; `LightMapRenderer` clear rengi; birim testi `tests/ClassicUO.UnitTests/`.
@@ -148,11 +155,15 @@ ID'ler sabittir (PLAN.md ile eşleşir).
 - Dosyalar: yeni `Game/Lighting/LightingDebug.cs`; `CommandManager`'a komut (ör. `lightdebug`); `Profiler` bağlamı.
 - Kabul: Işık sayısı, light RT boyutu, ışık pass süresi (ms) ekranda; light map'i tek başına gösterme modu.
 
+### L15 – Modern look ile ışık uyumu · K · Claude Code
+- Dosyalar: `ClassicUO.Renderer/shaders/ModernLook.fx` (+ `.fxc`), gerekirse `GameScene.ApplyModernLook`.
+- Kabul: Enhanced + Modern look açıkken meşale/lamba glow alıyor ama gece karanlığı Modern look'un parlatmasıyla kaybolmuyor (glow eşiği ve gamma ışıklı sahne için ayarlı); Enhanced kapalıyken Modern look çıktısı değişmemiş.
+
 ### L14 – Performans doğrulama ve kabul · O · Claude Code (+ Codex ölçüm)
 - Kabul: §1/6 hedefi; açık alan gece, şehir gece, zindan × Low/Medium/High FPS tablosu `docs/PLAN.md`'de.
 
-**Sıra:** L1, L2 paralel → L3 → L4 → L6 → (L7, L8, L9, L10 paralel) → L11, L12, L13 → L14.
-Toplam **13 aktif görev** (L5 kaldırıldı); Codex'e uygun: L1, L2, L8, L12, L13.
+**Sıra:** L1, L2 paralel → L3 → L4 → L6 → (L7, L8, L9, L10, L15 paralel) → L11, L12, L13 → L14.
+Toplam **14 aktif görev** (L5 kaldırıldı, L15 eklendi); Codex'e uygun: L1, L2, L8, L12, L13.
 
 ## 6. Riskler
 
@@ -160,3 +171,4 @@ Toplam **13 aktif görev** (L5 kaldırıldı); Codex'e uygun: L1, L2, L8, L12, L
 - MojoShader/GL farkları – D3D11 ve OpenGL'de test şart.
 - ×2 kompozit 8-bit hassasiyette ambient'i yarıya sıkıştırır (koyu tonlarda hafif bantlanma); görülürse High kalitede `HalfVector4` RT seçeneği.
 - Upstream merge çakışmaları: kancalar `GameScene.cs`, `RenderTargets.cs`, `Profile.cs`, `OptionsGump.cs`'te; diff'leri küçük tut.
+- classicUO-T etkileşimi: Modern look (sıra ve parlaklık, L15), xBR zoom filtresi (ışık kompoziti büyütmeden *sonra*, tam çözünürlükte), nature effects ve HD pack (ışığa etkisi yok; aynı dosyalarda — `GameScene.Draw`, `OptionsGump`, `Profile` — çakışma riski).

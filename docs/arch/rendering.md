@@ -1,8 +1,8 @@
 # Render Pipeline Haritası
 
-> Taban: upstream ClassicUO `main` `ee79d7eb` (2025-11-26), .NET 10, FNA 25.09 (FNA3D),
-> shader'lar `fx_2_0` (vs_3_0 / ps_3_0). Yollar `src/` altına göredir; satır numarası yerine
-> metot adları esastır. Eski 2020 tabanının haritası `legacy/2020` dalındadır.
+> Taban: **classicUO-T** `main` = upstream ClassicUO `ee79d7eb` (2025-11-26) + fork özellikleri
+> (§8). .NET 10, FNA 25.09 (FNA3D), shader'lar `fx_2_0` (vs_3_0 / ps_3_0). Yollar `src/` altına göredir;
+> satır numarası yerine metot adları esastır. Eski 2020 tabanının haritası `legacy/2020` dalındadır.
 
 ## 1. Bir karenin yolu
 
@@ -13,11 +13,23 @@ flowchart TD
     D --> R0[RenderTargets.EnsureSizes<br/>UI / World / Light RT boyutları]
     R0 --> G[GameScene.Draw]
     G --> L[PrepareLightsRendering → LightRenderTarget<br/>ambient clear + additive ışık sprite'ları<br/>ÖNCEKİ karede toplanan _lights]
-    L --> W[DrawWorld → WorldRenderTarget<br/>FillGameObjectList: görünürlük, mesh visibility, AddLight<br/>RenderLists.DrawRenderLists: chunk mesh'ler + listeler<br/>Weather.Draw, DrawSelection]
-    W --> UI[UiRenderTarget: Scene.DrawUI, UIManager.Draw, imleç]
+    L --> H[HdCharacterSprites.Update, HdWorldPack.Update]
+    H --> W{xBR zoom filtresi?}
+    W -->|evet| W1[DrawWorld → LowResWorld RT 1:1<br/>UpscaleWorld xBR → hedef]
+    W -->|hayır| W2[DrawWorld → hedef]
+    W1 --> M{Modern look?}
+    W2 --> M
+    M -->|evet: hedef = PostProcessWorld RT| ML[ApplyModernLook → WorldRenderTarget]
+    M -->|hayır: hedef = WorldRenderTarget| UI
+    ML --> UI[UiRenderTarget: Scene.DrawUI, UIManager.Draw, imleç]
     UI --> C[RenderTargets.Draw → backbuffer<br/>arka plan, World RT, Light RT blend, UI RT]
     C --> P[Plugin.ProcessDrawCmdList]
 ```
+
+`DrawWorld` içeriği: `FillGameObjectList` (görünürlük, mesh visibility, `AddLight`) →
+`RenderLists.DrawRenderLists` (chunk mesh'ler + listeler) → `Weather.Draw` → `DrawSelection`.
+**Sıra önemli:** Modern look ışıklardan *önce* uygulanır; ışık RT'si sonra `RenderTargets.Draw`'da çarpılır
+(bkz. §8 ve LIGHTING_PLAN).
 
 - FPS limiti: `GameController.Update` → `_intervalFixedUpdate` (`Settings.FPS`); aksi halde `SuppressDraw()`.
   Pasif pencerede `ReduceFPSWhenInactive` ile düşük FPS.
@@ -87,6 +99,7 @@ sırasına güvenir. Sampler'lar: s0 sprite, s1 hue tablosu, s2 ışık renk tab
 | 8 | SHADOW | %40 siyah |
 | 9 | LIGHTS | `get_colored_light(Hue.x-1, color.r)` → s2 ışık renk tablosu |
 | 10 | EFFECT_HUED | yeşil kanaldan hue |
+| 11 / 12 | NATURE_GRASS / NATURE_GRASS_LIT | (classicUO-T) canlı çimen `grade_grass`; 12 = + `get_light` |
 | +20 | GUMP | |
 
 ## 3. Mevcut ışık sistemi
@@ -125,6 +138,8 @@ Profil (`Configuration/Profile.cs`): `UseCustomLightLevel`, `LightLevel`, `Light
 | `UiRenderTarget` | pencere / DPI | backbuffer formatı + depth | UI, overhead'ler, imleç |
 | `WorldRenderTarget` | `Camera.Bounds` (DPI sonrası) | backbuffer formatı + depth | Dünya |
 | `LightRenderTarget` | World ile aynı | backbuffer formatı | Işık haritası |
+| `GetLowResWorldRenderTarget` (classicUO-T) | World / zoom | backbuffer + depth | xBR zoom filtresi: dünya 1:1 çizilir, sonra büyütülür |
+| `GetPostProcessWorldRenderTarget` (classicUO-T) | World ile aynı | backbuffer + depth | Modern look açıkken dünya önce buraya, sonuç `WorldRenderTarget`'a |
 
 `RenderTargets.EnsureSizes` her karede boyutu kontrol eder, değişirse yeniden oluşturur.
 Birleştirme sampler'ı: tam sayı DPI'da `PointClamp`, değilse `LinearClamp`.
@@ -146,7 +161,8 @@ Birleştirme sampler'ı: tam sayı DPI'da `PointClamp`, değilse `LinearClamp`.
 | E3 | `GameScene.AddLight` | Işık toplama, tanım, flicker, yarıçap |
 | E4 | `RenderTargets.SetLightsConfiguration` / `RenderTargets.Draw` | **Kompozit**: blend state ve ışık texture'ı; M5 post-process zinciri |
 | E5 | `GameScene.DrawWorld` — `End()` öncesi | Dünya üstü katmanlar (sis, bulut gölgesi) |
-| E6 | `IsometricWorld.fx` yeni mod (≥ 11) | Sprite başına efekt (su, bitki salınımı). Tek shader → herkes etkilenir |
+| E6 | `IsometricWorld.fx` yeni mod (**≥ 13**; 11–12 nature) | Sprite başına efekt (su vb.). Tek shader → herkes etkilenir |
+| E10 | `GameScene.Draw` — `DrawWorld`/`UpscaleWorld` sonrası, `ApplyModernLook` öncesi | Dünya görüntüsüne tam çözünürlükte uygulanan pass'ler (ışık kompoziti, sis); Modern look bunları da işler |
 | E7 | `Resources` (FileEmbed) + yeni `Effect` sınıfı | Yeni shader dosyaları |
 | E8 | `IsometricLight` | Ambient / gün-gece eğrisi |
 | E9 | `MeshLayer` / `ChunkMesh` | Statik geometriye vertex başı veri (ör. bitki salınım ağırlığı) |
@@ -163,7 +179,23 @@ Kural: yeni kod `ClassicUO.Client/Game/Lighting/` (oyun mantığı) ve `ClassicU
 - **Chunk mesh:** statiklerin çoğu tek tek `Draw` edilmez; sprite başına özel veri gerekiyorsa `MeshLayer`
   vertex verisine yazılmalı (hue alanı `SetHue` ile yamalanır).
 - **Tek global effect:** `IsometricWorld.fx` UI dahil her şeyi çizer; mod eklemek güvenli, mevcut modları değiştirmek riskli.
+- **Vertex alanları dolu (classicUO-T):** `TexCoord.z` = rüzgâr salınım genliği (üst köşeler), `Normal.x` = salınım fazı
+  (yalnız land dışı modlarda; land modları `Normal`'ı normal olarak okur), `Hue.x` = çimen tonu (mod 11/12).
+  Yeni per-vertex veri için boş alan kalmadı → vertex formatı değişikliği gerekir.
 - **Light RT formatı = backbuffer formatı** (8-bit). Overbright/HDR için kendi RT'mizi oluşturmalıyız.
 - **Bir kare ışık gecikmesi** (§1).
 - **`MAX_LIGHTS_DATA_INDEX_COUNT`** hâlâ hem ID hem kare başına ışık limiti.
 - **Plugin draw komutları** (`Plugin.ProcessDrawCmdList`) son kareye çizilir; post-process bunları etkilememeli.
+
+## 8. classicUO-T eklemeleri (render'a etkisi)
+
+Hepsi profil ayarıyla açılır/kapanır (`Configuration/Profile.cs`); varsayılan kapalı (`MovementStepCadence` vb. hariç).
+
+| Özellik | Profil | Ana dosyalar | Render yoluna etkisi |
+|---|---|---|---|
+| Nature effects | `NatureEffects` | `Game/Data/NatureTiles.cs`, `Game/Map/ChunkMesh.cs` (`Decor` layer), `IsometricWorld.fx` (`Time`, mod 11/12, vertex sway) | Çimen tutamları `ChunkMesh.Decor` layer'ında, `DepthRead` ile land'den sonra çizilir; bitki/ağaç üst köşeleri vertex shader'da sallanır (`Batcher2D.SetSway`, `MeshLayer.SetSway`, `UltimaBatcher2D.SetTime`). Değişince chunk mesh'ler yeniden kurulur (`BuiltWithNatureEffects`). |
+| Zoom pixel art filtresi | `ZoomPixelArtFilter` | `GameScene.Draw` (`UpscaleWorld`, `_worldRenderScale`), `RenderTargets.GetLowResWorldRenderTarget`, `XBREffect` | Zoom ≥ 1.25× iken dünya 1:1 çizilip xBR ile büyütülür. HD world pack varsa devre dışı. |
+| HD karakterler | `HdCharacters` | `Game/Managers/HdCharacterSprites.cs`, `ClassicUO.Renderer/Animations/HdSpriteCache.cs`, `XbrSprite.cs` | Mobil kareleri zoom'da 2× xBR kopyalarından çizilir (`MobileView`). |
+| HD world pack | `HdWorld` | `Game/Managers/HdWorldPack.cs`, `tools/hdpack/` (Python), `Data/HD/world/` | Land/texmap/statik için 2× görüntüler (zoom dışı yarıya indirilir); ayrı atlas; geometri/seçim/sıra orijinalle aynı, yalnız texture değişir. Mesh'ler `BuiltHdGeneration` değişince yeniden kurulur. |
+| Modern look | `ModernLook` | `shaders/ModernLook.fx`, `Effects/ModernLookEffect.cs`, `GameScene.ApplyModernLook` | Dünya görüntüsüne keskinlik, glow (luma > 0.62), renk düzenleme, vignette. **Işıklardan önce** uygulanır → mevcut halde meşale/ışık glow almaz. |
+| Smooth movement | `Movement*` | `PlayerMobile`, `Mobile`, `Data/MovementSpeed.cs`, `Managers/MovementDiagnostics.cs`, `GameController` (`timeBeginPeriod(1)`) | Render yolu değişmez; kare zamanlaması düzgünleşir. `EnableVSync` ayarı eklendi. |
