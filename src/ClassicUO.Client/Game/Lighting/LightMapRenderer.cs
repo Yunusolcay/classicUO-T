@@ -11,18 +11,14 @@ namespace ClassicUO.Game.Lighting
 {
     // Enhanced lighting (docs/LIGHTING_PLAN.md): the frame's lights go into a scaled light map that
     // stores half the light, then the world image is written out multiplied by twice the light map.
-    // 0.5 in the light map leaves the scene unchanged, above it lights can brighten past the art.
+    // 0.5 in the light map leaves the scene unchanged, above it lights brighten past the art up to a
+    // soft limit (LightingEffect.Composite).
     internal sealed class LightMapRenderer : IDisposable
     {
-        // dst * src + src * dst = 2 * world * lightmap
-        private static readonly BlendState _multiply2x = new BlendState
-        {
-            ColorSourceBlend = Blend.DestinationColor,
-            ColorDestinationBlend = Blend.SourceColor,
-            ColorBlendFunction = BlendFunction.Add,
-            AlphaSourceBlend = Blend.Zero,
-            AlphaDestinationBlend = Blend.One
-        };
+        // largest brightening above the art at light intensity 1
+        private const float OVERBRIGHT_LIMIT = 0.35f;
+        // the light colors keep this much of their saturation
+        private const float LIGHT_SATURATION = 0.75f;
 
         // additive at half strength: the light map encoding
         private static readonly BlendState _halfAdditive = new BlendState
@@ -83,7 +79,8 @@ namespace ClassicUO.Game.Lighting
             RenderTarget2D destination,
             Matrix worldMatrix,
             float ambient,
-            float lightMapScale
+            float lightMapScale,
+            float intensity
         )
         {
             GraphicsDevice device = batcher.GraphicsDevice;
@@ -110,18 +107,24 @@ namespace ClassicUO.Game.Lighting
 
             device.SetRenderTarget(destination);
 
-            Rectangle full = new Rectangle(0, 0, destination.Width, destination.Height);
+            _effect.CurrentTechnique = _effect.Composite;
+            _effect.SetProjection(Matrix.Identity);
+            _effect.WorldTexture.SetValue(world);
+            _effect.OverbrightLimit.SetValue(OVERBRIGHT_LIMIT * MathHelper.Clamp(intensity, 0f, 2f));
+            _effect.LightSaturation.SetValue(LIGHT_SATURATION);
 
-            batcher.Begin();
+            // the light map is stretched over the target with linear filtering, the world is 1:1
+            batcher.Begin(_effect, Matrix.Identity);
             batcher.SetBlendState(BlendState.Opaque);
-            batcher.Draw(world, full, Vector3.UnitZ, 0f);
-            batcher.SetBlendState(_multiply2x);
             batcher.SetSampler(SamplerState.LinearClamp);
-            batcher.Draw(lightMap, full, Vector3.UnitZ, 0f);
+            batcher.Draw(lightMap, new Rectangle(0, 0, destination.Width, destination.Height), Vector3.UnitZ, 0f);
             batcher.SetSampler(null);
             batcher.SetBlendState(null);
             batcher.End();
 
+            // the world target is drawn into again next frame: do not leave it bound as a texture
+            _effect.WorldTexture.SetValue((Texture2D) null);
+            device.Textures[1] = null;
             device.SetRenderTarget(null);
         }
 
