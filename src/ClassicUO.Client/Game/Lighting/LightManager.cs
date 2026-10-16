@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 
+using System;
 using ClassicUO.Assets;
 using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
@@ -10,12 +11,16 @@ using Microsoft.Xna.Framework;
 namespace ClassicUO.Game.Lighting
 {
     // Collects the light sources of a frame and draws them into the light map.
-    // Behavior matches the original GameScene light code.
+    // Light resolution and drawing match the original GameScene light code.
     internal sealed class LightManager
     {
+        public const int MAX_LIGHTS_PER_FRAME = 512;
+        public const int LEGACY_MAX_LIGHTS = 100;
+
         private readonly World _world;
-        private readonly LightSource[] _lights = new LightSource[LightsLoader.MAX_LIGHTS_DATA_INDEX_COUNT];
+        private readonly LightSource[] _lights = new LightSource[MAX_LIGHTS_PER_FRAME];
         private int _count;
+        private int _maxLights = LEGACY_MAX_LIGHTS;
 
         public LightManager(World world)
         {
@@ -24,10 +29,16 @@ namespace ClassicUO.Game.Lighting
 
         public int Count => _count;
 
+        public int MaxLights
+        {
+            get => _maxLights;
+            set => _maxLights = Math.Clamp(value, 0, MAX_LIGHTS_PER_FRAME);
+        }
+
         // maxZ: the scene's current draw z limit; lights under a roof above it are skipped
         public void Add(GameObject obj, GameObject lightObject, int x, int y, int maxZ)
         {
-            if (_count >= LightsLoader.MAX_LIGHTS_DATA_INDEX_COUNT || obj == null)
+            if (_count >= MaxLights || obj == null)
             {
                 return;
             }
@@ -37,7 +48,7 @@ namespace ClassicUO.Game.Lighting
                 return;
             }
 
-            ref LightSource light = ref _lights[_count];
+            LightSource light = default;
 
             ushort graphic = lightObject.Graphic;
 
@@ -123,11 +134,6 @@ namespace ClassicUO.Game.Lighting
                 }
             }
 
-            if (light.ID >= LightsLoader.MAX_LIGHTS_DATA_INDEX_COUNT)
-            {
-                return;
-            }
-
             if (light.Color != 0)
             {
                 light.Color++;
@@ -135,7 +141,20 @@ namespace ClassicUO.Game.Lighting
 
             light.DrawX = x;
             light.DrawY = y;
-            _count++;
+            TryAdd(light);
+        }
+
+        // Appends a resolved light without coupling collection limits to asset ID limits.
+        public bool TryAdd(in LightSource light)
+        {
+            if (_count >= MaxLights || light.ID >= LightsLoader.MAX_LIGHTS_DATA_INDEX_COUNT)
+            {
+                return false;
+            }
+
+            _lights[_count++] = light;
+
+            return true;
         }
 
         // Draws the collected lights with the batcher already begun on the light render target,
