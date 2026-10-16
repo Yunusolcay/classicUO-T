@@ -120,7 +120,7 @@ Kaynak: [SHADOWS_PLAN.md](SHADOWS_PLAN.md).
 
 - [x] classicUO-T: smooth movement; koşarken dönüş düzeltmesi, sabit adım ritmi ve kesintisiz adım seçeneği. `Profile.SmoothMovements`, `MovementTurnWhileRunningFix`, `MovementStepCadence`, `MovementContinuousSteps`; `src/ClassicUO.Client/Game/Managers/WalkerManager.cs`, `Game/GameObjects/Mobile.cs`, `Game/UI/Gumps/OptionsGump.cs` içinde uygulanmış.
 - [x] classicUO-T: zoom sırasında xBR dünya filtresi; `Profile.ZoomPixelArtFilter`, `GameScene.UpscaleWorld()` ve düşük çözünürlüklü dünya RT yolu mevcut.
-- [x] C1 — Yumuşak zoom · C2 — Alt-piksel kamera (bkz. [CAMERA_PLAN.md](CAMERA_PLAN.md)). Yayında (`a26041319`); kullanıcı kabulü 2026-10-16 ("daha akıcı"). C3–C5 sonraki adımlar.
+- [x] C1 — Yumuşak zoom · C2 — Alt-piksel kamera (bkz. [CAMERA_PLAN.md](CAMERA_PLAN.md)). Yayında (`a26041319`); kullanıcı kabulü 2026-10-16 ("daha akıcı"). C3 (diğer mobiller) 🔶 kod hazır; C4/C5 gerekçeli olarak yapılmadı (CAMERA_PLAN §4).
 - [ ] Kamera/zoom/interpolasyon için kalan ihtiyacı ölçerek belirle; farklı FPS/gecikme ve Sphere/Source-X üzerinde hareket kabulü ayrı doğrulansın. Önceki kullanıcı yürüme/koşma testi yeni seçeneklerin tamamının ölçümü sayılmaz.
 
 ## M5 — Post-processing

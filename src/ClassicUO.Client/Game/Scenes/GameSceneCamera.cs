@@ -16,9 +16,17 @@ namespace ClassicUO.Game.Scenes
 
         private Vector2 _cameraSubPixel;
 
-        // read by MobileView while drawing the player
+        // read by MobileView: mobiles are drawn with their own sub-pixel step (GetSubPixel)
         public static bool SubPixelCameraActive { get; private set; }
-        public static Vector2 PlayerSubPixelOffset { get; private set; }
+
+        // The part of a mobile's movement offset that drawing in whole pixels drops, in world pixels.
+        // Same rounding as the camera (GetViewPort) and MobileView: (int) of X and of Y - Z.
+        public static Vector2 GetSubPixel(Vector3 offset)
+        {
+            float y = offset.Y - offset.Z;
+
+            return new Vector2(offset.X - (int)offset.X, y - (int)y);
+        }
 
         private Matrix ApplySubPixelCamera(Matrix matrix, float zoomScale, bool xbrWorld)
         {
@@ -28,16 +36,15 @@ namespace ClassicUO.Game.Scenes
             Camera.SmoothZoom = profile.SmoothZoom;
 
             // the xBR filter draws the world at 1:1 art scale: a fraction of a pixel is lost there
-            if (!profile.SubPixelCamera || xbrWorld || zoomScale < SUB_PIXEL_MIN_SCALE || _cameraSubPixel == Vector2.Zero)
+            if (!profile.SubPixelCamera || xbrWorld || zoomScale < SUB_PIXEL_MIN_SCALE)
             {
                 SubPixelCameraActive = false;
-                PlayerSubPixelOffset = Vector2.Zero;
 
                 return matrix;
             }
 
+            // stays on while the player stands still: other mobiles still move smoothly
             SubPixelCameraActive = true;
-            PlayerSubPixelOffset = _cameraSubPixel;
 
             return Matrix.CreateTranslation(-_cameraSubPixel.X, -_cameraSubPixel.Y, 0f) * matrix;
         }
