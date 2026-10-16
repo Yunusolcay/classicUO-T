@@ -185,6 +185,9 @@ Kural: yeni kod `ClassicUO.Client/Game/Lighting/` (oyun mantığı) ve `ClassicU
 - **Light RT formatı = backbuffer formatı** (8-bit). Overbright/HDR için kendi RT'mizi oluşturmalıyız.
 - **Hue tabloları s1/s2'de sabit:** `Client.cs` hue dokularını açılışta bir kez `Textures[1]` ve `[2]`'ye bağlar,
   batcher bir daha bağlamaz. Özel efektler bu slotlarda doku örneklemez ve onları boşaltmaz; ek doku için s3+ kullanılır.
+- **Dünya hedefinin alfa kanalı:** Soft shadows açıkken dünya çiziminin sonunda alfa kanalı gölge maskesi olarak
+  kullanılır (0'a çek → gölgeler max blend → renk × (1 − alfa) → alfa 1). Dünya çizimi içinde hedef alfasına bağlı
+  yeni efekt eklenirse bu sıraya göre konumlanmalı (SHADOWS_PLAN.md S1).
 - **Hedef bağlamak onu temizler:** tüm RT'ler `RenderTargetUsage.DiscardContents` (`GameController` ve
   `RenderTargets.EnsureSize`); FNA `GraphicsDevice.SetRenderTargets` bu durumda hedefi bağlarken `Clear` eder.
   Bir hedefe ikinci kez yazmak için önce başka hedefe çizip sonra tek bağlamada kopyalamak gerekir

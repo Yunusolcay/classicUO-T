@@ -11,7 +11,7 @@ using System.Runtime.InteropServices;
 
 namespace ClassicUO.Renderer
 {
-    public sealed unsafe class UltimaBatcher2D : IDisposable
+    public sealed unsafe partial class UltimaBatcher2D : IDisposable
     {
         private static readonly float[] _cornerOffsetX = new float[] { 0.0f, 1.0f, 0.0f, 1.0f };
         private static readonly float[] _cornerOffsetY = new float[] { 0.0f, 0.0f, 1.0f, 1.0f };
@@ -110,6 +110,7 @@ namespace ClassicUO.Renderer
         public void Dispose()
         {
             _vertexInfo = null;
+            _white?.Dispose();
             _basicUOEffect?.Dispose();
             _vertexBuffer.Dispose();
             _indexBuffer.Dispose();
@@ -372,6 +373,13 @@ namespace ClassicUO.Renderer
             vertex.Hue0.X = vertex.Hue1.X = vertex.Hue2.X = vertex.Hue3.X = 0;
             vertex.Hue0.Y = vertex.Hue1.Y = vertex.Hue2.Y = vertex.Hue3.Y = ShaderHueTranslator.SHADER_SHADOW;
             vertex.Hue0.Z = vertex.Hue1.Z = vertex.Hue2.Z = vertex.Hue3.Z = 1f;
+
+            if (_deferShadows)
+            {
+                DeferShadow(ref vertex, texture, sourceX, sourceY, sourceX + sourceW, sourceY + sourceH);
+
+                return;
+            }
 
             PushSprite(texture);
         }

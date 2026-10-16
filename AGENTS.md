@@ -30,12 +30,15 @@ Oynanış ve protokol uyumluluğu korunur; değişiklikler görsel katmanda yoğ
 - Dokümanlar Türkçe, kod ve kod yorumları İngilizce.
 - Kod tabanını rastgele baştan sona okuma; önce docs/ altındaki haritalara bak.
 - Her görev sonunda docs/PLAN.md güncellenir.
+- Dallar: iş `dev`'de birikir (push'u yalnız Build-Test çalıştırır); `main`'e push oyunculara yayın
+  (Deploy) demektir, yalnız kullanıcı "yayınla" deyince yapılır.
 
 ## Dokümanlar
 - docs/arch/rendering.md   – render pipeline haritası
 - docs/arch/network-assets.md – ağ, paket işleme, asset yükleme haritası
 - docs/BUILD.md            – derleme ve çalıştırma
 - docs/LIGHTING_PLAN.md    – ışık sistemi tasarımı
+- docs/SHADOWS_PLAN.md     – gölge sistemi tasarımı (M2)
 - docs/PLAN.md             – kilometre taşları ve görev durumu
 - docs/DECISIONS.md        – alınan kararlar ve nedenleri
 
