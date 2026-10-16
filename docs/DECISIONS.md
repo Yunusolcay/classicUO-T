@@ -11,6 +11,15 @@ Format: her karar için tarih, durum, bağlam, karar, gerekçe, sonuçlar.
 - **Gerekçe:** Mevcut mimarinin doğal uzantısı; sprite shader'ına ve vertex formatına dokunmaz; maliyet ışık sayısından büyük ölçüde bağımsız; kalite RT ölçeği ve blur ile ayarlanır; M5 post-process zincirine doğal giriş noktası. Forward (sprite shader içinde ışık döngüsü) ps_3_0 limitleri ve batch maliyeti nedeniyle; deferred/normal-map UO art'ında normal olmadığı için reddedildi (HD art sonrası tekrar değerlendirilebilir).
 - **Sonuçlar:** Işıklar 2D ekran uzayında; duvar/kat arkasına sızma M2'de (gölge/occlusion) ele alınacak. Ayrıntı: `docs/LIGHTING_PLAN.md`.
 
+## D-005 – Asset soyutlaması: iki katman (içerik ↔ sunum)
+- **Tarih:** 2026-10-16 · **Durum:** Kabul edildi (MIG-7 çapraz review; kullanıcı kararları Claude Code'a bıraktı)
+- **Bağlam:** Codex'in M6 önerisi genel bir sağlayıcıyı `ClassicUO.Assets` tarafında, atlas yüklemesinden önce konumlandırıyor. classicUO-T'de ise çalışan bir HD katmanı var (`HdWorldPack`, `HdCharacterSprites`): render tarafında, orijinal geometri/seçim korunarak yalnız texture değiştiriliyor. Ayrıca Nimloth'un shard'a özel art'ı orijinal 7.0.112 verisinde yok (MIG-5: `Texture not found` 127, 1006–1012).
+- **Karar:** İki ayrı katman, karıştırılmaz:
+  1. **İçerik katmanı (Assets):** Oyunun "ne" gördüğü — shard'a özel/eksik art, gump, anim. Orijinal çözünürlük ve UO piksel anlamı; seçim maskesi, boyut, orijin buradan gelir. Başlangıç: mevcut `ArtLoader/GumpsLoader.LoadOurs()` + `files_override`; genel sağlayıcı (Codex önerisi) bu katmanda büyür. Nimloth'un eksik art'ı bu katmanda çözülür.
+  2. **Sunum katmanı (Renderer/Client):** "Nasıl" çizildiği — HD/2× texture, xBR, ileride normal/emissive haritaları. Mantıksal boyut, seçim ve sıra her zaman içerik katmanından; sunum yalnız örneklenen texture'ı ve UV'yi değiştirir. Taban: classicUO-T `HdWorldPack` / `HdCharacterSprites`; M6 bunları ortak bir arayüzde (ör. `IHdTextureSource`: Kind + ID → Texture/UV) birleştirir.
+- **Gerekçe:** Seçim, çarpışma, tiledata ve ağ Graphic ID'leri yalnız içerik katmanına bağlı kalır → HD paketi oynanışı bozamaz (AGENTS kuralı). Mevcut çalışan HD kodu atılmaz. Işık sistemi (M1) iki katmandan da bağımsızdır: dünya görüntüsü hangi texture ile çizilmiş olursa olsun light map onun üstüne çarpılır; emissive haritalar ileride sunum katmanından light map'e eklenebilir.
+- **Sonuçlar:** M6 görevleri bu iki başlığa bölünür (PLAN.md, Codex). Shard art eşlemesi (MIG-5 açık maddesi) içerik katmanı işi olarak M6'dan önce ele alınabilir.
+
 ## D-002 – Taban sürüm: güncel upstream ClassicUO `main`
 - **Tarih:** 2026-10-16 · **Durum:** Kabul edildi (kullanıcı kararı Claude Code'a bıraktı)
 - **Karar:** Taban = upstream `ClassicUO/ClassicUO` `main`, `ee79d7eb` (2025-11-26; .NET 10, çok projeli yapı, BSD-2-Clause lisans). Yeni `main` dalı bunun üzerine kurulur; eski `master` `legacy/2020` dalında saklanır. TazUO vb. türevler taban olarak **seçilmedi**: upstream'den çok sapmışlar, kendi özellik setlerini taşıyorlar; amacımız ince bir görsel katman ve düzenli upstream senkronu.

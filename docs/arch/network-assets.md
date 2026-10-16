@@ -2,6 +2,11 @@
 
 İncelenen dal `analiz/build-network-v2`, taban `main` / `18da1d91d` (D-002: upstream `ee79d7eb`); tarih 16 Ekim 2026. Eski `e5595b222` haritasının sınıf yolları ve cache varsayımları burada geçerli değildir. İnceleme ve MIG-6 sırasında oyun kodu değiştirilmedi.
 
+> **classicUO-T notu (MIG-7 review, Claude Code):** D-004 ile taban classicUO-T oldu. Bu haritadaki ağ ve
+> loader içeriği geçerli; classicUO-T ağ katmanında yalnız `PacketHandlers` walk deny/ack yoluna smooth
+> movement tanı ve yön senkronu ekledi. Asset tarafında ise **HD world pack** ve **HD karakterler**
+> mevcut — bkz. aşağıdaki "classicUO-T HD katmanı" bölümü ve DECISIONS D-005.
+
 ## Proje sınırları ve sürüm seçimi
 
 | Proje / giriş noktası | Sorumluluk |
@@ -126,6 +131,19 @@ Gump/texmap/light köprüleri sırasıyla `src/ClassicUO.Renderer/Gumps/Gump.cs`
 `Art.Reload()` özel dosya listesini ve sprite/bounds/picker cache'ini sıfırlar; atlas sayfalarını yeniden yaratmaz. Sık paket değiştirme için bellek/atlas yeniden kullanım politikası ayrıca tasarlanmalı. Tekrarlı reload'un bellek kullanımını sabit tuttuğu varsayılmamalı.
 
 Hue ve ışık renkleri `UltimaOnline.Load()` içinde hazırlanır: `Hues.CreateShaderColors()` 512×1024 hue texture'ına, `LightColors.CreateLightTextures()` 32×63 ışık renk texture'ına gider; GPU slotları 1/2. İlgili renk sınıfı `src/ClassicUO.Client/Game/Data/LightColors.cs`. Render geçişlerinin ayrıntısı Claude Code'un render haritasında ele alınır.
+
+## classicUO-T HD katmanı (mevcut)
+
+| Dosya / sınıf | Sorumluluk |
+| --- | --- |
+| `src/ClassicUO.Client/Game/Managers/HdWorldPack.cs` — `HdWorldPack` | `Data/HD/world/` altındaki 2× görüntüler (land, texmap, statik); thread pool'da decode, render thread'de ayrı atlasa upload; `TryGet(kind, id, out texture, out uv)`; zoom dışında yarıya indirme (`Halve`); `MeshGeneration` ile chunk mesh yeniden kurma |
+| `src/ClassicUO.Client/Game/Managers/HdCharacterSprites.cs`, `src/ClassicUO.Renderer/Animations/HdSpriteCache.cs`, `XbrSprite.cs` | Mobil karelerinin 2× xBR kopyaları; `TryMap(texture, uv, rect, …)` |
+| `tools/hdpack/*.py` | Paketi oyuncunun kendi verisinden yerelde üretir (dağıtılmaz) |
+
+Kanca noktaları: `LandView`, `View` (statik), `MobileView`, `ChunkMesh` (`_hdWorld` iken `HdWorldPack.TryGet`);
+`MeshLayer.WriteQuadAt(…, width, height, …)` 2× kaynağı orijinal boyutta çizer. **Geometri, seçim (PixelPicker),
+çizim sırası ve tiledata orijinal art'tan gelir; yalnız örneklenen texture değişir.** Yani mevcut HD katmanı,
+aşağıdaki önerideki "Assets tarafı sağlayıcı" değil, **render tarafı sunum katmanıdır** (D-005).
 
 ## M6 için sağlayıcı önerisi — uygulanmadı
 

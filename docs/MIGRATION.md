@@ -42,7 +42,7 @@ Upstream senkronu: `git fetch upstream && git merge upstream/main` (main üzerin
 ### MIG-6 – Ağ/asset haritası (yeni taban) · **Codex** · O
 - Önceki Codex görevi (Adım 1B'nin 2–3. maddeleri) aynen, ama `main` üzerinde → `docs/arch/network-assets.md`.
 
-### MIG-7 – Çapraz inceleme · Her ikisi · K
+### MIG-7 – Çapraz inceleme · Her ikisi · K · Claude Code payı ✅ 2026-10-16 (D-005), Codex payı bekliyor
 - Claude Code: BUILD.md + network-assets.md; Codex: rendering.md + LIGHTING_PLAN.md (Adım 2'deki gibi).
 
 ### MIG-8 – classicUO-T özelliklerini haritalara işle · **Claude Code** · O · ✅ 2026-10-16
