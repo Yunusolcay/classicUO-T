@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 
+using ClassicUO.Configuration;
 using ClassicUO.Renderer;
 using Microsoft.Xna.Framework;
 
@@ -16,6 +17,10 @@ namespace ClassicUO.Game.Scenes
             // vertex positions are relative to the draw offset: this makes the water pattern absolute
             batcher.SetWorldOrigin(new Vector2(_offset.X, _offset.Y));
             DrawOffset = _offset;
+
+            // terrain transitions keep their colors: off while the world is drawn gray (dead player)
+            Map.ChunkMesh.DrawTerrainBlend = ProfileManager.CurrentProfile.TerrainBlending
+                && !(_world.Player.IsDead && ProfileManager.CurrentProfile.EnableBlackWhiteEffect);
             batcher.SetAmbientTint(_enhancedLightingActive ? _waterTint : Vector3.One);
         }
 

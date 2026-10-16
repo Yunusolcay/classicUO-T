@@ -45,6 +45,7 @@ Oynanış ve protokol uyumluluğu korunur; değişiklikler görsel katmanda yoğ
 - docs/EFFECTS_PLAN.md     – büyü/efekt görselleri
 - docs/OUTLINE_PLAN.md     – hedef/hover konturu
 - docs/ATMOSPHERE_PLAN.md  – bölge atmosferi (ton, pus)
+- docs/TERRAIN_BLEND_PLAN.md – zemin geçişleri
 - docs/PLAN.md             – kilometre taşları ve görev durumu
 - docs/DECISIONS.md        – alınan kararlar ve nedenleri
 
