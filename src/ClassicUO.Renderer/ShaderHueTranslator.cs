@@ -21,6 +21,8 @@ namespace ClassicUO.Renderer
         // nature effects: like NONE / LAND but green pixels get livelier; Hue.x carries tint noise
         public const byte SHADER_NATURE_GRASS = 11;
         public const byte SHADER_NATURE_GRASS_LIT = 12;
+        // water light pattern and shore foam (docs/WATER_WEATHER_PLAN.md)
+        public const byte SHADER_WATER = 13;
 
         private const byte GUMP_OFFSET = 20;
 

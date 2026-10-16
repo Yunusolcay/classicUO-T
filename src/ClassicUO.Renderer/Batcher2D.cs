@@ -132,6 +132,18 @@ namespace ClassicUO.Renderer
             _basicUOEffect.Time?.SetValue(seconds);
         }
 
+        // water: world pixel of the vertex origin, so the water pattern stays put on the map
+        public void SetWorldOrigin(Vector2 origin)
+        {
+            _basicUOEffect.WorldOrigin?.SetValue(origin);
+        }
+
+        // water: color of the glints and foam (the ambient light color)
+        public void SetAmbientTint(Vector3 tint)
+        {
+            _basicUOEffect.AmbientTint?.SetValue(tint);
+        }
+
         // Wind sway for the following sprites (nature effects): pixels the top edge may move and the
         // wave phase. Reset to zero after drawing the swaying sprite.
         public void SetSway(float amplitude, float phase)

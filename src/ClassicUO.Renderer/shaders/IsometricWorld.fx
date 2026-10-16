@@ -11,6 +11,7 @@
 #define EFFECT_HUED 10
 #define NATURE_GRASS 11
 #define NATURE_GRASS_LIT 12
+#define WATER 13
 #define GUMP 20
 
 const static float3 LIGHT_DIRECTION = float3(0.0f, 1.0f, 1.0f);
@@ -25,8 +26,12 @@ float4x4 WorldMatrix;
 float2 Viewport;
 float Brightlight;
 float CircleOfTransparencyRadius;
-// seconds, drives the nature effects wind
+// seconds, drives the nature effects wind and the water
 float Time;
+// world pixel of the vertex position origin (the scene draw offset): makes WorldPos absolute
+float2 WorldOrigin;
+// water: tint of the glints (ambient light color, white without enhanced lighting)
+float3 AmbientTint;
 
 sampler DrawSampler : register(s0);
 sampler HueSampler0 : register(s1);
@@ -47,6 +52,7 @@ struct PS_INPUT
 	float3 Normal	: TEXCOORD1;
 	float3 Hue		: TEXCOORD2;
 	float3 PixelPos : TEXCOORD3;
+	float2 WorldPos : TEXCOORD4;
 };
 
 float3 get_rgb(float gray, float hue)
@@ -130,6 +136,60 @@ float4 soft_shadow(PS_INPUT IN, float2 dx, float2 dy)
 	return float4(0, 0, 0, a);
 }
 
+// Water (docs/WATER_WEATHER_PLAN.md, W1). Pixels stay in place: the movement is a light pattern in
+// world pixels. Hue.x = shore edge mask (1 NE, 2 NW, 4 SE, 8 SW: neighbour is not water), Normal.xy =
+// position inside the 44x44 tile quad (0..1), used for the distance to the diamond edges.
+float water_hash(float2 p)
+{
+	return frac(sin(dot(p, float2(12.9898f, 78.233f))) * 43758.5453f);
+}
+
+float water_edge(float mask, float bit, float distance)
+{
+	float on = step(bit, fmod(floor(mask / bit), 2.0f) * bit);
+
+	return on * (1.0f - smoothstep(0.0f, 0.26f, distance));
+}
+
+float3 water(float3 color, PS_INPUT IN)
+{
+	float2 p = floor(IN.WorldPos);
+	float t = Time;
+
+	float w1 = sin(p.x * 0.045f + p.y * 0.090f + t * 1.1f);
+	float w2 = sin(p.x * -0.070f + p.y * 0.050f + t * 1.7f + 1.3f);
+	float w3 = sin((p.x + p.y) * 0.130f - t * 2.3f);
+
+	// slow swell of the brightness
+	color *= 1.0f + (w1 + w2) * 0.035f;
+
+	// sparse glints where the waves meet
+	float crest = w1 * 0.5f + w2 * 0.3f + w3 * 0.2f;
+	float glint = smoothstep(0.86f, 1.0f, crest) * step(0.55f, water_hash(floor(p / 2.0f)));
+	color += glint * 0.30f * AmbientTint;
+
+	// shore foam along the edges whose neighbour is not water
+	float mask = IN.Hue.x;
+
+	if (mask > 0.5f)
+	{
+		float2 q = IN.Normal.xy - 0.5f;
+		float foam = water_edge(mask, 1.0f, 0.5f - (q.x - q.y));
+		foam = max(foam, water_edge(mask, 2.0f, 0.5f - (-q.x - q.y)));
+		foam = max(foam, water_edge(mask, 4.0f, 0.5f - (q.x + q.y)));
+		foam = max(foam, water_edge(mask, 8.0f, 0.5f - (q.y - q.x)));
+
+		// broken into pixels that flicker, and breathing like small waves on the beach
+		float breathe = 0.65f + 0.35f * sin(t * 1.4f + (p.x + p.y) * 0.08f);
+		float grain = step(0.35f, water_hash(floor(p / 2.0f) + floor(t * 3.0f)));
+		foam *= breathe * grain;
+
+		color = lerp(color, float3(0.92f, 0.96f, 1.0f) * AmbientTint, foam * 0.55f);
+	}
+
+	return color;
+}
+
 PS_INPUT VertexShaderFunction(VS_INPUT IN)
 {
 	PS_INPUT OUT;
@@ -155,6 +215,7 @@ PS_INPUT VertexShaderFunction(VS_INPUT IN)
 	OUT.Normal = IN.Normal;
 	OUT.Hue = IN.Hue;
 	OUT.PixelPos = OUT.Position.xyz;
+	OUT.WorldPos = mul(position, WorldMatrix).xy + WorldOrigin;
 
 	return OUT;
 }
@@ -251,6 +312,10 @@ float4 PixelShader_Hue(PS_INPUT IN) : COLOR0
 	else if (mode == NATURE_GRASS_LIT)
 	{
 		color.rgb = grade_grass(color.rgb, IN.Hue.x) * get_light(IN.Normal);
+	}
+	else if (mode == WATER)
+	{
+		color.rgb = water(color.rgb, IN);
 	}
 
 	if (useTrans && CircleOfTransparencyRadius > 0)

@@ -151,7 +151,7 @@ namespace ClassicUO.Game.UI.Gumps
         private NiceButton _setAsNewDefault;
 
         // video
-        private Checkbox _use_old_status_gump, _statusGumpBarMutuallyExclusive, _windowBorderless, _enableDeathScreen, _enableBlackWhiteEffect, _altLights, _enableLight, _enableShadows, _enableShadowsStatics, _auraMouse, _runMouseInSeparateThread, _useColoredLights, _darkNights, _partyAura, _hideChatGradient, _animatedWaterEffect, _natureEffects, _zoomPixelArtFilter, _hdCharacters, _hdWorld, _modernLook;
+        private Checkbox _use_old_status_gump, _statusGumpBarMutuallyExclusive, _windowBorderless, _enableDeathScreen, _enableBlackWhiteEffect, _altLights, _enableLight, _enableShadows, _enableShadowsStatics, _auraMouse, _runMouseInSeparateThread, _useColoredLights, _darkNights, _partyAura, _hideChatGradient, _animatedWaterEffect, _enhancedWeather, _lightningFlashes, _natureEffects, _zoomPixelArtFilter, _hdCharacters, _hdWorld, _modernLook;
         private Combobox _lightLevelType;
         // enhanced lighting (docs/LIGHTING_PLAN.md, L12)
         private Checkbox _enhancedLighting, _lightFlicker, _dayNightTint, _softShadows;
@@ -2123,6 +2123,30 @@ namespace ClassicUO.Game.UI.Gumps
 
             section4.Add
             (
+                _enhancedWeather = AddCheckBox
+                (
+                    null,
+                    "Enhanced weather (rain, snow, storms)",
+                    _currentProfile.EnhancedWeather,
+                    startX,
+                    startY
+                )
+            );
+
+            section4.Add
+            (
+                _lightningFlashes = AddCheckBox
+                (
+                    null,
+                    "Lightning flashes",
+                    _currentProfile.LightningFlashes,
+                    startX,
+                    startY
+                )
+            );
+
+            section4.Add
+            (
                 _natureEffects = AddCheckBox
                 (
                     null,
@@ -4009,7 +4033,9 @@ namespace ClassicUO.Game.UI.Gumps
                     _runMouseInSeparateThread.IsChecked = true;
                     _auraMouse.IsChecked = true;
                     _partyAura.IsChecked = true;
-                    _animatedWaterEffect.IsChecked = false;
+                    _animatedWaterEffect.IsChecked = true;
+                    _enhancedWeather.IsChecked = true;
+                    _lightningFlashes.IsChecked = true;
                     _natureEffects.IsChecked = false;
                     _zoomPixelArtFilter.IsChecked = false;
                     _hdCharacters.IsChecked = false;
@@ -4472,6 +4498,8 @@ namespace ClassicUO.Game.UI.Gumps
 
             _currentProfile.AuraOnMouse = _auraMouse.IsChecked;
             _currentProfile.AnimatedWaterEffect = _animatedWaterEffect.IsChecked;
+            _currentProfile.EnhancedWeather = _enhancedWeather.IsChecked;
+            _currentProfile.LightningFlashes = _lightningFlashes.IsChecked;
             _currentProfile.NatureEffects = _natureEffects.IsChecked;
             _currentProfile.ZoomPixelArtFilter = _zoomPixelArtFilter.IsChecked;
             _currentProfile.HdCharacters = _hdCharacters.IsChecked;

@@ -128,23 +128,10 @@ namespace ClassicUO.Game.GameObjects
                 Rectangle uv = artInfo.UV;
                 ResolveHdArt(graphic, ref texture, ref uv, ref scale);
 
-                if (isWet)
+                if (isWet && hue.Y == ShaderHueTranslator.SHADER_NONE)
                 {
-                    batcher.Draw(
-                        texture,
-                        pos,
-                        uv,
-                        hue,
-                        0f,
-                        Vector2.Zero,
-                        scale,
-                        SpriteEffects.None,
-                        depth + 0.5f
-                    );
-
-                    var sin = (float)Math.Sin(Time.Ticks / 1000f);
-                    var cos = (float)Math.Cos(Time.Ticks / 1000f);
-                    scale *= new Vector2(1.1f + sin * 0.1f, 1.1f + cos * 0.5f * 0.1f);
+                    // water light pattern (docs/WATER_WEATHER_PLAN.md)
+                    hue.Y = ShaderHueTranslator.SHADER_WATER;
                 }
 
                 batcher.Draw(
@@ -273,23 +260,10 @@ namespace ClassicUO.Game.GameObjects
                 Rectangle uv = artInfo.UV;
                 ResolveHdArt(graphic, ref texture, ref uv, ref scale);
 
-                if (isWet)
+                if (isWet && hue.Y == ShaderHueTranslator.SHADER_NONE)
                 {
-                    batcher.Draw(
-                        texture,
-                        pos,
-                        uv,
-                        hue,
-                        0f,
-                        Vector2.Zero,
-                        scale,
-                        SpriteEffects.None,
-                        depth + 0.5f
-                    );
-
-                    var sin = (float)Math.Sin(Time.Ticks / 1000f);
-                    var cos = (float)Math.Cos(Time.Ticks / 1000f);
-                    scale *= new Vector2(1.1f + sin * 0.1f, 1.1f + cos * 0.5f * 0.1f);
+                    // water light pattern (docs/WATER_WEATHER_PLAN.md)
+                    hue.Y = ShaderHueTranslator.SHADER_WATER;
                 }
 
                 batcher.Draw(

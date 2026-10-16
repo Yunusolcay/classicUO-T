@@ -1,5 +1,6 @@
 ﻿// SPDX-License-Identifier: BSD-2-Clause
 
+using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
 using ClassicUO.Renderer;
 using ClassicUO.Resources;
@@ -29,6 +30,8 @@ namespace ClassicUO.Game
         private readonly WeatherEffect[] _effects = new WeatherEffect[byte.MaxValue];
         private uint _timer, _windTimer, _lastTick;
         private readonly World _world;
+        // enhanced weather drawing (docs/WATER_WEATHER_PLAN.md); this class still runs the server weather
+        private readonly WeatherRenderer _renderer = new WeatherRenderer();
 
         public Weather(World world)
         {
@@ -61,6 +64,7 @@ namespace ClassicUO.Game
             Wind = 0;
             _windTimer = _timer = 0;
             CurrentWeather = null;
+            _renderer.Reset();
         }
 
         public void Generate(WeatherType type, byte count, byte temp)
@@ -202,6 +206,7 @@ namespace ClassicUO.Game
         private void PlayThunder()
         {
            PlaySound(RandomHelper.RandomList(0x028, 0x206));
+           _renderer.TriggerLightning();
         }
 
         private void PlaySound(int sound)
@@ -307,6 +312,15 @@ namespace ClassicUO.Game
             //    default:
             //        break;
             //}
+
+            Profile profile = ProfileManager.CurrentProfile;
+
+            if (profile != null && profile.EnhancedWeather)
+            {
+                DrawEnhanced(batcher, profile, removeEffects, windChanged, layerDepth);
+
+                return;
+            }
 
             //Point winpos = ProfileManager.CurrentProfile.GameWindowPosition;
             Point winsize = new Point(Client.Game.Scene.Camera.Bounds.Width, Client.Game.Scene.Camera.Bounds.Height);
@@ -471,6 +485,55 @@ namespace ClassicUO.Game
 
                         break;
                 }
+            }
+
+            _lastTick = Time.Ticks;
+        }
+
+
+        // Same weather rules (type, count, duration, wind, sounds), drawn by WeatherRenderer in the
+        // visible part of the world whatever the zoom
+        private void DrawEnhanced(UltimaBatcher2D batcher, Profile profile, bool ending, bool windChanged, float layerDepth)
+        {
+            if (windChanged)
+            {
+                switch (Type)
+                {
+                    case WeatherType.WT_SNOW:
+                        PlayWind();
+
+                        break;
+
+                    case WeatherType.WT_STORM_APPROACH:
+                    case WeatherType.WT_STORM_BREWING:
+                        PlayThunder();
+
+                        break;
+                }
+            }
+
+            Camera camera = Client.Game.Scene.Camera;
+            Point origin = camera.ScreenToWorld(Point.Zero);
+
+            _renderer.Draw(
+                batcher,
+                Type,
+                Count,
+                Wind,
+                !ending,
+                profile.LightningFlashes,
+                new Vector2(origin.X, origin.Y),
+                camera.Zoom,
+                camera.Bounds.Width,
+                camera.Bounds.Height,
+                layerDepth,
+                Time.Delta
+            );
+
+            // the server weather ran out and the particles faded: the next Draw resets the weather
+            if (ending && _renderer.Intensity <= 0f)
+            {
+                CurrentCount = 0;
             }
 
             _lastTick = Time.Ticks;

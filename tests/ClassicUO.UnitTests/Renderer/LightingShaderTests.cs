@@ -38,6 +38,18 @@ namespace ClassicUO.UnitTests.Renderer
         }
 
         [Theory]
+        [InlineData("WorldOrigin")]
+        [InlineData("AmbientTint")]
+        [InlineData("Time")]
+        public void Embedded_World_Shader_Has_The_Water_Parameters(string name)
+        {
+            // BasicUOEffect looks these up by name; a stale .fxc would leave the water pattern frozen
+            string blob = Encoding.ASCII.GetString(ShaderResources.GetUOShader());
+
+            Assert.Contains(name, blob);
+        }
+
+        [Theory]
         [InlineData("Strength")]
         [InlineData("LitScene")]
         public void Embedded_ModernLook_Shader_Has_The_Parameters_ModernLookEffect_Looks_Up(string name)
