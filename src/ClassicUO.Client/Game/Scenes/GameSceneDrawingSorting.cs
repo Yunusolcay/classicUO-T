@@ -1233,10 +1233,7 @@ namespace ClassicUO.Game.Scenes
             winGameCenterX -= (int)_world.Player.Offset.X;
             winGameCenterY -= (int)(_world.Player.Offset.Y - _world.Player.Offset.Z);
             // what the whole pixel camera drops of the player's step, for the sub-pixel camera
-            _cameraSubPixel = new Vector2(
-                _world.Player.Offset.X - (int)_world.Player.Offset.X,
-                (_world.Player.Offset.Y - _world.Player.Offset.Z) - (int)(_world.Player.Offset.Y - _world.Player.Offset.Z)
-            );
+            _cameraSubPixel = GetSubPixel(_world.Player.Offset);
 
             int tileOffX = _world.Player.X;
             int tileOffY = _world.Player.Y;

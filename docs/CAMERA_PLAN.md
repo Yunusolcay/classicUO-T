@@ -31,16 +31,22 @@ Koşullar: büyütme > 1.01× (altında kazanç yok), xBR dünya filtresi kapal�
 kaybolur; bu durumda eski davranış). Seçim/mouse hesapları tam piksel kalır (< 1 dünya pikseli fark).
 Ayar: `SubPixelCamera` (varsayılan açık), "Smooth camera scrolling when zoomed in".
 
-## 4. Sonraki adımlar
+## 4. C3–C5
 
-| ID | Görev | Not |
-|---|---|---|
-| C3 | Diğer mobillerin alt-piksel çizimi | şimdilik yalnız oyuncu; başka karakterler dünyaya göre tam piksel adımlar |
-| C4 | xBR yolunda alt-piksel | büyütme adımında kesir × ölçek kadar kaydırma |
-| C5 | Zoom'u fare noktasına göre | tekerlekte imlecin altındaki nokta sabit kalsın (opsiyonel) |
+- **C3 – Diğer mobiller (uygulandı):** her mobil kendi kesriyle çizilir (`GameScene.GetSubPixel(Offset)`, kamerayla
+  aynı yuvarlama). Oyuncu için bu kesir dünya kaydırmasını tam karşılar; diğer karakterler dünyaya göre tam piksel
+  yerine akıcı hareket eder. Alt-piksel kamera artık oyuncu dururken de açık kalır (yanından geçen NPC'ler için).
+- **C4 – xBR yolunda alt-piksel (yapılmadı, gerekçeli):** xBR açıkken dünya 1:1 çizilip büyütülür; kesir yalnız
+  büyütülmüş görüntüyü kaydırarak verilebilir. Oyuncu küçük hedefte tam piksele oturduğundan ekranda kesir × ölçek
+  kadar titrer; dünya akıcılaşırken oyuncu titrer, kazanç yok. Gerekirse xBR çıkışını yüksek çözünürlükte yeniden
+  kurmak gerekir (maliyetli, ayrı karar). xBR açıkken eski davranış sürer.
+- **C5 – Zoom'u imlece göre (yapılmadı, gerekçeli):** kamera her an oyuncuyu ortalar (`GetViewPort`). İmlece zoom
+  kamerayı oyuncudan kalıcı kaydırmayı gerektirir; UO oynanışında karakterin ekran merkezinde kalması beklenir.
+  Kullanıcı isterse geçici "peek" ile (mevcut `Camera.PeekingToMouse` altyapısı) ayrı görev olarak açılabilir.
 
 ## 5. Kabul
 
 - 2× civarı zoom'da yürürken/koşarken dünya akıcı kayıyor, oyuncu titremiyor; zoom 1'de görüntü eskisiyle aynı.
 - Ctrl+tekerlek zoom'u yumuşak geçiyor; hızlı tekerlekte adımlar birikiyor; ayarlar kapatılınca eski davranış.
 - xBR filtresi açıkken bozulma yok; tıklama/seçim doğru nesneyi buluyor.
+- Zoom'luyken yürüyen NPC'ler/oyuncular titremeden, akıcı hareket ediyor.
