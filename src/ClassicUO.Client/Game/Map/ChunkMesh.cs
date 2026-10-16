@@ -162,7 +162,7 @@ namespace ClassicUO.Game.Map
                 return;
 
             _animatedWaterEffect = profile.AnimatedWaterEffect;
-            _terrainBlend = profile.SoftTerrainTransitions;
+            _terrainBlend = profile.TerrainBlending;
             _map = world.Map;
             _natureEffects = profile.NatureEffects;
             BuiltHdGeneration = HdWorldPack.MeshGeneration;
@@ -731,7 +731,7 @@ namespace ClassicUO.Game.Map
 
         private void AddBlendEdges(GameObjects.Land land)
         {
-            if (!land.InChunkMesh || !land.IsStretched || land.Hue != 0 || land.TileData.IsWet || IsSteep(land))
+            if (!land.InChunkMesh || !land.IsStretched || land.Hue != 0 || land.TileData.IsWet)
                 return;
 
             if (!ResolveLand(land, out Texture2D texture, out Rectangle uv, out bool texmap) || !texmap)
@@ -754,7 +754,7 @@ namespace ClassicUO.Game.Map
                 if (obj is not GameObjects.Land neighbour)
                     continue;
 
-                if (!neighbour.IsStretched || neighbour.Hue != 0 || neighbour.TileData.IsWet || !neighbour.AllowedToDraw || IsSteep(neighbour))
+                if (!neighbour.IsStretched || neighbour.Hue != 0 || neighbour.TileData.IsWet || !neighbour.AllowedToDraw)
                     return;
 
                 if (!ResolveLand(neighbour, out Texture2D other, out Rectangle otherUv, out bool texmap) || !texmap)
@@ -763,58 +763,10 @@ namespace ClassicUO.Game.Map
                 if (ReferenceEquals(other, texture) && otherUv == uv)
                     return;
 
-                // only the stronger ground reaches over the seam, or both would cover each other
-                if (!Covers(neighbour, land))
-                    return;
-
                 _blendEdges.Add(new BlendEdge { Land = land, Texture = other, Uv = otherUv, Edge = edge });
 
                 return;
             }
-        }
-
-        // cliffs and mountain sides: grass creeping up a rock wall looks wrong
-        private const int STEEP_HEIGHT = 20;
-
-        private static bool IsSteep(GameObjects.Land land)
-        {
-            ref var o = ref land.YOffsets;
-            int min = Math.Min(Math.Min(o.Top, o.Right), Math.Min(o.Left, o.Bottom));
-            int max = Math.Max(Math.Max(o.Top, o.Right), Math.Max(o.Left, o.Bottom));
-
-            return max - min > STEEP_HEIGHT;
-        }
-
-        // Which ground grows over which at a seam: snow over vegetation over sand over dirt over rock
-        // and the rest; between equals the higher texmap id, so exactly one side of a seam reaches over
-        private static bool Covers(GameObjects.Land over, GameObjects.Land under)
-        {
-            int a = GetCoverRank(over), b = GetCoverRank(under);
-
-            return a != b ? a > b : over.TileData.TexID > under.TileData.TexID;
-        }
-
-        private static int GetCoverRank(GameObjects.Land land)
-        {
-            string name = land.TileData.Name;
-
-            if (string.IsNullOrEmpty(name))
-                return 0;
-
-            if (name.Contains("snow", StringComparison.OrdinalIgnoreCase))
-                return 5;
-
-            if (name.Contains("grass", StringComparison.OrdinalIgnoreCase) || name.Contains("forest", StringComparison.OrdinalIgnoreCase)
-                || name.Contains("jungle", StringComparison.OrdinalIgnoreCase) || name.Contains("leaves", StringComparison.OrdinalIgnoreCase))
-                return 4;
-
-            if (name.Contains("sand", StringComparison.OrdinalIgnoreCase))
-                return 3;
-
-            if (name.Contains("dirt", StringComparison.OrdinalIgnoreCase) || name.Contains("furrows", StringComparison.OrdinalIgnoreCase))
-                return 2;
-
-            return 1;
         }
 
         // get_light in IsometricWorld.fx before the Brightlight contrast, which the shader applies

@@ -19,7 +19,7 @@ namespace ClassicUO.Game.Scenes
             DrawOffset = _offset;
 
             // terrain transitions keep their colors: off while the world is drawn gray (dead player)
-            Map.ChunkMesh.DrawTerrainBlend = ProfileManager.CurrentProfile.SoftTerrainTransitions
+            Map.ChunkMesh.DrawTerrainBlend = ProfileManager.CurrentProfile.TerrainBlending
                 && !(_world.Player.IsDead && ProfileManager.CurrentProfile.EnableBlackWhiteEffect);
             batcher.SetAmbientTint(_enhancedLightingActive ? _waterTint : Vector3.One);
         }
