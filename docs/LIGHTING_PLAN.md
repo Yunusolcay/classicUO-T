@@ -173,7 +173,14 @@ ID'ler sabittir (PLAN.md ile eşleşir).
 - Dosyalar: `LightMapRenderer.cs`, `Lighting.fx` (`BlurH`, `BlurV`), `LightingSettings.cs`.
 - Kabul: Low/Medium/High §4 tablosuna uyuyor; High'da ışık kenarında kademelenme yok.
 
-### L11 – Kişisel ışık (0x4E) görselleştirmesi · O (opsiyonel) · Claude Code
+### L11 – Kişisel ışık (0x4E) görselleştirmesi · O (opsiyonel) · Claude Code · 🔶 kod hazır, oyun içi kabul bekliyor
+- Ölçek notu: `IsometricLevel = max(Personal, 32 − Overall) / 32`. `Overall` karanlık (0 aydınlık … 30 karanlık),
+  `32 − Overall` parlaklığa çevrilir; `Personal` (0x4E, 0…30) zaten parlaklık ölçeğinde. İkisi aynı birimde, şüphe
+  doğrulanmadı: ölçek tutarlı (kişisel ışık en fazla 30/32 parlaklık verir).
+- Uygulama: Ambient eskisi gibi kişisel seviyeyi taban alır (kimse daha az görmez); Enhanced yolunda ek olarak oyuncunun
+  çevresine beyaz yuvarlak hale çizilir (çap 360 px, güç 0.45 × Personal/30). Custom light level açıkken Personal = 0,
+  hale yok. Not: SphereNet `0x4E`'yi farklı anlamda gönderiyorsa (oturum notu: In Lor sonrası davranış) hale sürekli
+  görünebilir; oyun içinde kontrol edilecek.
 - Dosyalar: `LightManager.cs`, `AmbientLight.cs`.
 - Kabul: `0x4E` > 0 iken oyuncu çevresinde yumuşak hale; oyuncu karanlıkta eski sistemden daha az görmüyor; `IsometricLevel` formülündeki ölçek şüphesi doğrulanıp not edilmiş.
 

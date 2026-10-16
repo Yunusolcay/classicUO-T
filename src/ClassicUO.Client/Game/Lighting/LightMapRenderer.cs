@@ -92,7 +92,8 @@ namespace ClassicUO.Game.Lighting
             int blurPasses,
             float intensity,
             bool flicker,
-            bool proceduralFalloff
+            bool proceduralFalloff,
+            in PersonalHalo halo
         )
         {
             GraphicsDevice device = batcher.GraphicsDevice;
@@ -118,6 +119,20 @@ namespace ClassicUO.Game.Lighting
                 batcher,
                 new LightDrawOptions(true, flicker, proceduralFalloff ? _roundLight : null, Time.Ticks)
             );
+
+            if (halo.Intensity > 0f)
+            {
+                int size = halo.Diameter;
+
+                // plain white light: hue mode none, the alpha is the strength
+                batcher.Draw(
+                    _roundLight,
+                    new Rectangle(halo.X - size / 2, halo.Y - size / 2, size, size),
+                    new Vector3(0f, 0f, Math.Clamp(halo.Intensity, 0f, 1f)),
+                    0f
+                );
+            }
+
             batcher.SetSampler(null);
             batcher.SetBlendState(null);
             batcher.End();
