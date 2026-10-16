@@ -403,6 +403,12 @@ namespace ClassicUO.Game.Scenes
 
         public void AddLight(GameObject obj, GameObject lightObject, int x, int y)
         {
+            // the outline copies of a mobile must not add its lights again (docs/OUTLINE_PLAN.md)
+            if (SuppressLights)
+            {
+                return;
+            }
+
             if (!UseLights && !UseAltLights)
             {
                 return;
