@@ -263,6 +263,8 @@ namespace ClassicUO.Configuration
         public bool SoftShadows { get; set; } = ShadowSettings.DEFAULT_SOFT_SHADOWS;
         // dark ground at the foot of walls and large objects (docs/SHADOWS_PLAN.md, S6)
         public bool AmbientOcclusion { get; set; } = ShadowSettings.DEFAULT_AMBIENT_OCCLUSION;
+        // sun relief and cavities on the HD world textures (docs/SURFACE_LIGHTING_PLAN.md)
+        public bool SurfaceLighting { get; set; } = true;
         public int TerrainShadowsLevel { get; set; } = 15;
         public int AuraUnderFeetType { get; set; } // 0 = NO, 1 = in warmode, 2 = ctrl+shift, 3 = always
         public bool AuraOnMouse { get; set; } = true;
