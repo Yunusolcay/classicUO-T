@@ -214,6 +214,19 @@ float surface_light(float2 uv)
 	return 1.0f + SurfaceLight * (relief * 1.6f - cavity * 0.9f);
 }
 
+// Hash of a lattice cell for the ground noise. The cell is wrapped to a small integer first and the
+// hash has no large sine: with world sized cells the sine hash gave a neighbouring pixel a different
+// value for the same cell (rounding of the folded i + 1), which showed as straight seams.
+float ground_hash(float2 cell)
+{
+	cell -= 256.0f * floor(cell / 256.0f);
+
+	float3 p = frac(cell.xyx * 0.1031f);
+	p += dot(p, p.yzx + 33.33f);
+
+	return frac((p.x + p.y) * p.z);
+}
+
 // smooth value noise, about one feature per unit
 float ground_noise(float2 p)
 {
@@ -221,10 +234,10 @@ float ground_noise(float2 p)
 	float2 f = frac(p);
 	f = f * f * (3.0f - 2.0f * f);
 
-	float a = water_hash(i);
-	float b = water_hash(i + float2(1.0f, 0.0f));
-	float c = water_hash(i + float2(0.0f, 1.0f));
-	float d = water_hash(i + float2(1.0f, 1.0f));
+	float a = ground_hash(i);
+	float b = ground_hash(i + float2(1.0f, 0.0f));
+	float c = ground_hash(i + float2(0.0f, 1.0f));
+	float d = ground_hash(i + float2(1.0f, 1.0f));
 
 	return lerp(lerp(a, b, f.x), lerp(c, d, f.x), f.y);
 }
@@ -245,7 +258,15 @@ float3 ground_variation(float3 color, float2 world)
 	float luma = dot(color, float3(0.2126f, 0.7152f, 0.0722f));
 	color = lerp(luma.xxx, color, 1.0f + 0.18f * saturation * GroundVariation);
 
-	return max(color, 0.0f);
+	// the classic grass is a loud yellow green next to the remastered stone and dirt: strongly
+	// green texels lean towards a calmer olive
+	color = max(color, 0.0f);
+	luma = dot(color, float3(0.2126f, 0.7152f, 0.0722f));
+	float green = smoothstep(0.03f, 0.15f, color.g - max(color.r, color.b)) * 0.65f * GroundVariation;
+	float3 olive = lerp(luma.xxx, color, 0.6f) * float3(0.98f, 0.92f, 1.0f);
+	color = lerp(color, olive, green);
+
+	return color;
 }
 
 PS_INPUT VertexShaderFunction(VS_INPUT IN)
