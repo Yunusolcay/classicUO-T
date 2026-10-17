@@ -6,7 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 namespace ClassicUO.Renderer
 {
     // shaders/Cinematic.fx: blur passes for the soft copy and the composite with the film grade,
-    // tilt-shift depth of field, aerial haze and vignette
+    // local contrast and vignette
     public class CinematicEffect : Effect
     {
         public CinematicEffect(GraphicsDevice graphicsDevice) : base(graphicsDevice, Resources.GetCinematicShader().ToArray())
@@ -14,9 +14,7 @@ namespace ClassicUO.Renderer
             MatrixTransform = Parameters["MatrixTransform"];
             TexelSize = Parameters["TexelSize"];
             Strength = Parameters["Strength"];
-            DepthAmount = Parameters["DepthAmount"];
             FocusY = Parameters["FocusY"];
-            Daylight = Parameters["Daylight"];
             SharpTexture = Parameters["SharpTexture"];
 
             Down = Techniques["Down"];
@@ -30,9 +28,7 @@ namespace ClassicUO.Renderer
         public EffectParameter MatrixTransform { get; }
         public EffectParameter TexelSize { get; }
         public EffectParameter Strength { get; }
-        public EffectParameter DepthAmount { get; }
         public EffectParameter FocusY { get; }
-        public EffectParameter Daylight { get; }
         // the sharp image, read 1:1 on s3
         public EffectParameter SharpTexture { get; }
 

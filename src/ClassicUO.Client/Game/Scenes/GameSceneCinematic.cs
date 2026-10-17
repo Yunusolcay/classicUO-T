@@ -11,7 +11,7 @@ namespace ClassicUO.Game.Scenes
     // Cinematic look hooks of the game scene (docs/CINEMATIC_PLAN.md)
     internal partial class GameScene
     {
-        // the player's body is drawn above the tile position: focus on the chest, not the feet
+        // the player's body is drawn above the tile position: center the vignette on the chest
         private const int CINEMATIC_FOCUS_RAISE = 30;
 
         private readonly CinematicRenderer _cinematicRenderer = new CinematicRenderer();
@@ -45,10 +45,7 @@ namespace ClassicUO.Game.Scenes
                 focusY = Vector2.Transform(player, worldMatrix).Y / destination.Height;
             }
 
-            // without enhanced lighting the night darkness is applied after this image: grade it as day
-            float daylight = _enhancedLightingActive ? _world.Light.IsometricLevel : 1f;
-
-            _cinematicRenderer.Apply(batcher, source, destination, focusY, daylight, ProfileManager.CurrentProfile.CinematicDepth);
+            _cinematicRenderer.Apply(batcher, source, destination, focusY);
         }
     }
 }
