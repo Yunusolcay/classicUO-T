@@ -61,5 +61,25 @@ namespace ClassicUO.UnitTests.Renderer
 
             Assert.Contains(name, blob);
         }
+
+        [Theory]
+        [InlineData("Down")]
+        [InlineData("BlurH")]
+        [InlineData("BlurV")]
+        [InlineData("Composite")]
+        [InlineData("MatrixTransform")]
+        [InlineData("TexelSize")]
+        [InlineData("Strength")]
+        [InlineData("DepthAmount")]
+        [InlineData("FocusY")]
+        [InlineData("Daylight")]
+        [InlineData("SharpTexture")]
+        public void Embedded_Cinematic_Shader_Has_The_Names_CinematicEffect_Looks_Up(string name)
+        {
+            ReadOnlySpan<byte> shader = ShaderResources.GetCinematicShader();
+
+            Assert.Equal(0xFEFF0901u, BitConverter.ToUInt32(shader.Slice(0, 4)));
+            Assert.Contains(name, Encoding.ASCII.GetString(shader));
+        }
     }
 }
