@@ -39,6 +39,8 @@ namespace ClassicUO.Launcher
         public static string DownloadBaseUrl => T("İndirme adresi (boş = manifest ile aynı yer)", "Download URL (empty = next to the manifest)");
         public static string CheckOnStart => T("Açılışta güncellemeleri denetle", "Check for updates on start");
         public static string CloseAfterLaunch => T("Oyun açılınca launcher'ı kapat", "Close the launcher after starting the game");
+        public static string HdPackRepository => T("HD paket deposu (sahip/ad)", "HD pack repository (owner/name)");
+        public static string HdPackToken => T("HD paket erişim anahtarı (sunucu sahibinden alın)", "HD pack access key (ask the server owner)");
         public static string OpenClientFolder => T("Klasörü aç", "Open folder");
         public static string SelectUoFolder => T("Ultima Online klasörünü seçin", "Select the Ultima Online folder");
 
@@ -50,6 +52,10 @@ namespace ClassicUO.Launcher
         public static string Verifying => T("Doğrulanıyor", "Verifying");
         public static string Installing => T("Kuruluyor", "Installing");
         public static string Updated(string v) => T($"Güncellendi ({v}).", $"Updated ({v}).");
+        public static string HdUpToDate => T("HD paket güncel.", "HD pack is up to date.");
+        public static string HdUpdateAvailable(int n) => T($"HD paket güncellemesi var: {n} dosya.", $"HD pack update available: {n} file(s).");
+        public static string HdUpdated(int n) => T($"HD paket güncellendi ({n} dosya).", $"HD pack updated ({n} file(s)).");
+        public static string ErrHdUpdate(string msg) => T($"HD paket güncellenemedi: {msg}", $"HD pack update failed: {msg}");
         public static string Starting => T("Oyun başlatılıyor...", "Starting the game...");
         public static string Started => T("Oyun başlatıldı.", "Game started.");
         public static string UpdatesDisabled => T("Güncelleme adresi ayarlı değil.", "No update URL configured.");

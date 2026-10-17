@@ -285,6 +285,8 @@ namespace ClassicUO.Configuration
         public bool HdCharacters { get; set; }
         // fork: land, texmaps and statics from a local HD pack (Data/HD/world) while zoomed in
         public bool HdWorld { get; set; }
+        // set once HdWorld was switched on for an installed pack, so turning it off later sticks
+        public bool HdWorldAutoEnabled { get; set; }
         // fork: post-process on the world image: color grading, glow, sharpening, vignette
         public bool ModernLook { get; set; }
 

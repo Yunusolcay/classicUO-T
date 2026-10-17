@@ -81,6 +81,8 @@ namespace ClassicUO.Game.Managers
 
         public static void Update(GraphicsDevice device)
         {
+            AutoEnable();
+
             if (ProfileManager.CurrentProfile == null || !ProfileManager.CurrentProfile.HdWorld)
             {
                 if (_atlas != null)
@@ -150,6 +152,31 @@ namespace ClassicUO.Game.Managers
                 _lastRefresh = Time.Ticks;
                 _generation++;
             }
+        }
+
+        // A pack installed by the launcher is switched on once per profile, without the player
+        // looking for the option; after that the option is left to the player.
+        private static Profile _autoEnableChecked;
+
+        private static void AutoEnable()
+        {
+            Profile profile = ProfileManager.CurrentProfile;
+
+            if (profile == null || ReferenceEquals(profile, _autoEnableChecked))
+            {
+                return;
+            }
+
+            _autoEnableChecked = profile;
+
+            if (profile.HdWorldAutoEnabled || !File.Exists(Path.Combine(PackDirectory, "index.json")))
+            {
+                return;
+            }
+
+            profile.HdWorldAutoEnabled = true;
+            profile.HdWorld = true;
+            Log.Info("HD world: pack found, option switched on");
         }
 
         // The HD texture for a graphic, or false (and starts loading it if the pack has one).

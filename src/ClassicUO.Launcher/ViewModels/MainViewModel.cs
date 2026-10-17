@@ -36,6 +36,8 @@ namespace ClassicUO.Launcher.ViewModels
             _updateDownloadBaseUrl = config.UpdateDownloadBaseUrl;
             _checkUpdatesOnStart = config.CheckUpdatesOnStart;
             _closeAfterLaunch = config.CloseAfterLaunch;
+            _hdPackRepository = config.HdPackRepository;
+            _hdPackToken = PasswordProtector.Unprotect(config.ProtectedHdPackToken);
             _statusText = Strings.Ready;
 
             // first run: fill in the UO folder if it can be found
@@ -66,12 +68,15 @@ namespace ClassicUO.Launcher.ViewModels
         [ObservableProperty] private string _updateDownloadBaseUrl;
         [ObservableProperty] private bool _checkUpdatesOnStart;
         [ObservableProperty] private bool _closeAfterLaunch;
+        [ObservableProperty] private string _hdPackRepository;
+        [ObservableProperty] private string _hdPackToken;
 
         private bool UpdatesConfigured => !string.IsNullOrWhiteSpace(UpdateManifestUrl);
+        private bool HdPackConfigured => HdPackUpdater.IsConfigured(HdPackRepository, HdPackToken);
 
         public async Task OnStartedAsync()
         {
-            if (CheckUpdatesOnStart && UpdatesConfigured)
+            if (CheckUpdatesOnStart && (UpdatesConfigured || HdPackConfigured))
             {
                 await CheckUpdatesAsync();
             }
@@ -175,7 +180,7 @@ namespace ClassicUO.Launcher.ViewModels
         {
             Save();
 
-            if (!UpdatesConfigured)
+            if (!UpdatesConfigured && !HdPackConfigured)
             {
                 SetStatus(Strings.UpdatesDisabled);
 
@@ -185,9 +190,66 @@ namespace ClassicUO.Launcher.ViewModels
             await RunBusyAsync(async token =>
             {
                 SetStatus(Strings.Checking);
-                _pendingUpdate = await new ClientUpdater(GetClientDirectory()).CheckAsync(UpdateManifestUrl, UpdateDownloadBaseUrl, token);
-                ShowUpdateState();
+
+                if (UpdatesConfigured)
+                {
+                    _pendingUpdate = await new ClientUpdater(GetClientDirectory()).CheckAsync(UpdateManifestUrl, UpdateDownloadBaseUrl, token);
+                    ShowUpdateState();
+                }
+
+                if (HdPackConfigured)
+                {
+                    string client = UpdatesConfigured ? StatusText + " " : string.Empty;
+
+                    try
+                    {
+                        UpdateCheck hd = await HdPackUpdater.CheckAsync(new ClientUpdater(GetClientDirectory()), HdPackRepository, _config.HdPackTag, HdPackToken, token);
+                        SetStatus(client + (hd.UpToDate ? Strings.HdUpToDate : Strings.HdUpdateAvailable(hd.Outdated.Count)));
+
+                        if (!hd.UpToDate)
+                        {
+                            PlayText = Strings.UpdateAndPlay;
+                        }
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        LauncherLog.Write($"HD pack check failed: {ex}");
+                        SetError(client + Strings.ErrHdUpdate(ex.Message));
+                    }
+                }
             }, ex => SetError(Strings.ErrUpdate(ex.Message)));
+        }
+
+        // The HD pack is optional: a failure is shown but never keeps the game from starting.
+        private async Task UpdateHdPackAsync(string clientDir, CancellationToken token)
+        {
+            try
+            {
+                var updater = new ClientUpdater(clientDir);
+                SetStatus(Strings.Checking);
+                UpdateCheck check = await HdPackUpdater.CheckAsync(updater, HdPackRepository, _config.HdPackTag, HdPackToken, token);
+
+                if (!check.UpToDate)
+                {
+                    ShowProgress = true;
+                    await updater.ApplyAsync(check, new Progress<UpdateProgress>(ReportProgress), token);
+                    SetStatus(Strings.HdUpdated(check.Outdated.Count));
+                }
+            }
+            catch (ClientRunningException)
+            {
+                SetError(Strings.ErrClientRunning);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                LauncherLog.Write($"HD pack update failed: {ex}");
+                SetError(Strings.ErrHdUpdate(ex.Message));
+            }
+            finally
+            {
+                ShowProgress = false;
+                Progress = 0;
+            }
         }
 
         [RelayCommand(CanExecute = nameof(CanRun))]
@@ -268,7 +330,16 @@ namespace ClassicUO.Launcher.ViewModels
                     return;
                 }
 
-                SetStatus(Strings.Starting);
+                if (HdPackConfigured)
+                {
+                    await UpdateHdPackAsync(clientDir, token);
+                }
+
+                // keep a failed HD update visible; the game starts anyway
+                if (!IsError)
+                {
+                    SetStatus(Strings.Starting);
+                }
 
                 try
                 {
@@ -316,6 +387,8 @@ namespace ClassicUO.Launcher.ViewModels
             _config.UpdateDownloadBaseUrl = UpdateDownloadBaseUrl?.Trim() ?? string.Empty;
             _config.CheckUpdatesOnStart = CheckUpdatesOnStart;
             _config.CloseAfterLaunch = CloseAfterLaunch;
+            _config.HdPackRepository = HdPackRepository?.Trim() ?? string.Empty;
+            _config.ProtectedHdPackToken = PasswordProtector.Protect(HdPackToken?.Trim() ?? string.Empty);
 
             try
             {
@@ -338,7 +411,8 @@ namespace ClassicUO.Launcher.ViewModels
         {
             base.OnPropertyChanged(e);
 
-            if (e.PropertyName is nameof(UpdateManifestUrl) or nameof(UpdateDownloadBaseUrl) or nameof(ClientDirectory))
+            if (e.PropertyName is nameof(UpdateManifestUrl) or nameof(UpdateDownloadBaseUrl) or nameof(ClientDirectory)
+                or nameof(HdPackRepository) or nameof(HdPackToken))
             {
                 // a different source or folder invalidates the last check
                 _pendingUpdate = null;
