@@ -1,6 +1,7 @@
 ﻿// SPDX-License-Identifier: BSD-2-Clause
 
 using ClassicUO.Renderer.Effects;
+using ClassicUO.Renderer.Lighting;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -135,6 +136,15 @@ namespace ClassicUO.Renderer
         public void SetTime(float seconds)
         {
             _basicUOEffect.Time?.SetValue(seconds);
+        }
+
+        // surface lighting (docs/SURFACE_LIGHTING_PLAN.md): direction towards the sun in screen space
+        // (x right, y down, z towards the viewer) and strength; 0 leaves every texture as drawn
+        public void SetSurfaceLight(Vector3 sunDirection, float strength)
+        {
+            Flush();
+            _basicUOEffect.SunDirection?.SetValue(Vector3.Normalize(sunDirection));
+            _basicUOEffect.SurfaceLight?.SetValue(strength);
         }
 
         // water: world pixel of the vertex origin, so the water pattern stays put on the map
@@ -1259,6 +1269,11 @@ namespace ClassicUO.Renderer
         public void DrawDirectIndexed(Texture2D texture, int startIndex, int primitiveCount, int numVertices)
         {
             GraphicsDevice.Textures[0] = texture;
+
+            if (_customEffect == null)
+            {
+                GraphicsDevice.Textures[SurfaceNormals.SLOT] = SurfaceNormals.Get(GraphicsDevice, texture);
+            }
             _basicUOEffect.Pass.Apply();
 
             if (_customEffect != null)
@@ -1398,6 +1413,11 @@ namespace ClassicUO.Renderer
         private void InternalDraw(Texture texture, int baseSprite, int batchSize)
         {
             GraphicsDevice.Textures[0] = texture;
+
+            if (_customEffect == null)
+            {
+                GraphicsDevice.Textures[SurfaceNormals.SLOT] = SurfaceNormals.Get(GraphicsDevice, texture);
+            }
 
             if (_customEffect != null)
             {

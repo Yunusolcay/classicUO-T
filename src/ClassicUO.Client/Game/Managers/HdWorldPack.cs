@@ -8,7 +8,9 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading.Tasks;
 using ClassicUO.Configuration;
+using ClassicUO.Game.Lighting;
 using ClassicUO.Renderer;
+using ClassicUO.Renderer.Lighting;
 using ClassicUO.Utility.Logging;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -25,6 +27,9 @@ namespace ClassicUO.Game.Managers
     // Images are decoded on the thread pool when first needed and uploaded to a separate atlas on
     // the render thread. Geometry, picking and draw order keep using the original graphics; only
     // the texture the pixels are sampled from changes.
+    //
+    // With Profile.SurfaceLighting a normal map is made from every image while decoding and
+    // uploaded to a page beside its atlas page, at the same place (docs/SURFACE_LIGHTING_PLAN.md).
     internal static class HdWorldPack
     {
         public enum Kind
@@ -46,6 +51,9 @@ namespace ClassicUO.Game.Managers
         private static readonly Dictionary<int, string>[] _index = new Dictionary<int, string>[3];
         private static readonly Dictionary<string, Entry> _byFile = new(StringComparer.OrdinalIgnoreCase);
         private static readonly ConcurrentQueue<Loaded> _done = new();
+        // normal map page beside each atlas page
+        private static readonly Dictionary<Texture2D, Texture2D> _normalPages = new();
+        private static bool _normals;
         private static GraphicsDevice _device;
         private static TextureAtlas _atlas;
         private static bool _indexLoaded;
@@ -105,11 +113,14 @@ namespace ClassicUO.Game.Managers
             _atlas ??= new TextureAtlas(device, ATLAS_SIZE, ATLAS_SIZE, SurfaceFormat.Color);
 
             int textureScale = HdCharacterSprites.RasterScale >= MIN_RASTER_SCALE ? 2 : 1;
+            bool normals = ProfileManager.CurrentProfile.SurfaceLighting;
 
-            if (textureScale != _textureScale)
+            if (textureScale != _textureScale || normals != _normals)
             {
-                // zoomed in or out past the threshold: load everything again at the other size
+                // zoomed in or out past the threshold, or the surface lighting switched: load
+                // everything again
                 _textureScale = textureScale;
+                _normals = normals;
                 Clear(true);
 
                 return;
@@ -144,6 +155,11 @@ namespace ClassicUO.Game.Managers
                 _usedPixels += pixels;
                 entry.Texture = _atlas.AddSprite(loaded.Pixels, loaded.Width, loaded.Height, out entry.Uv);
                 _uploadedSinceRefresh = true;
+
+                if (loaded.Normals != null)
+                {
+                    GetNormalPage(entry.Texture).SetData(0, entry.Uv, loaded.Normals, 0, loaded.Normals.Length);
+                }
             }
 
             if (_uploadedSinceRefresh && Time.Ticks - _lastRefresh >= MESH_REFRESH_INTERVAL_MS)
@@ -219,14 +235,27 @@ namespace ClassicUO.Game.Managers
             _pending++;
             int epoch = _epoch;
             bool half = _textureScale == 1;
+            bool normals = _normals;
             string path = Path.Combine(PackDirectory, file);
 
-            Task.Run(() => _done.Enqueue(Decode(file, path, epoch, half)));
+            Task.Run(() => _done.Enqueue(Decode(file, path, epoch, half, normals)));
 
             return false;
         }
 
-        private static Loaded Decode(string file, string path, int epoch, bool half)
+        private static Texture2D GetNormalPage(Texture2D page)
+        {
+            if (!_normalPages.TryGetValue(page, out Texture2D normals))
+            {
+                normals = new Texture2D(_device, page.Width, page.Height, false, SurfaceFormat.Color);
+                _normalPages[page] = normals;
+                SurfaceNormals.Register(page, normals);
+            }
+
+            return normals;
+        }
+
+        private static Loaded Decode(string file, string path, int epoch, bool half, bool normals)
         {
             try
             {
@@ -254,18 +283,25 @@ namespace ClassicUO.Game.Managers
                     }
                 }
 
+                int width = image.Width;
+                int height = image.Height;
+
                 if (half)
                 {
-                    return new Loaded(file, epoch, Halve(pixels, image.Width, image.Height), image.Width / 2, image.Height / 2);
+                    pixels = Halve(pixels, width, height);
+                    width /= 2;
+                    height /= 2;
                 }
 
-                return new Loaded(file, epoch, pixels, image.Width, image.Height);
+                uint[] normalMap = normals ? SurfaceNormalBuilder.Build(pixels, width, height) : null;
+
+                return new Loaded(file, epoch, pixels, normalMap, width, height);
             }
             catch (Exception ex)
             {
                 Log.Warn($"HD world: cannot load {path}: {ex.Message}");
 
-                return new Loaded(file, epoch, null, 0, 0);
+                return new Loaded(file, epoch, null, null, 0, 0);
             }
         }
 
@@ -345,6 +381,13 @@ namespace ClassicUO.Game.Managers
 
         private static void Clear(bool newAtlas)
         {
+            foreach (KeyValuePair<Texture2D, Texture2D> pair in _normalPages)
+            {
+                SurfaceNormals.Unregister(pair.Key);
+                pair.Value.Dispose();
+            }
+
+            _normalPages.Clear();
             _atlas?.Dispose();
             _atlas = newAtlas && _device != null ? new TextureAtlas(_device, ATLAS_SIZE, ATLAS_SIZE, SurfaceFormat.Color) : null;
             _byFile.Clear();
@@ -362,6 +405,6 @@ namespace ClassicUO.Game.Managers
             public bool Failed;
         }
 
-        private readonly record struct Loaded(string File, int Epoch, uint[] Pixels, int Width, int Height);
+        private readonly record struct Loaded(string File, int Epoch, uint[] Pixels, uint[] Normals, int Width, int Height);
     }
 }

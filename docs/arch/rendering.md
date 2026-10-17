@@ -185,6 +185,8 @@ Kural: yeni kod `ClassicUO.Client/Game/Lighting/` (oyun mantığı) ve `ClassicU
 - **Light RT formatı = backbuffer formatı** (8-bit). Overbright/HDR için kendi RT'mizi oluşturmalıyız.
 - **Hue tabloları s1/s2'de sabit:** `Client.cs` hue dokularını açılışta bir kez `Textures[1]` ve `[2]`'ye bağlar,
   batcher bir daha bağlamaz. Özel efektler bu slotlarda doku örneklemez ve onları boşaltmaz; ek doku için s3+ kullanılır.
+- **s3 temel efektte normal haritası:** batcher temel efektle her çizimde s3'e çizilen dokunun normal sayfasını
+  (yoksa 1×1 düz texel) bağlar (`SurfaceNormals`, SURFACE_LIGHTING_PLAN.md). Özel efektler s3'ü kendileri bağlar.
 - **Dünya hedefinin alfa kanalı:** Soft shadows açıkken dünya çiziminin sonunda alfa kanalı gölge maskesi olarak
   kullanılır (0'a çek → gölgeler max blend → renk × (1 − alfa) → alfa 1). Dünya çizimi içinde hedef alfasına bağlı
   yeni efekt eklenirse bu sıraya göre konumlanmalı (SHADOWS_PLAN.md S1).
@@ -207,5 +209,6 @@ Hepsi profil ayarıyla açılır/kapanır (`Configuration/Profile.cs`); varsayı
 | HD karakterler | `HdCharacters` | `Game/Managers/HdCharacterSprites.cs`, `ClassicUO.Renderer/Animations/HdSpriteCache.cs`, `XbrSprite.cs` | Mobil kareleri zoom'da 2× xBR kopyalarından çizilir (`MobileView`). |
 | HD world pack | `HdWorld` | `Game/Managers/HdWorldPack.cs`, `tools/hdpack/` (Python), `Data/HD/world/` | Land/texmap/statik için 2× görüntüler (zoom dışı yarıya indirilir); ayrı atlas; geometri/seçim/sıra orijinalle aynı, yalnız texture değişir. Mesh'ler `BuiltHdGeneration` değişince yeniden kurulur. |
 | Modern look | `ModernLook` | `shaders/ModernLook.fx`, `Effects/ModernLookEffect.cs`, `GameScene.ApplyModernLook` | Dünya görüntüsüne keskinlik, glow (luma > 0.62), renk düzenleme, vignette. **Işıklardan önce** uygulanır → Light RT katkısı glow almaz; yalnız dünya görüntüsünde zaten parlak olan kaynak art (alev, lav) eşiği aşarsa glow alır. |
+| Yüzey ışığı | `SurfaceLighting` | `Game/Lighting/SurfaceNormalBuilder.cs`, `Renderer/Lighting/SurfaceNormals.cs`, `HdWorldPack`, `IsometricWorld.fx` (`surface_light`), `GameSceneSurfaceLight.cs` | HD dokuların normal haritası yüklemede üretilir, atlasın yanındaki sayfada; dünya shader'ı güneş kabartması ve girinti gölgesi uygular. Bkz. SURFACE_LIGHTING_PLAN.md. |
 | Sinematik görünüm | `CinematicLook`, `CinematicDepth` | `shaders/Cinematic.fx`, `Effects/CinematicEffect.cs`, `Game/Lighting/CinematicRenderer.cs`, `GameSceneCinematic.cs` | **En son** dünya geçişi (ışık, bloom ve Modern look'tan sonra): yarı boyutta yumuşak kopya, kompozitte yumuşak kopya s0 (doğrusal), keskin görüntü s3 (1:1). Film tonu, renk ayrımı, yerel kontrast, vinyet; derinlik ayarıyla tilt-shift ve uzak pus. Bkz. CINEMATIC_PLAN.md. |
 | Smooth movement | `Movement*` | `PlayerMobile`, `Mobile`, `Data/MovementSpeed.cs`, `Managers/MovementDiagnostics.cs`, `GameController` (`timeBeginPeriod(1)`) | Render yolu değişmez; kare zamanlaması düzgünleşir. `EnableVSync` ayarı eklendi. |
