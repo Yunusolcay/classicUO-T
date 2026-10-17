@@ -154,7 +154,7 @@ namespace ClassicUO.Game.UI.Gumps
         private Checkbox _use_old_status_gump, _statusGumpBarMutuallyExclusive, _windowBorderless, _enableDeathScreen, _enableBlackWhiteEffect, _altLights, _enableLight, _enableShadows, _enableShadowsStatics, _auraMouse, _runMouseInSeparateThread, _useColoredLights, _darkNights, _partyAura, _hideChatGradient, _animatedWaterEffect, _enhancedWeather, _lightningFlashes, _natureEffects, _zoomPixelArtFilter, _hdCharacters, _hdWorld, _modernLook, _cinematicLook, _cinematicDepth, _bloom, _enhancedEffects, _mobileOutline, _regionAtmosphere;
         private Combobox _lightLevelType;
         // enhanced lighting (docs/LIGHTING_PLAN.md, L12)
-        private Checkbox _enhancedLighting, _lightFlicker, _dayNightTint, _softShadows;
+        private Checkbox _enhancedLighting, _lightFlicker, _dayNightTint, _softShadows, _ambientOcclusion;
         private Combobox _lightingQuality;
         private HSliderBar _lightTransition, _lightIntensity;
         private Checkbox _use_smooth_boat_movement;
@@ -2319,6 +2319,18 @@ namespace ClassicUO.Game.UI.Gumps
                 )
             );
 
+            section5.Add
+            (
+                _ambientOcclusion = AddCheckBox
+                (
+                    null,
+                    "Ambient occlusion (dark ground at the foot of walls)",
+                    _currentProfile.AmbientOcclusion,
+                    startX,
+                    startY
+                )
+            );
+
             section5.PopIndent();
 
             section5.Add(AddLabel(null, ResGumps.TerrainShadowsLevel, startX, startY));
@@ -4101,6 +4113,7 @@ namespace ClassicUO.Game.UI.Gumps
                     _enableShadows.IsChecked = true;
                     _enableShadowsStatics.IsChecked = true;
                     _softShadows.IsChecked = ShadowSettings.DEFAULT_SOFT_SHADOWS;
+                    _ambientOcclusion.IsChecked = ShadowSettings.DEFAULT_AMBIENT_OCCLUSION;
                     _terrainShadowLevel.Value = 15;
                     _runMouseInSeparateThread.IsChecked = true;
                     _auraMouse.IsChecked = true;
@@ -4569,6 +4582,7 @@ namespace ClassicUO.Game.UI.Gumps
             _currentProfile.ShadowsEnabled = _enableShadows.IsChecked;
             _currentProfile.ShadowsStatics = _enableShadowsStatics.IsChecked;
             _currentProfile.SoftShadows = _softShadows.IsChecked;
+            _currentProfile.AmbientOcclusion = _ambientOcclusion.IsChecked;
             _currentProfile.TerrainShadowsLevel = _terrainShadowLevel.Value;
             _currentProfile.AuraUnderFeetType = _auraType.SelectedIndex;
 

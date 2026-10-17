@@ -572,6 +572,8 @@ namespace ClassicUO.Game.Scenes
                 return 1;
             }
 
+            AddOccluder(obj, ref itemData);
+
             // If in chunk mesh, mark visible instead of adding to render list
             if (obj.InChunkMesh && obj.MeshSpriteIndex >= 0)
             {
@@ -904,6 +906,8 @@ namespace ClassicUO.Game.Scenes
 
                     if (maxObjectZ > maxZ)
                         continue;
+
+                    AddOccluder(obj, ref meshItemData);
 
                     // Fading statics must not be drawn from the mesh GPU buffer because
                     // they write to the depth buffer and block objects underneath (mobiles, items).

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 
+using ClassicUO.Assets;
+
 namespace ClassicUO.Game.Lighting
 {
     // Soft shadow tuning (docs/SHADOWS_PLAN.md)
@@ -17,6 +19,24 @@ namespace ClassicUO.Game.Lighting
         public const float LOCAL_STRENGTH = 0.45f;
         // soft ellipse under mobiles (S4)
         public const float CONTACT_STRENGTH = 0.3f;
+
+        // ambient occlusion at the foot of walls and large objects (S6)
+        public const bool DEFAULT_AMBIENT_OCCLUSION = true;
+        public const float OCCLUSION_STRENGTH = 0.35f;
+        // occluders higher than this above the land (upper floors) are left out
+        public const int OCCLUSION_MAX_HEIGHT = 12;
+
+        // Walls and solid objects of some height darken the ground at their foot. Roofs, water,
+        // foliage (tree tops) and doors (they move) do not.
+        public static bool IsOccluder(ref StaticTiles data)
+        {
+            if (data.IsRoof || data.IsWet || data.IsFoliage || data.IsDoor || data.IsBridge)
+            {
+                return false;
+            }
+
+            return data.IsWall || (data.IsImpassable && data.Height >= 3);
+        }
 
         // The sun shadows fade out as the ambient light goes down at night
         public static float GetStrength(float ambientLevel)
