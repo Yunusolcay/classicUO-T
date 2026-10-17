@@ -295,8 +295,6 @@ namespace ClassicUO.Configuration
         public bool ModernLook { get; set; }
         // film grade, local contrast and vignette as the last pass on the world (docs/CINEMATIC_PLAN.md)
         public bool CinematicLook { get; set; } = true;
-        // tilt-shift depth of field around the player and haze towards the far side of the view
-        public bool CinematicDepth { get; set; } = true;
 
         public bool PartyAura { get; set; }
 

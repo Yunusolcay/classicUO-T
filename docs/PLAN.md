@@ -142,7 +142,8 @@ Kaynak: [SHADOWS_PLAN.md](SHADOWS_PLAN.md).
 Kullanıcı geri bildirimi: mevcut iyileştirmeler fazla ince, oyun "farklı bir oyun" gibi görünmeli.
 
 - [x] Son geçiş `Cinematic.fx` + `CinematicRenderer`: film tonu, camgöbeği/kehribar ayrımı, yerel kontrast,
-  doygunluk, vinyet; "Cinematic depth" ile tilt-shift ve uzak pus ([CINEMATIC_PLAN.md](CINEMATIC_PLAN.md)).
+  doygunluk, vinyet ([CINEMATIC_PLAN.md](CINEMATIC_PLAN.md)). "Cinematic depth" (tilt-shift, uzak pus) kullanıcı
+  beğenmediği için kaldırıldı (2026-10-17).
   Varsayılan açık, iki ayar ayrı kapatılabilir. Shader testleri (398 test).
 - [ ] Oyun içi kabul ve ince ayar (gündüz/gece, zindan, Modern look ile birlikte vinyetin toplamı).
 - [x] Duvar/obje diplerinde ortam gölgesi (AO, [SHADOWS_PLAN.md](SHADOWS_PLAN.md) S6): yumuşak gölge geçişinde

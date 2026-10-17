@@ -70,9 +70,7 @@ namespace ClassicUO.UnitTests.Renderer
         [InlineData("MatrixTransform")]
         [InlineData("TexelSize")]
         [InlineData("Strength")]
-        [InlineData("DepthAmount")]
         [InlineData("FocusY")]
-        [InlineData("Daylight")]
         [InlineData("SharpTexture")]
         public void Embedded_Cinematic_Shader_Has_The_Names_CinematicEffect_Looks_Up(string name)
         {

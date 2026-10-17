@@ -10,7 +10,7 @@ namespace ClassicUO.Game.Lighting
 {
     // Cinematic look (docs/CINEMATIC_PLAN.md): the last pass on the world image. A half size soft
     // copy is made first (down + two blur iterations); the composite then grades the sharp image and
-    // mixes in the soft copy for local contrast, the tilt-shift depth of field and the haze.
+    // uses the soft copy for local contrast.
     internal sealed class CinematicRenderer : IDisposable
     {
         private const int DOWNSAMPLE = 2;
@@ -57,7 +57,7 @@ namespace ClassicUO.Game.Lighting
             return _source;
         }
 
-        public void Apply(UltimaBatcher2D batcher, RenderTarget2D source, RenderTarget2D destination, float focusY, float daylight, bool depth)
+        public void Apply(UltimaBatcher2D batcher, RenderTarget2D source, RenderTarget2D destination, float focusY)
         {
             GraphicsDevice device = batcher.GraphicsDevice;
             int width = Math.Max(1, source.Width / DOWNSAMPLE);
@@ -82,9 +82,7 @@ namespace ClassicUO.Game.Lighting
             _effect.CurrentTechnique = _effect.Composite;
             _effect.SetProjection();
             _effect.Strength.SetValue(1f);
-            _effect.DepthAmount.SetValue(depth ? 1f : 0f);
             _effect.FocusY.SetValue(MathHelper.Clamp(focusY, 0.2f, 0.8f));
-            _effect.Daylight.SetValue(MathHelper.Clamp(daylight, 0f, 1f));
             _effect.SharpTexture.SetValue(source);
 
             // the soft copy is stretched over the target with linear filtering, the sharp image is 1:1
