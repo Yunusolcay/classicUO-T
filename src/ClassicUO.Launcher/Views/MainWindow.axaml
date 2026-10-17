@@ -108,6 +108,12 @@
             <TextBlock Classes="label" Text="{x:Static l:Strings.DownloadBaseUrl}" />
             <TextBox Text="{Binding UpdateDownloadBaseUrl}" />
 
+            <TextBlock Classes="label" Text="{x:Static l:Strings.HdPackRepository}" />
+            <TextBox Text="{Binding HdPackRepository}" Watermark="owner/name" />
+
+            <TextBlock Classes="label" Text="{x:Static l:Strings.HdPackToken}" />
+            <TextBox Text="{Binding HdPackToken}" PasswordChar="•" RevealPassword="False" Watermark="github_pat_..." />
+
             <CheckBox Margin="0,12,0,0" Content="{x:Static l:Strings.CheckOnStart}" IsChecked="{Binding CheckUpdatesOnStart}" />
             <CheckBox Content="{x:Static l:Strings.CloseAfterLaunch}" IsChecked="{Binding CloseAfterLaunch}" />
           </StackPanel>

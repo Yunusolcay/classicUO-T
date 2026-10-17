@@ -138,6 +138,8 @@ jobs:
           SHARD_NAME: ${{ vars.SHARD_NAME || 'SphereNet' }}
           SHARD_HOST: ${{ vars.SHARD_HOST || '127.0.0.1' }}
           SHARD_PORT: ${{ vars.SHARD_PORT || '2593' }}
+          # private repository with the HD world pack release (tools/hdpack/publish_pack.py)
+          HD_PACK_REPOSITORY: ${{ vars.HD_PACK_REPOSITORY || '' }}
         run: |
           dotnet publish "${{ env.LAUNCHER_PROJECT_PATH }}" -c Release -r "${{ matrix.target }}" -o launcher --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true /p:AssemblyVersion=${{ env.CUO_ASSEMBLY_VERSION }} /p:FileVersion=${{ env.CUO_ASSEMBLY_VERSION }}
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -145,6 +147,7 @@ jobs:
           $defaults = [ordered]@{
             UpdateManifestUrl = "https://github.com/${{ github.repository }}/releases/download/${{ env.RELEASE_TAG }}/manifest-{rid}.xml"
             Profiles = @([ordered]@{ Name = $env:SHARD_NAME; Host = $env:SHARD_HOST; Port = [int]$env:SHARD_PORT })
+            HdPackRepository = $env:HD_PACK_REPOSITORY
           }
           $defaults | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 launcher/launcher.defaults.json
           Compress-Archive -Path "launcher/*" -DestinationPath "upload/${{ env.LAUNCHER_ZIP_NAME }}"
