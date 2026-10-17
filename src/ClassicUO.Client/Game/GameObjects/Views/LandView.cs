@@ -52,7 +52,7 @@ namespace ClassicUO.Game.GameObjects
                 hueVec.X = 0;
                 hueVec.Y = IsStretched
                     ? ShaderHueTranslator.SHADER_LAND
-                    : ShaderHueTranslator.SHADER_NONE;
+                    : ShaderHueTranslator.SHADER_LAND_FLAT;
             }
             hueVec.Z = 1f;
 
@@ -120,7 +120,7 @@ namespace ClassicUO.Game.GameObjects
                         scale /= HdWorldPack.TextureScale;
                     }
 
-                    if (ProfileManager.CurrentProfile.AnimatedWaterEffect && TileData.IsWet && hueVec.Y == ShaderHueTranslator.SHADER_NONE)
+                    if (ProfileManager.CurrentProfile.AnimatedWaterEffect && TileData.IsWet && hueVec.Y == ShaderHueTranslator.SHADER_LAND_FLAT)
                     {
                         // water light pattern (docs/WATER_WEATHER_PLAN.md); the shore foam is in the chunk mesh
                         hueVec.Y = ShaderHueTranslator.SHADER_WATER;

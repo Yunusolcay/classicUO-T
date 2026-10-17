@@ -1097,6 +1097,7 @@ namespace ClassicUO.Game.Scenes
             // wind phase for nature effects; wraps every ~17 minutes to keep float precision
             batcher.SetTime((Time.Ticks % 1_000_000) / 1000f);
             BeginSurfaceLight(batcher);
+            BeginGroundVariation(batcher);
             SetWaterParameters(batcher);
 
             if (ProfileManager.CurrentProfile.UseCircleOfTransparency
@@ -1150,6 +1151,7 @@ namespace ClassicUO.Game.Scenes
 
             DrawSelection(batcher, MAX_LAYER_DEPTH);
             EndSurfaceLight(batcher);
+            EndGroundVariation(batcher);
 
             batcher.SetSampler(null);
             batcher.SetStencil(null);

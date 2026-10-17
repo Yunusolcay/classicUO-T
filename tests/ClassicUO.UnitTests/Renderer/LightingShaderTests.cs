@@ -79,5 +79,15 @@ namespace ClassicUO.UnitTests.Renderer
             Assert.Equal(0xFEFF0901u, BitConverter.ToUInt32(shader.Slice(0, 4)));
             Assert.Contains(name, Encoding.ASCII.GetString(shader));
         }
+
+        [Theory]
+        [InlineData("SunDirection")]
+        [InlineData("SurfaceLight")]
+        [InlineData("GroundVariation")]
+        [InlineData("WorldOrigin")]
+        public void Embedded_World_Shader_Has_The_Surface_And_Ground_Parameters(string name)
+        {
+            Assert.Contains(name, Encoding.ASCII.GetString(ShaderResources.GetUOShader()));
+        }
     }
 }
