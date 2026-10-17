@@ -678,8 +678,14 @@ namespace ClassicUO.Game.Scenes
             else
             {
                 hueX = 0;
-                if (obj is Land land && land.IsStretched)
-                    hueY = ShaderHueTranslator.SHADER_LAND;
+                if (obj is Land land)
+                {
+                    // the chunk mesh wrote the water mode and shore mask: keep them
+                    if (layer.GetShaderMode(obj.MeshSpriteIndex) == ShaderHueTranslator.SHADER_WATER)
+                        return;
+
+                    hueY = land.IsStretched ? ShaderHueTranslator.SHADER_LAND : ShaderHueTranslator.SHADER_LAND_FLAT;
+                }
                 else
                     hueY = ShaderHueTranslator.SHADER_NONE;
 

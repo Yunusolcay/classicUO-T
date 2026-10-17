@@ -151,7 +151,7 @@ namespace ClassicUO.Game.UI.Gumps
         private NiceButton _setAsNewDefault;
 
         // video
-        private Checkbox _use_old_status_gump, _statusGumpBarMutuallyExclusive, _windowBorderless, _enableDeathScreen, _enableBlackWhiteEffect, _altLights, _enableLight, _enableShadows, _enableShadowsStatics, _auraMouse, _runMouseInSeparateThread, _useColoredLights, _darkNights, _partyAura, _hideChatGradient, _animatedWaterEffect, _enhancedWeather, _lightningFlashes, _natureEffects, _zoomPixelArtFilter, _hdCharacters, _hdWorld, _surfaceLighting, _modernLook, _cinematicLook, _bloom, _enhancedEffects, _mobileOutline, _regionAtmosphere;
+        private Checkbox _use_old_status_gump, _statusGumpBarMutuallyExclusive, _windowBorderless, _enableDeathScreen, _enableBlackWhiteEffect, _altLights, _enableLight, _enableShadows, _enableShadowsStatics, _auraMouse, _runMouseInSeparateThread, _useColoredLights, _darkNights, _partyAura, _hideChatGradient, _animatedWaterEffect, _enhancedWeather, _lightningFlashes, _natureEffects, _zoomPixelArtFilter, _hdCharacters, _hdWorld, _surfaceLighting, _groundVariation, _modernLook, _cinematicLook, _bloom, _enhancedEffects, _mobileOutline, _regionAtmosphere;
         private Combobox _lightLevelType;
         // enhanced lighting (docs/LIGHTING_PLAN.md, L12)
         private Checkbox _enhancedLighting, _lightFlicker, _dayNightTint, _softShadows, _ambientOcclusion;
@@ -2207,6 +2207,18 @@ namespace ClassicUO.Game.UI.Gumps
 
             section4.Add
             (
+                _groundVariation = AddCheckBox
+                (
+                    null,
+                    "Ground variation (breaks up repeating land tiles)",
+                    _currentProfile.GroundVariation,
+                    startX,
+                    startY
+                )
+            );
+
+            section4.Add
+            (
                 _modernLook = AddCheckBox
                 (
                     null,
@@ -4126,6 +4138,7 @@ namespace ClassicUO.Game.UI.Gumps
                     _hdCharacters.IsChecked = false;
                     _hdWorld.IsChecked = false;
                     _surfaceLighting.IsChecked = true;
+                    _groundVariation.IsChecked = true;
                     _modernLook.IsChecked = false;
                     _cinematicLook.IsChecked = true;
                     _bloom.IsChecked = true;
@@ -4597,6 +4610,7 @@ namespace ClassicUO.Game.UI.Gumps
             _currentProfile.HdCharacters = _hdCharacters.IsChecked;
             _currentProfile.HdWorld = _hdWorld.IsChecked;
             _currentProfile.SurfaceLighting = _surfaceLighting.IsChecked;
+            _currentProfile.GroundVariation = _groundVariation.IsChecked;
             _currentProfile.ModernLook = _modernLook.IsChecked;
             _currentProfile.Bloom = _bloom.IsChecked;
             _currentProfile.CinematicLook = _cinematicLook.IsChecked;

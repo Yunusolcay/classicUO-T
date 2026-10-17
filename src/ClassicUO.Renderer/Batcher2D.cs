@@ -140,6 +140,13 @@ namespace ClassicUO.Renderer
 
         // surface lighting (docs/SURFACE_LIGHTING_PLAN.md): direction towards the sun in screen space
         // (x right, y down, z towards the viewer) and strength; 0 leaves every texture as drawn
+        // ground variation (docs/GROUND_VARIATION_PLAN.md): 0 = off
+        public void SetGroundVariation(float amount)
+        {
+            Flush();
+            _basicUOEffect.GroundVariation?.SetValue(amount);
+        }
+
         public void SetSurfaceLight(Vector3 sunDirection, float strength)
         {
             Flush();
