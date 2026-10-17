@@ -163,6 +163,8 @@ Kullanıcı hedefi: dünya "yeni bir oyun" gibi görünsün. Yeni 2.5D çizimler
 - [x] Zemin varyasyonu: land/çimen modlarında dünya konumlu parlaklık, sıcaklık, doygunluk lekeleri; düz land için
   mod 14 ([GROUND_VARIATION_PLAN.md](GROUND_VARIATION_PLAN.md)). Varsayılan açık. Yan düzeltme: chunk mesh su
   karolarının su modu her karede eziliyordu. 406 test.
+- [x] Zemin varyasyonu ilk oyun içi düzeltmeler: gürültü hash'inden kaynaklı düz dikiş giderildi; klasik çimen
+  zeytin yeşiline yumuşatıldı (GROUND_VARIATION_PLAN.md).
 - [ ] Zemin varyasyonu oyun içi kabul.
 
 ## M6 — Değiştirilebilir art paketleri
