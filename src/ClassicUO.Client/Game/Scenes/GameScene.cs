@@ -424,6 +424,7 @@ namespace ClassicUO.Game.Scenes
             _visibleChunks.Clear();
 
             _foliageCount = 0;
+            BeginOccluders();
 
             if (!_world.InGame)
             {

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 
+using ClassicUO.Assets;
 using ClassicUO.Game.Lighting;
 using Xunit;
 
@@ -44,6 +45,36 @@ namespace ClassicUO.UnitTests.Game.Lighting
             Assert.Equal(0f, ShadowSettings.GetLocalStrength(ShadowSettings.DAY_STRENGTH));
             Assert.Equal(ShadowSettings.LOCAL_STRENGTH, ShadowSettings.GetLocalStrength(0f));
             Assert.Equal(ShadowSettings.LOCAL_STRENGTH * 0.5f, ShadowSettings.GetLocalStrength(ShadowSettings.DAY_STRENGTH * 0.5f), 4);
+        }
+
+        private static StaticTiles Tile(TileFlag flags, byte height) => new StaticTiles((ulong)flags, 0, 0, 0, 0, 0, 0, height, "tile");
+
+        [Fact]
+        public void Occlusion_WallsAndSolidObjects()
+        {
+            StaticTiles wall = Tile(TileFlag.Wall | TileFlag.Impassable, 20);
+            StaticTiles crate = Tile(TileFlag.Impassable, 6);
+
+            Assert.True(ShadowSettings.IsOccluder(ref wall));
+            Assert.True(ShadowSettings.IsOccluder(ref crate));
+        }
+
+        [Fact]
+        public void Occlusion_NotForFlatRoofWaterFoliageOrDoors()
+        {
+            StaticTiles flat = Tile(TileFlag.Impassable, 1);
+            StaticTiles roof = Tile(TileFlag.Roof | TileFlag.Impassable, 20);
+            StaticTiles water = Tile(TileFlag.Wet | TileFlag.Impassable, 10);
+            StaticTiles leaves = Tile(TileFlag.Foliage | TileFlag.Impassable, 20);
+            StaticTiles door = Tile(TileFlag.Door | TileFlag.Impassable, 20);
+            StaticTiles floor = Tile(TileFlag.Surface, 0);
+
+            Assert.False(ShadowSettings.IsOccluder(ref flat));
+            Assert.False(ShadowSettings.IsOccluder(ref roof));
+            Assert.False(ShadowSettings.IsOccluder(ref water));
+            Assert.False(ShadowSettings.IsOccluder(ref leaves));
+            Assert.False(ShadowSettings.IsOccluder(ref door));
+            Assert.False(ShadowSettings.IsOccluder(ref floor));
         }
     }
 }

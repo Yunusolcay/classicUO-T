@@ -31,6 +31,7 @@ namespace ClassicUO.Game.Scenes
 
             _sunShadowStrength = ShadowSettings.GetStrength(_world.Light.IsometricLevel);
             batcher.BeginDeferredShadows(_sunShadowStrength, ShadowSettings.CONTACT_STRENGTH);
+            DrawOccluders(batcher);
 
             return true;
         }

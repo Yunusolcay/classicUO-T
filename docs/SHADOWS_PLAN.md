@@ -59,6 +59,19 @@ Sınırlar / riskler:
 - **S5 – Ölçüm:** `-lightdebug` FPS kutusunda gölge sayısını gösterir ("N soft shadows" / "original").
   Kare süresi ölçümü L14 ile aynı yöntemle (kullanıcı makinesi).
 
+## 3b. S6 – Duvar dibi ortam gölgesi (uygulandı, 2026-10-17)
+
+Duvarlar ve yüksekliği ≥ 3 olan geçilmez objeler (çatı, su, yaprak, kapı, köprü hariç;
+`ShadowSettings.IsOccluder`) zemine yumuşak bir elips gölge düşürür. Görünen objeler render listesi doldurulurken
+toplanır (`GameSceneAmbientOcclusion.cs`, chunk mesh içindekiler dahil), yumuşak gölge geçişinde temas elipsiyle aynı
+yoldan çizilir (`UltimaBatcher2D.DrawAmbientOcclusion`, 64×34 px, güç 0.35). Max blend sayesinde duvar boyunca
+sürekli bir koyu şerit oluşur, üst üste katlanmaz.
+
+- Derinlik: objenin bir tile önü + yarım öncelik adımı. Önündeki zemin kararır, orada duran mobil (öncelik +1) kararmaz.
+- Yalnız zemine yakın objeler (land Z'nin en fazla 12 üstü): üst kat duvarları alt kat duvarlarını karartmasın.
+- Gece de durur (ortam gölgesi). Ayar: `AmbientOcclusion` (varsayılan açık), Options → Shadows → "Ambient
+  occlusion"; Soft shadows açık olmalı.
+
 ## 4. Kabul (S1–S5)
 
 - Gündüz: karakter/ağaç gölgeleri aynı yerde, aynı koyulukta; kenarlar yumuşak, ayak dibi keskin.
@@ -70,3 +83,4 @@ Sınırlar / riskler:
 - Gece meşale/mangal yakınındaki ağaç ve karakterlerin gölgesi ışıktan uzağa düşüyor; elde taşınan ışık gölge
   düşürmüyor. Gündüz ışık gölgesi yok.
 - Karakterlerin ayak altında hafif temas gölgesi var; Soft shadows kapalıyken yok.
+- (S6) Bina/duvar diplerinde yumuşak koyu şerit; duvar önünde duran karakter kararmıyor, üst katlarda yatay bant yok.

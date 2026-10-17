@@ -16,8 +16,8 @@ namespace ClassicUO.Renderer
         public float Strength;
     }
 
-    // Soft shadows (docs/SHADOWS_PLAN.md). While deferred, DrawShadow and DrawContactShadow collect
-    // shadow casters instead of drawing in the world queue. DrawDeferredShadows then draws them all:
+    // Soft shadows (docs/SHADOWS_PLAN.md). While deferred, DrawShadow, DrawContactShadow and
+    // DrawAmbientOcclusion collect shadow casters instead of drawing in the world queue. DrawDeferredShadows then draws them all:
     //  1. the target alpha is cleared to 0,
     //  2. every shadow writes its coverage to the alpha channel with a max blend, depth tested
     //     against the world with "less": the caster itself (same depth) is never darkened, objects
@@ -36,6 +36,9 @@ namespace ClassicUO.Renderer
         private const int CONTACT_WIDTH = 34;
         private const int CONTACT_HEIGHT = 14;
         private const int CONTACT_TEXTURE_SIZE = 64;
+        // ambient occlusion ellipse at the foot of a wall or a large object (S6): about one tile
+        private const int OCCLUSION_WIDTH = 64;
+        private const int OCCLUSION_HEIGHT = 34;
 
         private static readonly BlendState _clearAlpha = new BlendState
         {
@@ -86,8 +89,9 @@ namespace ClassicUO.Renderer
             public float Width, Height;
             public float Depth;
             public bool Flip;
-            // true: contact ellipse, only darkened by its own strength
+            // true: contact or occlusion ellipse, darkened by Strength only
             public bool Contact;
+            public float Strength;
         }
 
         private ShadowCaster[] _casters = new ShadowCaster[256];
@@ -120,24 +124,43 @@ namespace ClassicUO.Renderer
                 return;
             }
 
-            Texture2D texture = GetContactTexture();
-            float half = 0.5f / CONTACT_TEXTURE_SIZE;
             x += SpriteOffset.X;
             y += SpriteOffset.Y;
 
+            AddEllipseCaster(x, y, CONTACT_WIDTH, CONTACT_HEIGHT, depth, _contactStrength);
+        }
+
+        // Soft dark ellipse on the ground at the foot of a wall or a large object (x, y: center of
+        // its tile). depth: one tile in front of the object, so the floor in front of it darkens
+        // while mobiles standing there stay in front. Only while shadows are deferred.
+        public void DrawAmbientOcclusion(float x, float y, float depth, float strength)
+        {
+            if (!_deferShadows || strength <= 0f || HueOverrideActive)
+            {
+                return;
+            }
+
+            AddEllipseCaster(x, y, OCCLUSION_WIDTH, OCCLUSION_HEIGHT, depth, Math.Min(strength, 1f));
+        }
+
+        private void AddEllipseCaster(float x, float y, int width, int height, float depth, float strength)
+        {
+            float half = 0.5f / CONTACT_TEXTURE_SIZE;
+
             ref ShadowCaster caster = ref AddCaster();
-            caster.Texture = texture;
+            caster.Texture = GetContactTexture();
             caster.U = half;
             caster.V = half;
             caster.UW = 1f - 2f * half;
             caster.VH = 1f - 2f * half;
             caster.Bounds = new Vector4(half, half, 1f - half, 1f - half);
-            caster.BaseLeft = new Vector2(x - CONTACT_WIDTH * 0.5f, y + CONTACT_HEIGHT * 0.5f);
-            caster.Width = CONTACT_WIDTH;
-            caster.Height = CONTACT_HEIGHT;
+            caster.BaseLeft = new Vector2(x - width * 0.5f, y + height * 0.5f);
+            caster.Width = width;
+            caster.Height = height;
             caster.Depth = depth;
             caster.Flip = false;
             caster.Contact = true;
+            caster.Strength = strength;
         }
 
         // Draws the collected shadows over what is in the current target (see the class comment) and
@@ -249,7 +272,7 @@ namespace ClassicUO.Renderer
         {
             if (caster.Contact)
             {
-                AddShadowQuad(ref caster, new Vector2(0f, -caster.Height), _contactStrength);
+                AddShadowQuad(ref caster, new Vector2(0f, -caster.Height), caster.Strength);
 
                 return;
             }
