@@ -145,7 +145,10 @@ Kullanıcı geri bildirimi: mevcut iyileştirmeler fazla ince, oyun "farklı bir
   doygunluk, vinyet; "Cinematic depth" ile tilt-shift ve uzak pus ([CINEMATIC_PLAN.md](CINEMATIC_PLAN.md)).
   Varsayılan açık, iki ayar ayrı kapatılabilir. Shader testleri (398 test).
 - [ ] Oyun içi kabul ve ince ayar (gündüz/gece, zindan, Modern look ile birlikte vinyetin toplamı).
-- [ ] Sonraki aday: duvar/obje diplerinde ortam gölgesi (AO) ve gündüz yönlü güneş.
+- [x] Duvar/obje diplerinde ortam gölgesi (AO, [SHADOWS_PLAN.md](SHADOWS_PLAN.md) S6): yumuşak gölge geçişinde
+  elips; varsayılan açık, "Ambient occlusion" ile kapatılır. 400 test.
+- [ ] Oyun içi kabul: AO şeridinin gücü/genişliği, ev içi ve üst katlar.
+- [ ] Sonraki aday: gündüz yönlü güneş.
 
 ## M6 — Değiştirilebilir art paketleri
 

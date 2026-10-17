@@ -261,6 +261,8 @@ namespace ClassicUO.Configuration
         public bool ShadowsStatics { get; set; } = true;
         // soft edges, no double darkening, fading at night (docs/SHADOWS_PLAN.md, S1)
         public bool SoftShadows { get; set; } = ShadowSettings.DEFAULT_SOFT_SHADOWS;
+        // dark ground at the foot of walls and large objects (docs/SHADOWS_PLAN.md, S6)
+        public bool AmbientOcclusion { get; set; } = ShadowSettings.DEFAULT_AMBIENT_OCCLUSION;
         public int TerrainShadowsLevel { get; set; } = 15;
         public int AuraUnderFeetType { get; set; } // 0 = NO, 1 = in warmode, 2 = ctrl+shift, 3 = always
         public bool AuraOnMouse { get; set; } = true;
