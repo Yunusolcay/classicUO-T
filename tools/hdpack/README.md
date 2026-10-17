@@ -48,4 +48,15 @@ files; it is never committed to this repository or published in its releases.**
 4. In game: Options > "HD world textures when zoomed in". The HD graphics are used from 1.25x
    magnification; at the default zoom one art pixel is one screen pixel and the originals are drawn.
 
+5. Optional, for a group of players: publish the pack to a **private** GitHub repository and let the
+   launcher install it (Settings > HD pack repository and access key; a fine-grained token with
+   read-only Contents access to that repository):
+
+   ```
+   python publish_pack.py --src D:/uo-hd/world --hd D:/uo-hd/world_upscaled --repo owner/private-repo
+   ```
+
+   The script refuses a repository that is not private. Run it again after new images are ready;
+   the launcher only downloads the changed files.
+
 `extract_anims.py` does the same for animation frames (not used by the client yet).

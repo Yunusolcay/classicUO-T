@@ -152,6 +152,12 @@ M6, [DECISIONS.md D-005](DECISIONS.md#d-005--asset-soyutlaması-iki-katman-içer
 ### M6.2 — Sunum (ClassicUO.Renderer / ClassicUO.Client)
 
 - [x] classicUO-T HD dünya paketi: `Profile.HdWorld`, `src/ClassicUO.Client/Game/Managers/HdWorldPack.cs`, `tools/hdpack/` ve `Data/HD/world/index.json` + PNG. İçerik atlasından ayrı HD atlası, asenkron decode ve sınırlı GPU upload; büyütmede 2×, diğer ölçeklerde 1× indirgenmiş texture.
+- [x] HD dünya paketinin dağıtımı (2026-10-17): paket özel `Yunusolcay/classicUO-T-HD-pack` reposunun `hd-world`
+  release'inde (`tools/hdpack/publish_pack.py`: import → `manifest.xml` + `hd-world.zip` → `gh release upload`).
+  Launcher (`HdPackUpdater`) Ayarlar'daki salt-okunur erişim anahtarıyla (DPAPI ile saklanır) GitHub API'den
+  manifesti alır, `Data/HD/world` dışına yazmayı reddeder, yalnız değişen PNG'leri indirir; hata oyunu başlatmayı
+  engellemez. Depo adı Deploy'da `vars.HD_PACK_REPOSITORY` ile `launcher.defaults.json`'a girer. İstemci kurulu paketi
+  profil başına bir kez otomatik açar (`HdWorldAutoEnabled`). İlk yayın: V2 redraw'ın 1096 görseli, 4291 dosya, 56 MB.
 - [x] classicUO-T HD karakter görünümü: `Profile.HdCharacters`, `HdCharacterSprites`, renderer `HdSpriteCache` ve `MobileView`. ≥1.25× raster büyütmede özgün animasyon atlasından 2× xBR kare üretilir; seçim/orijin içerikten kalır.
 - [ ] Claude Code: çalışan `HdWorldPack` / `HdCharacterSprites` yollarını ortak sunum arayüzünde (D-005 örneği `IHdTextureSource`: tür/ID → Texture/UV) birleştir; animasyon kare anahtarları ve fiziksel UV/ölçek de tanımlansın. Mantıksal geometri, seçim ve sıra içerik katmanından alınmaya devam etsin.
 - [ ] Harici HD animasyon paketini ayrıca değerlendir: mevcut karakter yolu çalışma anında xBR üretir; `tools/hdpack/extract_anims.py` çıktısının paket olarak tüketildiği doğrulanmadı. İleride normal/emissive haritaları sunum metadata'sı olarak eklenebilir; M1'in ön koşulu değildir.

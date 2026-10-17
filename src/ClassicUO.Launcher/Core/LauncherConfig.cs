@@ -44,6 +44,7 @@ namespace ClassicUO.Launcher.Core
         // Shipped by the server owner next to the launcher: used as the first-run configuration
         // so players get the server address and update URL without typing anything.
         public const string DEFAULTS_FILE_NAME = "launcher.defaults.json";
+        public const string DEFAULT_HD_PACK_TAG = "hd-world";
 
         public List<ServerProfile> Profiles { get; set; } = new();
         public string SelectedProfileId { get; set; } = string.Empty;
@@ -56,6 +57,11 @@ namespace ClassicUO.Launcher.Core
         public bool CheckUpdatesOnStart { get; set; } = true;
         public bool CloseAfterLaunch { get; set; }
         public string InstalledVersion { get; set; } = string.Empty;
+        // HD world pack (HdPackUpdater): "owner/name" of the private repository with the pack
+        // release, its tag, and the read-only access key protected like passwords
+        public string HdPackRepository { get; set; } = string.Empty;
+        public string HdPackTag { get; set; } = DEFAULT_HD_PACK_TAG;
+        public string ProtectedHdPackToken { get; set; } = string.Empty;
 
         [JsonIgnore]
         public string FilePath { get; private set; } = string.Empty;
@@ -87,6 +93,12 @@ namespace ClassicUO.Launcher.Core
             if (config.Profiles.Count == 0)
             {
                 config.Profiles.Add(new ServerProfile());
+            }
+
+            // a launcher.json older than the HD pack option takes the repository from the defaults
+            if (string.IsNullOrWhiteSpace(config.HdPackRepository))
+            {
+                config.HdPackRepository = TryRead(Path.Combine(LauncherDirectory, DEFAULTS_FILE_NAME))?.HdPackRepository ?? string.Empty;
             }
 
             config.FilePath = CanWriteTo(LauncherDirectory) ? portable : roaming;

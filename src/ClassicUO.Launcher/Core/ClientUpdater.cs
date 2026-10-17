@@ -17,7 +17,8 @@ namespace ClassicUO.Launcher.Core
 
     internal sealed record ClientManifest(string Name, string Version, IReadOnlyList<ManifestFile> Files);
 
-    internal sealed record UpdateCheck(ClientManifest Manifest, IReadOnlyList<ManifestFile> Outdated, Uri ZipUrl)
+    // AccessToken: sent with the archive download (a private GitHub release asset), else null
+    internal sealed record UpdateCheck(ClientManifest Manifest, IReadOnlyList<ManifestFile> Outdated, Uri ZipUrl, string? AccessToken = null)
     {
         public bool UpToDate => Outdated.Count == 0;
     }
@@ -35,7 +36,7 @@ namespace ClassicUO.Launcher.Core
         private const long MAX_ZIP_BYTES = 2L * 1024 * 1024 * 1024;
         private const long MAX_ENTRY_BYTES = 512L * 1024 * 1024;
 
-        private static readonly HttpClient _http = CreateHttpClient();
+        internal static readonly HttpClient Http = CreateHttpClient();
 
         private readonly string _clientDirectory;
 
@@ -55,15 +56,7 @@ namespace ClassicUO.Launcher.Core
             {
                 cts.CancelAfter(TimeSpan.FromSeconds(30));
 
-                using HttpResponseMessage response = await _http.GetAsync(manifestUri, HttpCompletionOption.ResponseHeadersRead, cts.Token);
-                response.EnsureSuccessStatusCode();
-
-                if (response.Content.Headers.ContentLength > MAX_MANIFEST_BYTES)
-                {
-                    throw new InvalidDataException("Manifest is too large");
-                }
-
-                xml = await response.Content.ReadAsStringAsync(cts.Token);
+                xml = await DownloadManifestAsync(manifestUri, null, cts.Token);
             }
 
             ClientManifest manifest = ParseManifest(xml);
@@ -73,6 +66,44 @@ namespace ClassicUO.Launcher.Core
             List<ManifestFile> outdated = await Task.Run(() => FindOutdated(manifest), token);
 
             return new UpdateCheck(manifest, outdated, zipUrl);
+        }
+
+        // The same check for a manifest fetched elsewhere (HdPackUpdater), with the archive at zipUrl.
+        public async Task<UpdateCheck> CheckAsync(ClientManifest manifest, Uri zipUrl, string? accessToken, CancellationToken token)
+        {
+            ValidateUrl(zipUrl.AbsoluteUri);
+            List<ManifestFile> outdated = await Task.Run(() => FindOutdated(manifest), token);
+
+            return new UpdateCheck(manifest, outdated, zipUrl, accessToken);
+        }
+
+        internal static async Task<string> DownloadManifestAsync(Uri url, string? accessToken, CancellationToken token)
+        {
+            using HttpRequestMessage request = CreateRequest(url, accessToken);
+            using HttpResponseMessage response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
+            response.EnsureSuccessStatusCode();
+
+            if (response.Content.Headers.ContentLength > MAX_MANIFEST_BYTES)
+            {
+                throw new InvalidDataException("Manifest is too large");
+            }
+
+            return await response.Content.ReadAsStringAsync(token);
+        }
+
+        // A GitHub release asset behind a token is fetched from its API URL as a binary; the API
+        // redirects to storage and HttpClient drops the Authorization header on that redirect.
+        private static HttpRequestMessage CreateRequest(Uri url, string? accessToken)
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
+
+            if (!string.IsNullOrEmpty(accessToken))
+            {
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+                request.Headers.Accept.ParseAdd("application/octet-stream");
+            }
+
+            return request;
         }
 
         public async Task ApplyAsync(UpdateCheck check, IProgress<UpdateProgress> progress, CancellationToken token)
@@ -94,7 +125,7 @@ namespace ClassicUO.Launcher.Core
 
             try
             {
-                await DownloadAsync(check.ZipUrl, zipPath, progress, token);
+                await DownloadAsync(check.ZipUrl, check.AccessToken, zipPath, progress, token);
                 await Task.Run(() => ExtractVerified(zipPath, staging, check.Outdated, progress, token), token);
 
                 EnsureNotLocked(check.Outdated);
@@ -255,9 +286,10 @@ namespace ClassicUO.Launcher.Core
             return outdated;
         }
 
-        private static async Task DownloadAsync(Uri url, string path, IProgress<UpdateProgress> progress, CancellationToken token)
+        private static async Task DownloadAsync(Uri url, string? accessToken, string path, IProgress<UpdateProgress> progress, CancellationToken token)
         {
-            using HttpResponseMessage response = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token);
+            using HttpRequestMessage request = CreateRequest(url, accessToken);
+            using HttpResponseMessage response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
             response.EnsureSuccessStatusCode();
 
             long? total = response.Content.Headers.ContentLength;
