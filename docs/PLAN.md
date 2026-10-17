@@ -150,6 +150,16 @@ Kullanıcı geri bildirimi: mevcut iyileştirmeler fazla ince, oyun "farklı bir
 - [ ] Oyun içi kabul: AO şeridinin gücü/genişliği, ev içi ve üst katlar.
 - [ ] Sonraki aday: gündüz yönlü güneş.
 
+## M9 — Yüzey ışığı (2026-10-17)
+
+Kullanıcı hedefi: dünya "yeni bir oyun" gibi görünsün. Yeni 2.5D çizimler kullanıcı tarafında yapay zekâ ile
+üretilecek (önerilen araç ve prompt sohbette verildi); motor tarafı yüzey ışığı.
+
+- [x] HD dokulardan yüklenirken normal haritası, s3'te bağlama, `IsometricWorld.fx` kabartma + girinti
+  ([SURFACE_LIGHTING_PLAN.md](SURFACE_LIGHTING_PLAN.md)). Varsayılan açık, "Surface lighting" ile kapatılır. 404 test.
+- [ ] Oyun içi kabul ve güç ayarı.
+- [ ] Gece ışıklarının normal haritasını kullanması; saate göre dönen güneş.
+
 ## M6 — Değiştirilebilir art paketleri
 
 M6, [DECISIONS.md D-005](DECISIONS.md#d-005--asset-soyutlaması-iki-katman-içerik--sunum) gereği iki katmandır. İçerik neyin var olduğunu ve mantıksal piksel anlamını belirler; sunum bunun nasıl çizildiğini değiştirir. HD kapalı veya paket eksik durumunda oyun içeriği kaybolmamalı. Bu görev katmanların hiçbirini uygulamaz.

@@ -32,10 +32,17 @@ float Time;
 float2 WorldOrigin;
 // water: tint of the glints (ambient light color, white without enhanced lighting)
 float3 AmbientTint;
+// surface lighting (docs/SURFACE_LIGHTING_PLAN.md): unit direction towards the sun in screen space
+// (x right, y down, z towards the viewer) and strength, 0 = off
+float3 SunDirection;
+float SurfaceLight;
 
 sampler DrawSampler : register(s0);
 sampler HueSampler0 : register(s1);
 sampler HueSampler1 : register(s2);
+// normal map beside the drawn texture, same UV: rgb = normal, a = cavity (1 = open). Textures
+// without one get a flat (128, 128, 255, 255) texel, which leaves the color unchanged.
+sampler NormalSampler : register(s3);
 
 struct VS_INPUT
 {
@@ -190,6 +197,20 @@ float3 water(float3 color, PS_INPUT IN)
 	return color;
 }
 
+// Brightness factor of the surface lighting: the sun on the relief (relative to a flat surface,
+// which keeps its color) and a darker cavity in crevices
+float surface_light(float2 uv)
+{
+	float4 texel = tex2D(NormalSampler, uv);
+	float2 xy = (texel.xy * 255.0f - 128.0f) / 127.0f;
+	float3 n = float3(xy, sqrt(saturate(1.0f - dot(xy, xy))));
+
+	float relief = dot(n, SunDirection) - SunDirection.z;
+	float cavity = 1.0f - texel.a;
+
+	return 1.0f + SurfaceLight * (relief * 1.6f - cavity * 0.9f);
+}
+
 PS_INPUT VertexShaderFunction(VS_INPUT IN)
 {
 	PS_INPUT OUT;
@@ -316,6 +337,12 @@ float4 PixelShader_Hue(PS_INPUT IN) : COLOR0
 	else if (mode == WATER)
 	{
 		color.rgb = water(color.rgb, IN);
+	}
+
+	if (SurfaceLight > 0.0f && (mode <= LAND_COLOR || mode == NATURE_GRASS || mode == NATURE_GRASS_LIT || mode == WATER)
+		&& mode != HUE_TEXT_NO_BLACK && mode != HUE_TEXT)
+	{
+		color.rgb *= surface_light(IN.TexCoord.xy);
 	}
 
 	if (useTrans && CircleOfTransparencyRadius > 0)

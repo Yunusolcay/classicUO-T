@@ -46,6 +46,7 @@ Oynanış ve protokol uyumluluğu korunur; değişiklikler görsel katmanda yoğ
 - docs/OUTLINE_PLAN.md     – hedef/hover konturu
 - docs/ATMOSPHERE_PLAN.md  – bölge atmosferi (ton, pus)
 - docs/CINEMATIC_PLAN.md   – sinematik görünüm (film tonu, tilt-shift, uzak pus)
+- docs/SURFACE_LIGHTING_PLAN.md – HD dokularda yüzey ışığı (normal haritası)
 - docs/PLAN.md             – kilometre taşları ve görev durumu
 - docs/DECISIONS.md        – alınan kararlar ve nedenleri
 

@@ -15,6 +15,9 @@ namespace ClassicUO.Renderer.Effects
             WorldOrigin = Parameters["WorldOrigin"];
             AmbientTint = Parameters["AmbientTint"];
             AmbientTint?.SetValue(Microsoft.Xna.Framework.Vector3.One);
+            SunDirection = Parameters["SunDirection"];
+            SurfaceLight = Parameters["SurfaceLight"];
+            SurfaceLight?.SetValue(0f);
 
             CurrentTechnique = Techniques["HueTechnique"];
             Pass = CurrentTechnique.Passes[0];
@@ -28,6 +31,8 @@ namespace ClassicUO.Renderer.Effects
         public EffectParameter Time { get; }
         public EffectParameter WorldOrigin { get; }
         public EffectParameter AmbientTint { get; }
+        public EffectParameter SunDirection { get; }
+        public EffectParameter SurfaceLight { get; }
         public EffectPass Pass { get; }
     }
 }
