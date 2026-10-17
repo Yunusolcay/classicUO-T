@@ -100,6 +100,8 @@ sırasına güvenir. Sampler'lar: s0 sprite, s1 hue tablosu, s2 ışık renk tab
 | 9 | LIGHTS | `get_colored_light(Hue.x-1, color.r)` → s2 ışık renk tablosu |
 | 10 | EFFECT_HUED | yeşil kanaldan hue |
 | 11 / 12 | NATURE_GRASS / NATURE_GRASS_LIT | (classicUO-T) canlı çimen `grade_grass`; 12 = + `get_light` |
+| 13 | WATER | (classicUO-T) su ışık deseni ve kıyı köpüğü |
+| 14 | LAND_FLAT | (classicUO-T) düz land: `NONE` + zemin varyasyonu (GROUND_VARIATION_PLAN.md) |
 | +20 | GUMP | |
 
 ## 3. Mevcut ışık sistemi
@@ -161,7 +163,7 @@ Birleştirme sampler'ı: tam sayı DPI'da `PointClamp`, değilse `LinearClamp`.
 | E3 | `GameScene.AddLight` | Işık toplama, tanım, flicker, yarıçap |
 | E4 | `RenderTargets.SetLightsConfiguration` / `RenderTargets.Draw` | **Kompozit**: blend state ve ışık texture'ı; M5 post-process zinciri |
 | E5 | `GameScene.DrawWorld` — `End()` öncesi | Dünya üstü katmanlar (sis, bulut gölgesi) |
-| E6 | `IsometricWorld.fx` yeni mod (**≥ 13**; 11–12 nature) | Sprite başına efekt (su vb.). Tek shader → herkes etkilenir |
+| E6 | `IsometricWorld.fx` yeni mod (**≥ 15**; 11–12 nature, 13 su, 14 düz land) | Sprite başına efekt (su vb.). Tek shader → herkes etkilenir |
 | E10 | `GameScene.Draw` — `DrawWorld`/`UpscaleWorld` sonrası, `ApplyModernLook` öncesi | Dünya görüntüsüne tam çözünürlükte uygulanan pass'ler (ışık kompoziti, sis); Modern look bunları da işler |
 | E7 | `Resources` (FileEmbed) + yeni `Effect` sınıfı | Yeni shader dosyaları |
 | E8 | `IsometricLight` | Ambient / gün-gece eğrisi |
@@ -210,5 +212,6 @@ Hepsi profil ayarıyla açılır/kapanır (`Configuration/Profile.cs`); varsayı
 | HD world pack | `HdWorld` | `Game/Managers/HdWorldPack.cs`, `tools/hdpack/` (Python), `Data/HD/world/` | Land/texmap/statik için 2× görüntüler (zoom dışı yarıya indirilir); ayrı atlas; geometri/seçim/sıra orijinalle aynı, yalnız texture değişir. Mesh'ler `BuiltHdGeneration` değişince yeniden kurulur. |
 | Modern look | `ModernLook` | `shaders/ModernLook.fx`, `Effects/ModernLookEffect.cs`, `GameScene.ApplyModernLook` | Dünya görüntüsüne keskinlik, glow (luma > 0.62), renk düzenleme, vignette. **Işıklardan önce** uygulanır → Light RT katkısı glow almaz; yalnız dünya görüntüsünde zaten parlak olan kaynak art (alev, lav) eşiği aşarsa glow alır. |
 | Yüzey ışığı | `SurfaceLighting` | `Game/Lighting/SurfaceNormalBuilder.cs`, `Renderer/Lighting/SurfaceNormals.cs`, `HdWorldPack`, `IsometricWorld.fx` (`surface_light`), `GameSceneSurfaceLight.cs` | HD dokuların normal haritası yüklemede üretilir, atlasın yanındaki sayfada; dünya shader'ı güneş kabartması ve girinti gölgesi uygular. Bkz. SURFACE_LIGHTING_PLAN.md. |
+| Zemin varyasyonu | `GroundVariation` | `IsometricWorld.fx` (`ground_variation`, mod 14), `GameSceneGroundVariation.cs`, `LandView`, `ChunkMesh`, `ApplyMeshHue` | Land ve çimen modlarında dünya konumuna göre parlaklık/sıcaklık/doygunluk lekeleri. Bkz. GROUND_VARIATION_PLAN.md. |
 | Sinematik görünüm | `CinematicLook` | `shaders/Cinematic.fx`, `Effects/CinematicEffect.cs`, `Game/Lighting/CinematicRenderer.cs`, `GameSceneCinematic.cs` | **En son** dünya geçişi (ışık, bloom ve Modern look'tan sonra): yarı boyutta yumuşak kopya, kompozitte yumuşak kopya s0 (doğrusal), keskin görüntü s3 (1:1). Film tonu, renk ayrımı, yerel kontrast, vinyet. Bkz. CINEMATIC_PLAN.md. |
 | Smooth movement | `Movement*` | `PlayerMobile`, `Mobile`, `Data/MovementSpeed.cs`, `Managers/MovementDiagnostics.cs`, `GameController` (`timeBeginPeriod(1)`) | Render yolu değişmez; kare zamanlaması düzgünleşir. `EnableVSync` ayarı eklendi. |

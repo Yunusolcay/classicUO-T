@@ -47,6 +47,7 @@ Oynanış ve protokol uyumluluğu korunur; değişiklikler görsel katmanda yoğ
 - docs/ATMOSPHERE_PLAN.md  – bölge atmosferi (ton, pus)
 - docs/CINEMATIC_PLAN.md   – sinematik görünüm (film tonu, kontrast, vinyet)
 - docs/SURFACE_LIGHTING_PLAN.md – HD dokularda yüzey ışığı (normal haritası)
+- docs/GROUND_VARIATION_PLAN.md – zemin tekrarını kıran dünya konumlu varyasyon
 - docs/PLAN.md             – kilometre taşları ve görev durumu
 - docs/DECISIONS.md        – alınan kararlar ve nedenleri
 

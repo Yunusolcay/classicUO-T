@@ -265,6 +265,8 @@ namespace ClassicUO.Configuration
         public bool AmbientOcclusion { get; set; } = ShadowSettings.DEFAULT_AMBIENT_OCCLUSION;
         // sun relief and cavities on the HD world textures (docs/SURFACE_LIGHTING_PLAN.md)
         public bool SurfaceLighting { get; set; } = true;
+        // slow brightness and warmth changes over the land, against the tile grid (docs/GROUND_VARIATION_PLAN.md)
+        public bool GroundVariation { get; set; } = true;
         public int TerrainShadowsLevel { get; set; } = 15;
         public int AuraUnderFeetType { get; set; } // 0 = NO, 1 = in warmode, 2 = ctrl+shift, 3 = always
         public bool AuraOnMouse { get; set; } = true;

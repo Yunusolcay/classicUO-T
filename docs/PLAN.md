@@ -160,6 +160,10 @@ Kullanıcı hedefi: dünya "yeni bir oyun" gibi görünsün. Yeni 2.5D çizimler
   ([SURFACE_LIGHTING_PLAN.md](SURFACE_LIGHTING_PLAN.md)). Varsayılan açık, "Surface lighting" ile kapatılır. 404 test.
 - [ ] Oyun içi kabul ve güç ayarı.
 - [ ] Gece ışıklarının normal haritasını kullanması; saate göre dönen güneş.
+- [x] Zemin varyasyonu: land/çimen modlarında dünya konumlu parlaklık, sıcaklık, doygunluk lekeleri; düz land için
+  mod 14 ([GROUND_VARIATION_PLAN.md](GROUND_VARIATION_PLAN.md)). Varsayılan açık. Yan düzeltme: chunk mesh su
+  karolarının su modu her karede eziliyordu. 406 test.
+- [ ] Zemin varyasyonu oyun içi kabul.
 
 ## M6 — Değiştirilebilir art paketleri
 

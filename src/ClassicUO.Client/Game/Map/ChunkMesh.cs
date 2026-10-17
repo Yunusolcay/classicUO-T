@@ -425,7 +425,7 @@ namespace ClassicUO.Game.Map
                 hueVec.X = 0;
                 hueVec.Y = land.IsStretched
                     ? ShaderHueTranslator.SHADER_LAND
-                    : ShaderHueTranslator.SHADER_NONE;
+                    : ShaderHueTranslator.SHADER_LAND_FLAT;
             }
             hueVec.Z = 1f;
 

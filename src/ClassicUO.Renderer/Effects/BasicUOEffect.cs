@@ -18,6 +18,8 @@ namespace ClassicUO.Renderer.Effects
             SunDirection = Parameters["SunDirection"];
             SurfaceLight = Parameters["SurfaceLight"];
             SurfaceLight?.SetValue(0f);
+            GroundVariation = Parameters["GroundVariation"];
+            GroundVariation?.SetValue(0f);
 
             CurrentTechnique = Techniques["HueTechnique"];
             Pass = CurrentTechnique.Passes[0];
@@ -33,6 +35,7 @@ namespace ClassicUO.Renderer.Effects
         public EffectParameter AmbientTint { get; }
         public EffectParameter SunDirection { get; }
         public EffectParameter SurfaceLight { get; }
+        public EffectParameter GroundVariation { get; }
         public EffectPass Pass { get; }
     }
 }
