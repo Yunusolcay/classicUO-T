@@ -137,6 +137,16 @@ Kaynak: [SHADOWS_PLAN.md](SHADOWS_PLAN.md).
 - [ ] Bölge atmosferi: zindan/kar/çöl/jungle/bataklık/volkanik/void tonu ve pusu ([ATMOSPHERE_PLAN.md](ATMOSPHERE_PLAN.md)). 🔶 yayında, oyun içi kabul bekliyor.
 - [x] ~~Zemin geçişleri~~ — iptal (2026-10-17). İki sürüm denendi (komşu texmap'in kenardan sönen saydam şeridi; ardından opak, gürültülü, tek taraflı kıyı). Oyun içi testte ikisi de doğal görünmedi (hayalet/çamur görüntü, karo ızgarasını vurgulayan desen); kod geri alındı (`2328cbce8`, `f8f75b8a1`). UO'nun kendi geçiş karoları yeterli kabul edildi; tekrar ele alınırsa çözüm büyük olasılıkla sanatçı yapımı geçiş dokuları (M6 içerik katmanı) olur, shader değil.
 
+## M8 — Sinematik görünüm (2026-10-17)
+
+Kullanıcı geri bildirimi: mevcut iyileştirmeler fazla ince, oyun "farklı bir oyun" gibi görünmeli.
+
+- [x] Son geçiş `Cinematic.fx` + `CinematicRenderer`: film tonu, camgöbeği/kehribar ayrımı, yerel kontrast,
+  doygunluk, vinyet; "Cinematic depth" ile tilt-shift ve uzak pus ([CINEMATIC_PLAN.md](CINEMATIC_PLAN.md)).
+  Varsayılan açık, iki ayar ayrı kapatılabilir. Shader testleri (398 test).
+- [ ] Oyun içi kabul ve ince ayar (gündüz/gece, zindan, Modern look ile birlikte vinyetin toplamı).
+- [ ] Sonraki aday: duvar/obje diplerinde ortam gölgesi (AO) ve gündüz yönlü güneş.
+
 ## M6 — Değiştirilebilir art paketleri
 
 M6, [DECISIONS.md D-005](DECISIONS.md#d-005--asset-soyutlaması-iki-katman-içerik--sunum) gereği iki katmandır. İçerik neyin var olduğunu ve mantıksal piksel anlamını belirler; sunum bunun nasıl çizildiğini değiştirir. HD kapalı veya paket eksik durumunda oyun içeriği kaybolmamalı. Bu görev katmanların hiçbirini uygulamaz.
