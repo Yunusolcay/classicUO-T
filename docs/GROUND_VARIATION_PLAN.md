@@ -18,6 +18,14 @@ ve doygunluk lekeleri ızgarayı kırar. HD paketten bağımsız çalışır (or
 - **Yan düzeltme:** `ApplyMeshHue` her karede chunk mesh'teki düz su karolarının `WATER` modunu ve kıyı maskesini
   `NONE` ile eziyordu (su ışık deseni ve köpük görünmüyordu); artık `WATER` modundaki land korunur.
 
+## İlk oyun içi görüntü düzeltmeleri (2026-10-17)
+
+- **Düz dikiş:** gürültü `water_hash` (büyük `sin`) kullanıyordu; dünya ölçekli hücrelerde derleyicinin `i + 1`'i
+  katlaması komşu pikselde aynı hücreye farklı değer verdi, kaldırımda yatay sert bir mavi/kahverengi sınır
+  oluştu. Artık `ground_hash`: hücre 256'ya sarılır, sinüssüz (frac tabanlı) hash.
+- **Çimen tonu:** klasik çimen HD taş/toprak yanında çok bağırgan sarı-yeşil. Yeşili baskın texeller (g − max(r, b)
+  0.03..0.15) %65'e kadar daha sakin bir zeytin yeşiline çekilir (doygunluk %60, hafif sıcak). Aynı ayara bağlı.
+
 ## Sonraki adımlar
 
 - [ ] Oyun içi kabul: lekelerin boyutu/gücü; kum, çimen, kar ve zindan zeminlerinde.
