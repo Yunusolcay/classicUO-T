@@ -328,6 +328,7 @@ namespace ClassicUO.Game.Scenes
             _useItemQueue?.Clear();
             _lightMapRenderer.Dispose();
             _bloomRenderer.Dispose();
+            _cinematicRenderer.Dispose();
             _world.MessageManager.MessageReceived -= ChatOnMessageReceived;
 
             Settings.GlobalSettings.WindowSize = new Point(
@@ -853,8 +854,18 @@ namespace ClassicUO.Game.Scenes
 
             bool bloom = UseBloom(batcher.GraphicsDevice, worldTarget);
 
-            // enhanced lighting and bloom also need the world in a second target: binding a target clears it
-            if (modernLook || enhancedLights || bloom)
+            // the cinematic pass comes last: the passes before it write into its own source target
+            RenderTarget2D outputTarget = worldTarget;
+            bool cinematic = UseCinematic(batcher.GraphicsDevice, worldTarget);
+
+            if (cinematic)
+            {
+                finalTarget = _cinematicRenderer.GetSourceTarget(batcher.GraphicsDevice, worldTarget.Width, worldTarget.Height);
+            }
+
+            // enhanced lighting, bloom and the cinematic look also need the world in a second
+            // target: binding a target clears it
+            if (modernLook || enhancedLights || bloom || cinematic)
             {
                 worldTarget = renderTargets.GetPostProcessWorldRenderTarget(batcher.GraphicsDevice);
             }
@@ -903,6 +914,13 @@ namespace ClassicUO.Game.Scenes
             else if (bloom)
             {
                 _bloomRenderer.Composite(batcher, worldTarget, finalTarget);
+            }
+
+            if (cinematic)
+            {
+                // finalTarget holds the image when any pass above wrote it, else it is still in worldTarget
+                RenderTarget2D graded = modernLook || bloom || enhancedLights ? finalTarget : worldTarget;
+                ApplyCinematic(batcher, graded, outputTarget, matrix);
             }
 
             batcher.GraphicsDevice.Viewport = r_viewport;
