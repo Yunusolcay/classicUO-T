@@ -72,6 +72,23 @@ sürekli bir koyu şerit oluşur, üst üste katlanmaz.
 - Gece de durur (ortam gölgesi). Ayar: `AmbientOcclusion` (varsayılan açık), Options → Shadows → "Ambient
   occlusion"; Soft shadows açık olmalı.
 
+## 3c. S7 – Saate göre dönen güneş gölgesi (uygulandı, 2026-10-20)
+
+Güneş gölgesinin yönü artık sabit değil (`Game/Lighting/SunPath.cs`). Güneş 6:00'da doğudan doğar, öğlen güneyde,
+18:00'de batıda batar. UO ekranında doğu sağ alt, güney sol alt, batı sol üst, kuzey sağ üst olduğu için gölge
+sabah sol üste, öğlen sağ üste (orijinal UO gölgesiyle birebir aynı), akşam sağ alta düşer. Güneş alçaldıkça gölge
+uzar (öğlen yüksekliği 62°, en fazla orijinalin 2 katı); doğuş ve batışta ufukta yumuşakça söner. Gece ay aynı yayı
+izler; gölgeyi zaten ortam ışığı söndürür, bu yalnız gece de aydınlık olan shard'larda yön kalsın diye.
+
+- **Saat (`SunClock`):** sunucu `0x5B` (saat, dakika, saniye) gönderirse ona eşitlenir ve paketler arasında OSI
+  hızında yürür (1 UO dakikası = 5 gerçek saniye, 1 UO günü = 2 gerçek saat). Hiç paket gelmezse saat UTC'den aynı
+  hızla hesaplanır: herkes aynı saati görür ama sunucunun karanlığıyla uyuşmayabilir. `-lightdebug` kutusunda
+  "Sun clock" satırı saati ve kaynağını gösterir (Nimloth'un `0x5B` gönderip göndermediği buradan görülür).
+- **Ayar:** Options → Shadows → "Sun shadow direction": Classic (eski sabit yön) / Time of day (varsayılan) /
+  Fixed hour ("Sun hour" kaydırıcısı, 0–23). Yalnız Soft shadows açıkken etkili; eski kuyruk içi gölge yolu sabit kalır.
+- Kapsam dışı: yüzey ışığının (normal haritası) güneş yönü sabit kaldı; boyalı UO art'ının ışığıyla çakışmaması
+  için ayrı denenecek. Temas, AO ve yerel ışık gölgeleri değişmedi.
+
 ## 4. Kabul (S1–S5)
 
 - Gündüz: karakter/ağaç gölgeleri aynı yerde, aynı koyulukta; kenarlar yumuşak, ayak dibi keskin.
@@ -84,3 +101,5 @@ sürekli bir koyu şerit oluşur, üst üste katlanmaz.
   düşürmüyor. Gündüz ışık gölgesi yok.
 - Karakterlerin ayak altında hafif temas gölgesi var; Soft shadows kapalıyken yok.
 - (S6) Bina/duvar diplerinde yumuşak koyu şerit; duvar önünde duran karakter kararmıyor, üst katlarda yatay bant yok.
+- (S7) Fixed hour 8 / 12 / 16'da gölge sol üst / sağ üst / sağ alt; Classic seçiliyken eskisiyle aynı. Uzun sabah
+  gölgesinde kırpılma veya sahibinin üstüne düşme yok; Time of day'de yön birkaç dakikada fark edilir şekilde dönüyor.

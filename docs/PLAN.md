@@ -84,7 +84,7 @@ Tabloda client dosyaları `src/ClassicUO.Client/`, renderer dosyaları `src/Clas
 
 **Bağımlılık sırası:** L3 ✅ → L2 ✅ → L1 ✅; L4 ✅ → L6 ✅ → L7/L8/L9/L10/L15 (🔶 oyun içi kabul) → L11/L12 (🔶)/L13 → L14. 2026-10-16: Codex başka işlerde; kalan ışık görevlerinin tamamı Claude Code'da.
 
-`UseColoredLights`, `UseCustomLightLevel`/`LightLevel`/`LightLevelType`, `UseDarkNights`, `UseAlternativeLights` ve sunucu `World.Light.Real*` değerleri korunur. `SetTime(0x5B)` hâlâ boş; gece/gündüz hedefi `0x4F` seviyesine dayanır. D-003'ün kalan oyun testleri açık izlenir.
+`UseColoredLights`, `UseCustomLightLevel`/`LightLevel`/`LightLevelType`, `UseDarkNights`, `UseAlternativeLights` ve sunucu `World.Light.Real*` değerleri korunur. `SetTime(0x5B)` yalnız güneş gölgesi saatini (`SunClock`) besler; gece/gündüz karanlığı hâlâ `0x4F` seviyesine dayanır. D-003'ün kalan oyun testleri açık izlenir.
 
 ### L1 — Uygulama ve doğrulama (Codex)
 
@@ -149,7 +149,9 @@ Kullanıcı geri bildirimi: mevcut iyileştirmeler fazla ince, oyun "farklı bir
 - [x] Duvar/obje diplerinde ortam gölgesi (AO, [SHADOWS_PLAN.md](SHADOWS_PLAN.md) S6): yumuşak gölge geçişinde
   elips; varsayılan açık, "Ambient occlusion" ile kapatılır. 400 test.
 - [ ] Oyun içi kabul: AO şeridinin gücü/genişliği, ev içi ve üst katlar.
-- [ ] Sonraki aday: gündüz yönlü güneş.
+- [x] Saate göre dönen güneş gölgesi (S7, [SHADOWS_PLAN.md](SHADOWS_PLAN.md)): `SunClock` (sunucu `0x5B`, yoksa
+  UTC/OSI hızı), `SunPath` (yön + uzunluk + ufukta sönme); Options → Shadows → "Sun shadow direction". 414 test.
+- [ ] S7 oyun içi kabul: Nimloth `0x5B` gönderiyor mu (`-lightdebug` "Sun clock"), uzun gölgelerin görünümü.
 
 ## M9 — Yüzey ışığı (2026-10-17)
 

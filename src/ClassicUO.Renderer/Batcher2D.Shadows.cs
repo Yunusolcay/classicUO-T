@@ -24,7 +24,7 @@ namespace ClassicUO.Renderer
     //     in front still hide the shadow,
     //  3. the color is multiplied by 1 - alpha, so overlapping shadows darken only once,
     //  4. the alpha is set back to 1.
-    // Casters get a sun shadow (fixed UO direction, fading at night) and shadows away from the
+    // Casters get a sun shadow (direction from the scene, fading at night) and shadows away from the
     // strongest nearby lights (S3). The shader softens the edges more towards the far end.
     public sealed unsafe partial class UltimaBatcher2D
     {
@@ -101,17 +101,21 @@ namespace ClassicUO.Renderer
         private int _shadowCount;
         private bool _deferShadows;
         private float _sunStrength, _contactStrength;
+        // sun shadow tip offset per half sprite height; (1, -1) is the original UO direction
+        private Vector2 _sunOffset = new Vector2(1f, -1f);
         private Texture2D _white, _contactTexture;
 
         // shadows drawn by the last DrawDeferredShadows, for the debug overlay (S5)
         public int LastShadowCount { get; private set; }
 
         // sunStrength: darkness of a full sun shadow, contactStrength: of the contact ellipse (0..1).
+        // sunOffset: where the tip of a sun shadow goes, per half sprite height (S7).
         // Shadows drawn until DrawDeferredShadows are collected.
-        public void BeginDeferredShadows(float sunStrength, float contactStrength)
+        public void BeginDeferredShadows(float sunStrength, float contactStrength, Vector2 sunOffset)
         {
             _deferShadows = true;
             _sunStrength = Math.Clamp(sunStrength, 0f, 1f);
+            _sunOffset = sunOffset;
             _contactStrength = Math.Clamp(contactStrength, 0f, 1f);
             _casterCount = 0;
         }
@@ -277,10 +281,10 @@ namespace ClassicUO.Renderer
                 return;
             }
 
-            // original UO sun direction: the top of the sprite leans up and to the right
+            // (1, -1): the original UO sun direction, the top of the sprite leans up and to the right
             if (_sunStrength > 0f)
             {
-                AddShadowQuad(ref caster, new Vector2(caster.Height, -caster.Height), _sunStrength);
+                AddShadowQuad(ref caster, _sunOffset * caster.Height, _sunStrength);
             }
 
             if (localStrength <= 0f || lights.IsEmpty)
