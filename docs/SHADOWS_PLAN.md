@@ -86,6 +86,10 @@ izler; gölgeyi zaten ortam ışığı söndürür, bu yalnız gece de aydınlı
   "Sun clock" satırı saati ve kaynağını gösterir (Nimloth'un `0x5B` gönderip göndermediği buradan görülür).
 - **Ayar:** Options → Shadows → "Sun shadow direction": Classic (eski sabit yön) / Time of day (varsayılan) /
   Fixed hour ("Sun hour" kaydırıcısı, 0–23). Yalnız Soft shadows açıkken etkili; eski kuyruk içi gölge yolu sabit kalır.
+- **Derinlik:** ekranda aşağı düşen gölge (öğleden sonra) sahibinin önündeki zemine düşer; uç vertex'leri
+  sahibin derinliği + her 22 px için 1 + yarım karo derinlik alır, yoksa derinlik testinde silinir.
+- Oyun içi test (2026-10-20, SphereNet sunucusu, ormanlık alan): 08 sol üst, 12 sağ üst, 16 sağa/hafif aşağı doğru
+  gölgeler görüldü. Sunucu `0x5B` göndermiyor, saat UTC/OSI yedeğinden geliyor.
 - Kapsam dışı: yüzey ışığının (normal haritası) güneş yönü sabit kaldı; boyalı UO art'ının ışığıyla çakışmaması
   için ayrı denenecek. Temas, AO ve yerel ışık gölgeleri değişmedi.
 

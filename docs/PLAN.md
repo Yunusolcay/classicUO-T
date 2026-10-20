@@ -151,7 +151,8 @@ Kullanıcı geri bildirimi: mevcut iyileştirmeler fazla ince, oyun "farklı bir
 - [ ] Oyun içi kabul: AO şeridinin gücü/genişliği, ev içi ve üst katlar.
 - [x] Saate göre dönen güneş gölgesi (S7, [SHADOWS_PLAN.md](SHADOWS_PLAN.md)): `SunClock` (sunucu `0x5B`, yoksa
   UTC/OSI hızı), `SunPath` (yön + uzunluk + ufukta sönme); Options → Shadows → "Sun shadow direction". 414 test.
-- [ ] S7 oyun içi kabul: Nimloth `0x5B` gönderiyor mu (`-lightdebug` "Sun clock"), uzun gölgelerin görünümü.
+- [ ] S7 oyun içi kabul: 08/12/16 yönleri oyunda doğrulandı (öğleden sonra derinlik düzeltmesiyle). Sunucu `0x5B`
+  göndermiyor; SphereNet'in saat paketini göndermesi bekleniyor. Uzun gölgelerin görünümü kullanıcı kabulünde.
 
 ## M9 — Yüzey ışığı (2026-10-17)
 
