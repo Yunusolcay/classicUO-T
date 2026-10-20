@@ -159,6 +159,8 @@ namespace ClassicUO.Game.UI.Gumps
         private HSliderBar _lightTransition, _lightIntensity;
         private Checkbox _use_smooth_boat_movement;
         private HSliderBar _terrainShadowLevel;
+        private Combobox _sunShadowMode;
+        private HSliderBar _sunShadowHour;
 
         private Checkbox _use_tooltip;
         private Checkbox _useStandardSkillsGump, _showMobileNameIncoming, _showCorpseNameIncoming;
@@ -2343,6 +2345,37 @@ namespace ClassicUO.Game.UI.Gumps
                 )
             );
 
+            section5.Add(AddLabel(null, "Sun shadow direction", startX, startY));
+
+            section5.AddRight
+            (
+                _sunShadowMode = AddCombobox
+                (
+                    null,
+                    new[] { "Classic (fixed)", "Time of day", "Fixed hour" },
+                    Math.Clamp(_currentProfile.SunShadowMode, 0, 2),
+                    startX,
+                    startY,
+                    150
+                )
+            );
+
+            section5.Add(AddLabel(null, "Sun hour (fixed hour mode)", startX, startY));
+
+            section5.AddRight
+            (
+                _sunShadowHour = AddHSlider
+                (
+                    null,
+                    0,
+                    23,
+                    Math.Clamp(_currentProfile.SunShadowHour, 0, 23),
+                    startX,
+                    startY,
+                    200
+                )
+            );
+
             section5.PopIndent();
 
             section5.Add(AddLabel(null, ResGumps.TerrainShadowsLevel, startX, startY));
@@ -4126,6 +4159,8 @@ namespace ClassicUO.Game.UI.Gumps
                     _enableShadowsStatics.IsChecked = true;
                     _softShadows.IsChecked = ShadowSettings.DEFAULT_SOFT_SHADOWS;
                     _ambientOcclusion.IsChecked = ShadowSettings.DEFAULT_AMBIENT_OCCLUSION;
+                    _sunShadowMode.SelectedIndex = ShadowSettings.DEFAULT_SUN_SHADOW_MODE;
+                    _sunShadowHour.Value = ShadowSettings.DEFAULT_SUN_SHADOW_HOUR;
                     _terrainShadowLevel.Value = 15;
                     _runMouseInSeparateThread.IsChecked = true;
                     _auraMouse.IsChecked = true;
@@ -4596,6 +4631,8 @@ namespace ClassicUO.Game.UI.Gumps
             _currentProfile.ShadowsStatics = _enableShadowsStatics.IsChecked;
             _currentProfile.SoftShadows = _softShadows.IsChecked;
             _currentProfile.AmbientOcclusion = _ambientOcclusion.IsChecked;
+            _currentProfile.SunShadowMode = _sunShadowMode.SelectedIndex;
+            _currentProfile.SunShadowHour = _sunShadowHour.Value;
             _currentProfile.TerrainShadowsLevel = _terrainShadowLevel.Value;
             _currentProfile.AuraUnderFeetType = _auraType.SelectedIndex;
 

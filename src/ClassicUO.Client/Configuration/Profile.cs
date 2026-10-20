@@ -263,6 +263,9 @@ namespace ClassicUO.Configuration
         public bool SoftShadows { get; set; } = ShadowSettings.DEFAULT_SOFT_SHADOWS;
         // dark ground at the foot of walls and large objects (docs/SHADOWS_PLAN.md, S6)
         public bool AmbientOcclusion { get; set; } = ShadowSettings.DEFAULT_AMBIENT_OCCLUSION;
+        // sun shadow direction: SunShadowMode (docs/SHADOWS_PLAN.md, S7); hour for the fixed mode
+        public int SunShadowMode { get; set; } = ShadowSettings.DEFAULT_SUN_SHADOW_MODE;
+        public int SunShadowHour { get; set; } = ShadowSettings.DEFAULT_SUN_SHADOW_HOUR;
         // sun relief and cavities on the HD world textures (docs/SURFACE_LIGHTING_PLAN.md)
         public bool SurfaceLighting { get; set; } = true;
         // slow brightness and warmth changes over the land, against the tile grid (docs/GROUND_VARIATION_PLAN.md)

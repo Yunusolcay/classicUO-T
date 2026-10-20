@@ -49,6 +49,15 @@ namespace ClassicUO.Game.Lighting
                 ? "- Shadows: original\n"
                 : string.Format(CultureInfo.InvariantCulture, "- Shadows: {0} soft shadows\n", _shadows);
 
+            float minutes = SunClock.GetMinutes();
+            shadows += string.Format(
+                CultureInfo.InvariantCulture,
+                "- Sun clock: {0:00}:{1:00} ({2})\n",
+                (int) (minutes / 60f),
+                (int) (minutes % 60f),
+                SunClock.ServerSynced ? "server time" : "no server time, UTC at OSI pace"
+            );
+
             if (WeatherRenderer.LastParticleCount > 0)
             {
                 shadows += string.Format(CultureInfo.InvariantCulture, "- Weather: {0} particles\n", WeatherRenderer.LastParticleCount);

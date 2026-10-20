@@ -27,5 +27,5 @@ piksel başına kabartma ve girinti gölgesi verir. Ayrı dosya gerekmez: normal
 
 - [ ] Oyun içi kabul: güç, kumda/çimende gürültü, zoom 1×/2×.
 - [ ] Gece meşale/mangal ışıklarının da normal haritasını kullanması (en yakın birkaç ışık shader'a).
-- [ ] Gündüz güneş yönünün saate göre dönmesi (gölgelerle birlikte).
+- [ ] Gündüz güneş yönünün saate göre dönmesi: gölgeler döndü (SHADOWS_PLAN S7, `SunPath`), yüzey ışığı henüz sabit.
 - [ ] İsteğe bağlı: pakette elle/yapay zekâ ile üretilmiş `_n.png` varsa onu kullanmak.
