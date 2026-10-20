@@ -2324,7 +2324,14 @@ namespace ClassicUO.Network
             }
         }
 
-        private static void SetTime(World world, ref StackDataReader p) { }
+        private static void SetTime(World world, ref StackDataReader p)
+        {
+            byte hour = p.ReadUInt8();
+            byte minute = p.ReadUInt8();
+            byte second = p.ReadUInt8();
+
+            Game.Lighting.SunClock.Sync(hour, minute, second);
+        }
 
         private static void SetWeather(World world, ref StackDataReader p)
         {

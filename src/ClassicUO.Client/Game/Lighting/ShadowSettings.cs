@@ -23,6 +23,10 @@ namespace ClassicUO.Game.Lighting
         // ambient occlusion at the foot of walls and large objects (S6)
         public const bool DEFAULT_AMBIENT_OCCLUSION = true;
         public const float OCCLUSION_STRENGTH = 0.35f;
+
+        // moving sun shadows (S7): follow the time of day; afternoon for the fixed hour mode
+        public const int DEFAULT_SUN_SHADOW_MODE = (int) SunShadowMode.GameClock;
+        public const int DEFAULT_SUN_SHADOW_HOUR = 15;
         // occluders higher than this above the land (upper floors) are left out
         public const int OCCLUSION_MAX_HEIGHT = 12;
 

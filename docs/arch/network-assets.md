@@ -74,7 +74,7 @@ Kayıt ve uygulama `src/ClassicUO.Client/Network/PacketHandlers.cs`; uzunluklar 
 | `0x4E` | `PersonalLightLevel()`, 6 | `world.InGame` ve serial oyuncuya aitse; seviye en çok 30; `world.Light.RealPersonal`, özel ışık kapalıysa `Personal` |
 | `0x4F` | `LightLevel()`, 2 | Oyun içindeyken en çok 30; `RealOverall` her zaman; özel ışık kapalıysa veya `LightLevelType==1` ise `Overall`; tip 1'de sunucu seviyesi ile profil seviyesinin minimumu |
 | `0x65` | `SetWeather()`, 4 | `GameScene` varsa ve tür değiştiyse `world.Weather.Generate(type, count, temp)` |
-| `0x5B` | `SetTime()`, 4 | Handler gövdesi hâlâ boş; sunucu saatinden otomatik gece/gündüz hesabı yok |
+| `0x5B` | `SetTime()`, 4 | Saat/dakika/saniye `Game/Lighting/SunClock`'a; yalnız güneş gölgesinin yönü (S7). Karanlık yine `0x4F`'den |
 
 `src/ClassicUO.Client/Game/GameObjects/IsometricLight.cs`: `Overall`, `Personal`, `RealOverall`, `RealPersonal` ve `Recalculate()`. Görünür hesap `max(Personal, 32 - Overall) / 32`; genel seviyede 0 aydınlık, 30 karanlık. Sunucu `Real*` değerlerini görsel geçiş için korumak gerekir. Profil: `src/ClassicUO.Client/Configuration/Profile.cs`, `UseCustomLightLevel`, `LightLevel`, `LightLevelType`.
 

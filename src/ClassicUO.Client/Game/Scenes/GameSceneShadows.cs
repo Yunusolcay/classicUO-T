@@ -4,6 +4,7 @@ using System;
 using ClassicUO.Configuration;
 using ClassicUO.Game.Lighting;
 using ClassicUO.Renderer;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace ClassicUO.Game.Scenes
@@ -30,10 +31,30 @@ namespace ClassicUO.Game.Scenes
             }
 
             _sunShadowStrength = ShadowSettings.GetStrength(_world.Light.IsometricLevel);
-            batcher.BeginDeferredShadows(_sunShadowStrength, ShadowSettings.CONTACT_STRENGTH);
+            float sunFade = GetSunShadow(profile, out Vector2 sunOffset);
+            // the local light shadows keep following the ambient light only, not the horizon fade
+            batcher.BeginDeferredShadows(_sunShadowStrength * sunFade, ShadowSettings.CONTACT_STRENGTH, sunOffset);
             DrawOccluders(batcher);
 
             return true;
+        }
+
+        // Sun shadow direction for the chosen mode (S7); returns the horizon fade
+        private static float GetSunShadow(Profile profile, out Vector2 offset)
+        {
+            switch ((SunShadowMode) profile.SunShadowMode)
+            {
+                case SunShadowMode.GameClock:
+                    return SunPath.Get(SunClock.GetMinutes(), out offset);
+
+                case SunShadowMode.FixedHour:
+                    return SunPath.Get(Math.Clamp(profile.SunShadowHour, 0, 23) * 60f, out offset);
+
+                default:
+                    offset = SunPath.Classic;
+
+                    return 1f;
+            }
         }
 
         // Draws the collected shadows; at night the enhanced lights collected this frame cast them too
