@@ -352,10 +352,12 @@ namespace ClassicUO.Renderer
                 return;
             }
 
-            // a shadow lying flat along the feet line would have no area
-            if (Math.Abs(offset.Y) < 0.5f)
+            float length = offset.Length();
+
+            if (length < 0.5f)
             {
-                offset.Y = -0.5f;
+                offset = new Vector2(0f, -0.5f);
+                length = 0.5f;
             }
 
             if (_shadowCount >= _shadowVertices.Length)
@@ -366,18 +368,25 @@ namespace ClassicUO.Renderer
 
             ref PositionNormalTextureColor4 vertex = ref _shadowVertices[_shadowCount];
 
-            Vector2 left = caster.BaseLeft;
-            Vector2 right = left + new Vector2(caster.Width, 0f);
+            // The sprite width lies along the feet line. A shadow falling nearly along that line
+            // (east or west on the UO screen) would squash the silhouette into a sliver, so the feet
+            // line turns towards the ground perpendicular of the shadow (on the UO screen the
+            // perpendicular of a horizontal ground direction is vertical, at the same scale).
+            // Shadows rising 30 degrees or more keep the original horizontal feet line.
+            float rise = Math.Min(Math.Abs(offset.Y) / length / 0.5f, 1f);
+            float keep = rise * rise * (3f - 2f * rise);
+            // the perpendicular on the other side of the screen x axis than the shadow, so turning
+            // it towards the x axis never passes through the shadow direction
+            Vector2 perpendicular = offset.Y <= 0f ? new Vector2(-offset.Y, offset.X) : new Vector2(offset.Y, -offset.X);
+            Vector2 across = Vector2.Normalize(Vector2.Lerp(perpendicular / length, Vector2.UnitX, keep));
+            Vector2 feet = caster.BaseLeft + new Vector2(caster.Width * 0.5f, 0f);
+            Vector2 left = feet - across * (caster.Width * 0.5f);
+            Vector2 right = feet + across * (caster.Width * 0.5f);
 
-            // the world depth grows by one per tile down the screen (22 px): a shadow falling down
-            // the screen lies on ground that is in front of its caster and would fail the depth
-            // test, so its far end gets the depth of the ground it reaches (plus half a tile)
-            float tipDepth = offset.Y > 0f ? caster.Depth + offset.Y / TILE_HALF_HEIGHT + 0.5f : caster.Depth;
-
-            vertex.Position0 = new Vector3(left + offset, tipDepth);
-            vertex.Position1 = new Vector3(right + offset, tipDepth);
-            vertex.Position2 = new Vector3(left, caster.Depth);
-            vertex.Position3 = new Vector3(right, caster.Depth);
+            vertex.Position0 = new Vector3(left + offset, ShadowDepth(caster.Depth, left.Y + offset.Y - feet.Y));
+            vertex.Position1 = new Vector3(right + offset, ShadowDepth(caster.Depth, right.Y + offset.Y - feet.Y));
+            vertex.Position2 = new Vector3(left, ShadowDepth(caster.Depth, left.Y - feet.Y));
+            vertex.Position3 = new Vector3(right, ShadowDepth(caster.Depth, right.Y - feet.Y));
 
             byte effects = (byte)((caster.Flip ? SpriteEffects.FlipHorizontally : SpriteEffects.None) & (SpriteEffects)0x03);
 
@@ -393,9 +402,9 @@ namespace ClassicUO.Renderer
             Vector3 hue = new Vector3(strength, ShaderHueTranslator.SHADER_SHADOW, caster.Bounds.W);
             vertex.Hue0 = vertex.Hue1 = vertex.Hue2 = vertex.Hue3 = hue;
 
-            // a shadow pointing down the screen flips the winding: swap left and right vertices
-            // (each keeps its texture coordinate) so the quad is not culled
-            if (offset.Y > 0f)
+            // a shadow pointing the other way round flips the winding: swap left and right
+            // vertices (each keeps its texture coordinate) so the quad is not culled
+            if (across.X * offset.Y - across.Y * offset.X > 0f)
             {
                 (vertex.Position0, vertex.Position1) = (vertex.Position1, vertex.Position0);
                 (vertex.TextureCoordinate0, vertex.TextureCoordinate1) = (vertex.TextureCoordinate1, vertex.TextureCoordinate0);
@@ -405,6 +414,22 @@ namespace ClassicUO.Renderer
 
             _shadowTextures[_shadowCount] = caster.Texture;
             _shadowCount++;
+        }
+
+        // The world depth grows by one per tile down the screen (22 px): shadow parts below the feet
+        // line lie on ground in front of the caster and would fail the depth test. A point dy
+        // pixels below the feet can lie in a tile up to dy / 22 + 1 rows in front (the tiles are
+        // diamonds), so it gets that depth; the extra row fades in over the first half tile
+        private static float ShadowDepth(float casterDepth, float belowFeet)
+        {
+            if (belowFeet <= 0f)
+            {
+                return casterDepth;
+            }
+
+            float tiles = belowFeet / TILE_HALF_HEIGHT;
+
+            return casterDepth + tiles + Math.Min(tiles * 2f, 1f);
         }
 
         private ref ShadowCaster AddCaster()

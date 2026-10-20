@@ -15,6 +15,10 @@ namespace ClassicUO.Game.Lighting
         public const int MINUTES_PER_DAY = 24 * 60;
 
         private static bool _synced;
+        // test only ("sunspeed" / "sunstart" launch arguments): runs the clock faster from a start hour
+        private static float _speed = 1f;
+        private static double _testStartMinutes;
+        private static long _testStartTimestamp;
         private static double _syncMinutes;
         private static long _syncTimestamp;
 
@@ -33,6 +37,15 @@ namespace ClassicUO.Game.Lighting
             _synced = true;
         }
 
+        // speed > 1 runs the clock that many times faster from startHour, ignoring the server time.
+        // The clock starts on its first query (the first drawn world frame), not at launch.
+        public static void SetTestSpeed(float speed, float startHour)
+        {
+            _speed = speed > 1f ? speed : 1f;
+            _testStartMinutes = Math.Clamp(startHour, 0f, 24f) * 60.0;
+            _testStartTimestamp = 0;
+        }
+
         public static void Reset()
         {
             _synced = false;
@@ -41,6 +54,19 @@ namespace ClassicUO.Game.Lighting
         // UO minutes since midnight, 0..1440
         public static float GetMinutes()
         {
+            if (_speed > 1f)
+            {
+                if (_testStartTimestamp == 0)
+                {
+                    _testStartTimestamp = Stopwatch.GetTimestamp();
+                    Utility.Logging.Log.Info($"Sun test clock started: {DateTime.Now:HH:mm:ss.fff} at minute {_testStartMinutes:0}, speed {_speed}");
+                }
+
+                double elapsed = Stopwatch.GetElapsedTime(_testStartTimestamp).TotalSeconds;
+
+                return Wrap(_testStartMinutes + elapsed * _speed / REAL_SECONDS_PER_UO_MINUTE);
+            }
+
             if (_synced)
             {
                 double elapsed = Stopwatch.GetElapsedTime(_syncTimestamp).TotalSeconds;

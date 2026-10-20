@@ -86,10 +86,17 @@ izler; gölgeyi zaten ortam ışığı söndürür, bu yalnız gece de aydınlı
   "Sun clock" satırı saati ve kaynağını gösterir (Nimloth'un `0x5B` gönderip göndermediği buradan görülür).
 - **Ayar:** Options → Shadows → "Sun shadow direction": Classic (eski sabit yön) / Time of day (varsayılan) /
   Fixed hour ("Sun hour" kaydırıcısı, 0–23). Yalnız Soft shadows açıkken etkili; eski kuyruk içi gölge yolu sabit kalır.
-- **Derinlik:** ekranda aşağı düşen gölge (öğleden sonra) sahibinin önündeki zemine düşer; uç vertex'leri
-  sahibin derinliği + her 22 px için 1 + yarım karo derinlik alır, yoksa derinlik testinde silinir.
-- Oyun içi test (2026-10-20, SphereNet sunucusu, ormanlık alan): 08 sol üst, 12 sağ üst, 16 sağa/hafif aşağı doğru
-  gölgeler görüldü. Sunucu `0x5B` göndermiyor, saat UTC/OSI yedeğinden geliyor.
+- **Derinlik:** ekranda aşağı düşen gölge (öğleden sonra) sahibinin önündeki zemine düşer. Ayak çizgisinin
+  altındaki her vertex sahibin derinliği + her 22 px için 1 + en fazla 1 satır (karolar elmas olduğu için ayağın az
+  altı bir sonraki satıra düşebilir) derinlik alır, yoksa derinlik testinde silinir.
+- **Yatay gölge:** UO ekranında öğleden sonra gölgesi neredeyse yatay düşer; yatay ayak çizgisiyle silüet ince bir
+  şeride çökerdi. Gölge 30°'den düz düştükçe ayak çizgisi gölgenin zemin dikine döner (ekranda dikey, aynı ölçek);
+  30° ve üstünde eski yatay çizgi kalır.
+- **Test:** `-sunspeed 120 -sunstart 5.5` başlatma parametreleri saati ilk dünya karesinden itibaren 120 kat hızlı
+  yürütür (yalnız test; sunucu saatini yok sayar).
+- Oyun içi test (2026-10-20, SphereNet sunucusu, ormanlık alan, 120× hızlı saat videosu): sabah sol üst, öğlen sağ
+  üst, öğleden sonra sağa ve sağ alta gölgeler gün boyu kesintisiz. Bilinen iz: eğimli zeminde aşağı düşen gölgenin
+  kenarında yer yer küçük testere dişi kesilme. Sunucu `0x5B` göndermiyor, saat UTC/OSI yedeğinden geliyor.
 - Kapsam dışı: yüzey ışığının (normal haritası) güneş yönü sabit kaldı; boyalı UO art'ının ışığıyla çakışmaması
   için ayrı denenecek. Temas, AO ve yerel ışık gölgeleri değişmedi.
 

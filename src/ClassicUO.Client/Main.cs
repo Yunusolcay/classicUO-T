@@ -222,6 +222,8 @@ namespace ClassicUO
             Log.Trace("Closing...");
         }
 
+        private static float _sunSpeed = 1f, _sunStart = 6f;
+
         private static void ReadSettingsFromArgs(string[] args)
         {
             for (int i = 0; i <= args.Length - 1; i++)
@@ -343,6 +345,25 @@ namespace ClassicUO
 
                     case "debug":
                         CUOEnviroment.Debug = true;
+
+                        break;
+
+                    // test only: sun shadow clock speed and start hour (docs/SHADOWS_PLAN.md, S7)
+                    case "sunspeed":
+                        if (float.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float sunSpeed))
+                        {
+                            _sunSpeed = sunSpeed;
+                            Game.Lighting.SunClock.SetTestSpeed(_sunSpeed, _sunStart);
+                        }
+
+                        break;
+
+                    case "sunstart":
+                        if (float.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float sunStart))
+                        {
+                            _sunStart = sunStart;
+                            Game.Lighting.SunClock.SetTestSpeed(_sunSpeed, _sunStart);
+                        }
 
                         break;
 
