@@ -39,6 +39,8 @@ namespace ClassicUO.Renderer
         // ambient occlusion ellipse at the foot of a wall or a large object (S6): about one tile
         private const int OCCLUSION_WIDTH = 64;
         private const int OCCLUSION_HEIGHT = 34;
+        // screen pixels per tile step down the screen
+        private const float TILE_HALF_HEIGHT = 22f;
 
         private static readonly BlendState _clearAlpha = new BlendState
         {
@@ -367,8 +369,13 @@ namespace ClassicUO.Renderer
             Vector2 left = caster.BaseLeft;
             Vector2 right = left + new Vector2(caster.Width, 0f);
 
-            vertex.Position0 = new Vector3(left + offset, caster.Depth);
-            vertex.Position1 = new Vector3(right + offset, caster.Depth);
+            // the world depth grows by one per tile down the screen (22 px): a shadow falling down
+            // the screen lies on ground that is in front of its caster and would fail the depth
+            // test, so its far end gets the depth of the ground it reaches (plus half a tile)
+            float tipDepth = offset.Y > 0f ? caster.Depth + offset.Y / TILE_HALF_HEIGHT + 0.5f : caster.Depth;
+
+            vertex.Position0 = new Vector3(left + offset, tipDepth);
+            vertex.Position1 = new Vector3(right + offset, tipDepth);
             vertex.Position2 = new Vector3(left, caster.Depth);
             vertex.Position3 = new Vector3(right, caster.Depth);
 
