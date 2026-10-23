@@ -14,16 +14,15 @@ namespace ClassicUO.Game
     // weather (0x65) stays authoritative: Weather decides what falls, how much and when it ends.
     internal sealed class WeatherRenderer
     {
-        private const int MAX_DROPS = 600;
+        private const int MAX_DROPS = 900;
         private const int MAX_FLAKES = 450;
-        private const int MAX_SPLASHES = 160;
+        private const int MAX_SPLASHES = 480;
         // particles per legacy 640x480 window at the server's full count (70)
-        private const float RAIN_DENSITY = 260f;
+        private const float RAIN_DENSITY = 330f;
         private const float SNOW_DENSITY = 200f;
         private const float LEGACY_AREA = 640f * 480f;
         // seconds to fade the weather in and out
         private const float FADE_SECONDS = 3f;
-        private const float SPLASH_SECONDS = 0.3f;
 
         private struct Particle
         {
@@ -35,10 +34,19 @@ namespace ClassicUO.Game
             public float GroundY;
         }
 
+        private enum SplashKind : byte
+        {
+            Glint,
+            Ripple,
+            Droplet
+        }
+
         private struct Splash
         {
-            public Vector2 Position;
-            public float Age, Size;
+            public SplashKind Kind;
+            public Vector2 Position, Velocity;
+            // age starts below 0 for splashes that appear a moment later
+            public float Age, Life, Size, Alpha;
         }
 
         private readonly Particle[] _particles = new Particle[Math.Max(MAX_DROPS, MAX_FLAKES)];
@@ -47,7 +55,7 @@ namespace ClassicUO.Game
         private bool _snow;
         private float _intensity;
         private float _flashTime = -1f, _flashStrength;
-        private Texture2D _white, _dot, _ring;
+        private Texture2D _white, _dot, _ring, _streak;
 
         // 0..1 lightning brightness this frame; the enhanced lighting adds it to the ambient light
         public static float Flash { get; private set; }
@@ -138,43 +146,56 @@ namespace ClassicUO.Game
                 }
             }
 
+            // streaks, rings and flakes are scaled down soft textures: filter them instead of the
+            // world's point sampling, which would break thin rings into dashes
+            batcher.SetSampler(SamplerState.LinearClamp);
+
             if (snow)
             {
                 DrawSnow(batcher, wind, viewOrigin, scale, width, height, layerDepth, delta, time);
             }
             else
             {
-                DrawRain(batcher, wind, storm, viewOrigin, scale, width, height, layerDepth, delta);
+                DrawRain(batcher, wind, storm, viewOrigin, scale, width, height, layerDepth, delta, time);
             }
+
+            batcher.SetSampler(SamplerState.PointClamp);
 
             DrawLightning(batcher, storm && lightning, viewOrigin, scale, width, height, layerDepth, delta);
 
             LastParticleCount = _particleCount + _splashCount;
         }
 
-        private void DrawRain(UltimaBatcher2D batcher, sbyte wind, bool storm, Vector2 origin, float scale, int width, int height, float layerDepth, float delta)
+        private void DrawRain(UltimaBatcher2D batcher, sbyte wind, bool storm, Vector2 origin, float scale, int width, int height, float layerDepth, float delta, float time)
         {
-            float slant = -0.32f + wind * (storm ? 0.09f : 0.06f);
+            // slow gusts sway the slant a little so the rain never looks like a fixed pattern
+            float gust = (float)Math.Sin(time * 0.37f) * 0.6f + (float)Math.Sin(time * 0.91f + 1.3f) * 0.4f;
+            float slant = -0.16f + wind * (storm ? 0.08f : 0.05f) + gust * (storm ? 0.09f : 0.045f);
+            float fade = Math.Min(1f, _intensity * 2f);
+
+            // the player stands in the middle of the view: near drops thin out there so the
+            // character and what is around it stay readable
+            Vector2 center = new Vector2(width * 0.5f, height * 0.5f);
+            float clearRadius = Math.Max(1f, Math.Min(width, height) * 0.24f);
+
+            float streakW = _streak.Width;
+            float streakH = _streak.Height;
+            Vector2 pivot = new Vector2(0f, streakH * 0.5f);
 
             for (int i = 0; i < _particleCount; i++)
             {
                 ref Particle p = ref _particles[i];
 
-                float speed = MathHelper.Lerp(520f, 900f, p.Depth) * (storm ? 1.25f : 1f);
+                float speed = MathHelper.Lerp(640f, 1180f, p.Depth) * (storm ? 1.2f : 1f);
                 Vector2 velocity = new Vector2(slant * speed, speed);
                 p.Position += velocity * delta;
 
                 if (p.Position.Y >= p.GroundY)
                 {
-                    // near drops splash where they land
-                    if (p.Depth > 0.45f && _splashCount < MAX_SPLASHES)
+                    // far drops vanish in the distance, the rest leave a ripple on the ground
+                    if (p.Depth > 0.25f)
                     {
-                        _splashes[_splashCount++] = new Splash
-                        {
-                            Position = new Vector2(p.Position.X, p.GroundY),
-                            Age = 0f,
-                            Size = MathHelper.Lerp(5f, 10f, p.Depth)
-                        };
+                        Impact(new Vector2(p.Position.X, p.GroundY), p.Depth);
                     }
 
                     Spawn(ref p, width, height, false);
@@ -182,25 +203,37 @@ namespace ClassicUO.Game
                     continue;
                 }
 
-                if (p.Position.X < -40f)
+                if (p.Position.X < -60f)
                 {
-                    p.Position.X += width + 80f;
+                    p.Position.X += width + 120f;
                 }
-                else if (p.Position.X > width + 40f)
+                else if (p.Position.X > width + 60f)
                 {
-                    p.Position.X -= width + 80f;
+                    p.Position.X -= width + 120f;
                 }
 
-                float length = MathHelper.Lerp(9f, 24f, p.Depth);
-                Vector2 tail = p.Position - Vector2.Normalize(velocity) * length;
-                float alpha = MathHelper.Lerp(0.12f, 0.38f, p.Depth) * Math.Min(1f, _intensity * 2f);
+                float length = MathHelper.Lerp(10f, 42f, p.Depth * p.Depth);
+                float stroke = p.Depth > 0.8f ? 2f : p.Depth > 0.5f ? 1.5f : 1f;
+                float alpha = MathHelper.Lerp(0.35f, 1f, p.Depth) * fade;
 
-                batcher.DrawLine(
-                    _white,
+                if (p.Depth > 0.45f)
+                {
+                    float d = Vector2.Distance(p.Position, center) / clearRadius;
+                    alpha *= MathHelper.Lerp(0.25f, 1f, SmoothStep(0.45f, 1.25f, d));
+                }
+
+                Vector2 dir = Vector2.Normalize(velocity);
+                Vector2 tail = p.Position - dir * length;
+
+                batcher.Draw(
+                    _streak,
                     origin + tail * scale,
-                    origin + p.Position * scale,
+                    null,
                     new Vector3(0, 0, alpha),
-                    (p.Depth > 0.75f ? 2f : 1f) * scale,
+                    (float)Math.Atan2(dir.Y, dir.X),
+                    pivot,
+                    new Vector2(length / streakW, stroke / streakH) * scale,
+                    SpriteEffects.None,
                     layerDepth
                 );
             }
@@ -210,26 +243,122 @@ namespace ClassicUO.Game
                 ref Splash s = ref _splashes[i];
                 s.Age += delta;
 
-                if (s.Age >= SPLASH_SECONDS)
+                if (s.Age >= s.Life)
                 {
                     _splashes[i--] = _splashes[--_splashCount];
 
                     continue;
                 }
 
-                float t = s.Age / SPLASH_SECONDS;
-                float w = s.Size * (0.4f + t) * scale;
-                float h = w * 0.45f;
-                Vector2 center = origin + s.Position * scale;
+                if (s.Age < 0f)
+                {
+                    continue;
+                }
 
-                batcher.Draw(
-                    _ring,
-                    new Rectangle((int)(center.X - w * 0.5f), (int)(center.Y - h * 0.5f), Math.Max(1, (int)w), Math.Max(1, (int)h)),
-                    new Vector3(0, 0, 0.35f * (1f - t)),
-                    layerDepth
-                );
+                float t = s.Age / s.Life;
+                Vector2 at = origin + s.Position * scale;
+
+                switch (s.Kind)
+                {
+                    case SplashKind.Ripple:
+                    {
+                        // a flat ellipse (the ground seen from the UO camera) that widens and fades
+                        float grow = 1f - (1f - t) * (1f - t);
+                        float w = s.Size * (0.25f + 0.75f * grow) * scale;
+                        float h = w * 0.42f;
+
+                        batcher.Draw(
+                            _ring,
+                            new Rectangle((int)(at.X - w * 0.5f), (int)(at.Y - h * 0.5f), Math.Max(2, (int)w), Math.Max(1, (int)h)),
+                            new Vector3(0, 0, s.Alpha * (1f - t) * (1f - t) * fade),
+                            layerDepth
+                        );
+
+                        break;
+                    }
+
+                    case SplashKind.Droplet:
+                    {
+                        // tiny crown droplets thrown up by the impact, falling back
+                        s.Position += s.Velocity * delta;
+                        s.Velocity.Y += 900f * delta;
+                        int size = Math.Max(1, (int)Math.Round(2f * scale));
+
+                        batcher.Draw(
+                            _dot,
+                            new Rectangle((int)(at.X - size * 0.5f), (int)(at.Y - size * 0.5f), size, size),
+                            new Vector3(0, 0, s.Alpha * (1f - t) * fade),
+                            layerDepth
+                        );
+
+                        break;
+                    }
+
+                    default:
+                    {
+                        // the bright point where the drop hits
+                        float size = s.Size * (1f - 0.5f * t) * scale;
+
+                        batcher.Draw(
+                            _dot,
+                            new Rectangle((int)(at.X - size * 0.5f), (int)(at.Y - size * 0.35f), Math.Max(1, (int)size), Math.Max(1, (int)(size * 0.7f))),
+                            new Vector3(0, 0, s.Alpha * (1f - t) * fade),
+                            layerDepth
+                        );
+
+                        break;
+                    }
+                }
             }
         }
+
+        // a drop reached the ground: a glint, a widening ripple and, for near drops, a second ring
+        // and a few crown droplets
+        private void Impact(Vector2 position, float depth)
+        {
+            AddSplash(SplashKind.Glint, position, Vector2.Zero, 0f, 0.07f, MathHelper.Lerp(3f, 5f, depth), 0.8f);
+            AddSplash(SplashKind.Ripple, position, Vector2.Zero, 0f, MathHelper.Lerp(0.35f, 0.6f, depth), MathHelper.Lerp(12f, 28f, depth), MathHelper.Lerp(0.7f, 1f, depth));
+
+            if (depth > 0.7f)
+            {
+                AddSplash(SplashKind.Ripple, position, Vector2.Zero, -0.09f, 0.4f, MathHelper.Lerp(7f, 15f, depth), 0.7f);
+
+                int drops = RandomHelper.GetValue(2, 3);
+
+                for (int i = 0; i < drops; i++)
+                {
+                    Vector2 velocity = new Vector2(RandomHelper.GetValue(-45, 45) * depth, -RandomHelper.GetValue(70, 130) * depth);
+                    AddSplash(SplashKind.Droplet, position, velocity, 0f, 0.26f, 0f, 0.6f);
+                }
+            }
+        }
+
+        private void AddSplash(SplashKind kind, Vector2 position, Vector2 velocity, float age, float life, float size, float alpha)
+        {
+            if (_splashCount >= MAX_SPLASHES)
+            {
+                return;
+            }
+
+            _splashes[_splashCount++] = new Splash
+            {
+                Kind = kind,
+                Position = position,
+                Velocity = velocity,
+                Age = age,
+                Life = life,
+                Size = size,
+                Alpha = alpha
+            };
+        }
+
+        private static float SmoothStep(float edge0, float edge1, float x)
+        {
+            float t = Math.Clamp((x - edge0) / (edge1 - edge0), 0f, 1f);
+
+            return t * t * (3f - 2f * t);
+        }
+
 
         private void DrawSnow(UltimaBatcher2D batcher, sbyte wind, Vector2 origin, float scale, int width, int height, float layerDepth, float delta, float time)
         {
@@ -327,7 +456,12 @@ namespace ClassicUO.Game
 
             if (_ring == null || _ring.IsDisposed)
             {
-                _ring = CreateRadial(device, 32, 16, true);
+                _ring = CreateRadial(device, 48, 24, true);
+            }
+
+            if (_streak == null || _streak.IsDisposed)
+            {
+                _streak = CreateStreak(device, 64, 5);
             }
         }
 
@@ -349,6 +483,32 @@ namespace ClassicUO.Game
 
                     byte v = (byte)(a * 255f + 0.5f);
                     pixels[y * width + x] = new Color(v, v, v, v);
+                }
+            }
+
+            Texture2D texture = new Texture2D(device, width, height, false, SurfaceFormat.Color);
+            texture.SetData(pixels);
+
+            return texture;
+        }
+
+        // premultiplied, slightly cool white rain streak along +x: transparent tail, bright soft head
+        private static Texture2D CreateStreak(GraphicsDevice device, int width, int height)
+        {
+            Color[] pixels = new Color[width * height];
+
+            for (int y = 0; y < height; y++)
+            {
+                float v = (y + 0.5f) / height * 2f - 1f;
+                float across = (float)Math.Exp(-v * v * 2.5f);
+
+                for (int x = 0; x < width; x++)
+                {
+                    float u = (x + 0.5f) / width;
+                    float along = (0.15f + 0.85f * (float)Math.Pow(u, 0.6f)) * SmoothStep(0f, 0.12f, u) * SmoothStep(1f, 0.9f, u);
+                    float a = along * across;
+
+                    pixels[y * width + x] = new Color((byte)(a * 215f), (byte)(a * 228f), (byte)(a * 245f), (byte)(a * 255f));
                 }
             }
 
