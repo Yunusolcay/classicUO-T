@@ -519,6 +519,9 @@ namespace ClassicUO.Game
 
             Camera camera = Client.Game.Scene.Camera;
             Point origin = camera.ScreenToWorld(Point.Zero);
+            // time since the last weather draw: Time.Delta is the last update step, and with the
+            // FPS limit several updates run per drawn frame, which slowed the particles down
+            float delta = (Time.Ticks - _lastTick) / 1000f;
 
             _renderer.Draw(
                 batcher,
@@ -532,7 +535,8 @@ namespace ClassicUO.Game
                 camera.Bounds.Width,
                 camera.Bounds.Height,
                 layerDepth,
-                Time.Delta,
+                delta,
+                new Vector2(Scenes.GameScene.DrawOffset.X, Scenes.GameScene.DrawOffset.Y),
                 _isWater
             );
 
@@ -546,9 +550,9 @@ namespace ClassicUO.Game
         }
 
 
-        // world: a pixel of the view in the scene's draw space (as GameObject.RealScreenPosition).
-        // Finds the tile drawn there, assuming the ground near the player's height, and tells
-        // whether it is water.
+        // world: an absolute world pixel (draw space as GameObject.RealScreenPosition plus the scene
+        // draw offset). Finds the tile drawn there, assuming the ground near the player's height,
+        // and tells whether it is water.
         private bool IsWaterAt(Vector2 world)
         {
             Map.Map map = _world.Map;
@@ -558,15 +562,14 @@ namespace ClassicUO.Game
                 return false;
             }
 
-            Point offset = Scenes.GameScene.DrawOffset;
-            // tile centre: x = (X - Y) * 22, y = (X + Y) * 22 - Z * 4 (minus the draw offset)
-            float diff = (world.X + offset.X) / 22f;
+            // tile centre: x = (X - Y) * 22, y = (X + Y) * 22 - Z * 4
+            float diff = world.X / 22f;
             int z = _world.Player.Z;
             int x = 0, y = 0;
 
             for (int i = 0; i < 2; i++)
             {
-                float sum = (world.Y + offset.Y + z * 4) / 22f;
+                float sum = (world.Y + z * 4) / 22f;
                 x = (int)Math.Round((sum + diff) * 0.5f);
                 y = (int)Math.Round((sum - diff) * 0.5f);
 

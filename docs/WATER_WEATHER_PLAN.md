@@ -51,15 +51,21 @@ UV bozması dikiş ve sızma yapar); hareket yalnız renk/parlaklık deseniyle v
 pikselinde tutulur ve kameranın görünen dünya dikdörtgenine (`Camera.ScreenToWorld`, zoom ölçeği) yerleştirilir:
 zoom'da da ekranı doldurur, boyutları sabit kalır. Yoğunluk sunucu sayısıyla (0–70) orantılı, 3 sn'de açılıp kapanır.
 
-- **H1 Yağmur:** pencere alanına göre en fazla 900 damla. Damla, kuyruğu saydam başı parlak, hafif soğuk beyaz
-  bir iz dokusudur (`CreateStreak`, 1 px çizgi yerine); derinliğe göre uzunluk 10–42 px, kalınlık 1/1.5/2 px, hız ve
-  saydamlık. Eğim rüzgâr + yavaş esinti salınımıyla değişir. Ekran ortasında (oyuncu) yakın damlalar seyrelir
-  (`clearRadius`, kısa kenarın %24'ü): karakter ve çevresi okunur kalır. Uzak olmayan damlalar rastgele "zemin"
-  yüksekliğinde biter; düştüğü yer su mu kara mı haritadan okunur (`Weather.IsWaterAt`: ekran noktası →
-  `GameScene.DrawOffset` ile karo, oyuncu yüksekliğiyle başlayıp karo Z'siyle bir kez düzeltilir; land/static
-  `IsWet`). **Su:** sıçrama yok; arka arkaya açılan 2–3 geniş, yavaş solan halka, yakın damlada ortadan dik
-  zıplayan tek damlacık. **Kara:** kısa parlama, 3–4 dışa saçılan damlacık ve küçük, kısa ıslak halka (≤ 480). Parçacıklar doğrusal örneklemeyle çizilir (ince halkalar kesik
-  görünmesin). Gök: koyu mavi-gri katman (%14, fırtınada %24).
+- **H1 Yağmur:** pencere alanına göre en fazla 1800 damla. Damla, kuyruğu saydam başı parlak, hafif soğuk beyaz
+  bir iz dokusudur (`CreateStreak`); yarı saydam (%30–80), hız 1000–1900 px/sn (±%15), iz uzunluğu hızla orantılı
+  (hareket bulanıklığı, ~10–34 px). Her damlanın kendi eğimi var (sağa/sola ±0.15, kendi salınımıyla); genel eğim
+  rüzgâr + yavaş esinti. Ekran ortasında (oyuncu) yakın damlalar seyrelir (`clearRadius`, kısa kenarın %24'ü).
+  Damlalar ekrana göre tutulur ama kamera kayınca dünyayla birlikte kaydırılır (`FollowCamera`, mutlak konum =
+  görünüm başlangıcı + `GameScene.DrawOffset`; yürürken/koşarken yağmur ekranla sürüklenmez, büyük sıçramada baştan
+  dağıtılır). Uzak olmayan damlalar rastgele "zemin" yüksekliğinde biter; düştüğü yer su mu kara mı haritadan okunur
+  (`Weather.IsWaterAt`: mutlak dünya pikseli → karo, oyuncu yüksekliğiyle başlayıp karo Z'siyle bir kez düzeltilir;
+  land/static `IsWet`). Halkalar ve damlacıklar mutlak dünya pikselinde tutulur, yere sabit kalır. **Su:** sıçrama
+  yok; arka arkaya açılan 2–3 geniş halka (~0.5–0.75 sn), yakın damlada ortadan dik zıplayan tek damlacık.
+  **Kara:** kısa parlama, 3–4 dışa saçılan damlacık (~0.25 sn) ve küçük, kısa ıslak halka (≤ 1000). Parçacıklar
+  doğrusal örneklemeyle çizilir. Gök: koyu mavi-gri katman (%14, fırtınada %24).
+  Zaman: hava, iki çizim arasındaki gerçek süreyle ilerler (`Time.Ticks` farkı). `Time.Delta` son güncelleme
+  adımıdır; FPS sınırında kare başına birkaç güncelleme çalıştığından parçacıklar ~8 kat yavaş akıyordu.
+  `GameSceneAtmosphere` de `Time.Delta`'yı çizimde kullanıyor; aynı sorun orada da olabilir (ayrı iş).
 - **H2 Kar:** en fazla 450 yumuşak yuvarlak tane, derinliğe göre boyut 2–5 px, sinüs salınımı + rüzgâr; %8 beyaz pus.
 - **H3 Fırtına:** gök gürültüsü sesi çalındığında (`PlayThunder`) şimşek: hızlı çift çakma + 0.6 sn sönüm. Ekrana
   beyaz katman (%30'a kadar) ve Enhanced lighting'de ortam ışığına `Flash × 0.7` eklenir (gece de aydınlatır).
