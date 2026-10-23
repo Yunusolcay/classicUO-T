@@ -84,7 +84,8 @@ namespace ClassicUO.Game
 
         // type: server weather, count: server particle count (0..70), active: false once the server
         // weather ran out (fades out). x/y: world pixels of the view's top left corner, scale: world
-        // pixels per screen pixel, width/height: screen pixels of the view.
+        // pixels per screen pixel, width/height: screen pixels of the view. isWater: is the ground at
+        // this world pixel water (rain rings there, splashes on land); null means land.
         public void Draw(
             UltimaBatcher2D batcher,
             WeatherType type,
@@ -97,7 +98,8 @@ namespace ClassicUO.Game
             int width,
             int height,
             float layerDepth,
-            float delta
+            float delta,
+            Func<Vector2, bool> isWater = null
         )
         {
             delta = Math.Clamp(delta, 0f, 0.1f);
@@ -156,7 +158,7 @@ namespace ClassicUO.Game
             }
             else
             {
-                DrawRain(batcher, wind, storm, viewOrigin, scale, width, height, layerDepth, delta, time);
+                DrawRain(batcher, wind, storm, viewOrigin, scale, width, height, layerDepth, delta, time, isWater);
             }
 
             batcher.SetSampler(SamplerState.PointClamp);
@@ -166,7 +168,7 @@ namespace ClassicUO.Game
             LastParticleCount = _particleCount + _splashCount;
         }
 
-        private void DrawRain(UltimaBatcher2D batcher, sbyte wind, bool storm, Vector2 origin, float scale, int width, int height, float layerDepth, float delta, float time)
+        private void DrawRain(UltimaBatcher2D batcher, sbyte wind, bool storm, Vector2 origin, float scale, int width, int height, float layerDepth, float delta, float time, Func<Vector2, bool> isWater)
         {
             // slow gusts sway the slant a little so the rain never looks like a fixed pattern
             float gust = (float)Math.Sin(time * 0.37f) * 0.6f + (float)Math.Sin(time * 0.91f + 1.3f) * 0.4f;
@@ -192,10 +194,20 @@ namespace ClassicUO.Game
 
                 if (p.Position.Y >= p.GroundY)
                 {
-                    // far drops vanish in the distance, the rest leave a ripple on the ground
+                    // far drops vanish in the distance, the rest leave a mark where they land
                     if (p.Depth > 0.25f)
                     {
-                        Impact(new Vector2(p.Position.X, p.GroundY), p.Depth);
+                        Vector2 at = new Vector2(p.Position.X, p.GroundY);
+                        bool water = isWater != null && isWater(origin + at * scale);
+
+                        if (water)
+                        {
+                            WaterImpact(at, p.Depth);
+                        }
+                        else
+                        {
+                            LandImpact(at, p.Depth);
+                        }
                     }
 
                     Spawn(ref p, width, height, false);
@@ -312,23 +324,35 @@ namespace ClassicUO.Game
             }
         }
 
-        // a drop reached the ground: a glint, a widening ripple and, for near drops, a second ring
-        // and a few crown droplets
-        private void Impact(Vector2 position, float depth)
+        // water: no spray, wide rings that spread out slowly one after the other, and for near drops
+        // a single droplet jumping straight up from the centre
+        private void WaterImpact(Vector2 position, float depth)
         {
-            AddSplash(SplashKind.Glint, position, Vector2.Zero, 0f, 0.07f, MathHelper.Lerp(3f, 5f, depth), 0.8f);
-            AddSplash(SplashKind.Ripple, position, Vector2.Zero, 0f, MathHelper.Lerp(0.35f, 0.6f, depth), MathHelper.Lerp(12f, 28f, depth), MathHelper.Lerp(0.7f, 1f, depth));
+            AddSplash(SplashKind.Glint, position, Vector2.Zero, 0f, 0.06f, MathHelper.Lerp(2f, 4f, depth), 0.6f);
+            AddSplash(SplashKind.Ripple, position, Vector2.Zero, 0f, MathHelper.Lerp(0.7f, 1.05f, depth), MathHelper.Lerp(18f, 36f, depth), MathHelper.Lerp(0.55f, 0.85f, depth));
+            AddSplash(SplashKind.Ripple, position, Vector2.Zero, -0.14f, MathHelper.Lerp(0.6f, 0.9f, depth), MathHelper.Lerp(11f, 22f, depth), MathHelper.Lerp(0.4f, 0.65f, depth));
 
-            if (depth > 0.7f)
+            if (depth > 0.65f)
             {
-                AddSplash(SplashKind.Ripple, position, Vector2.Zero, -0.09f, 0.4f, MathHelper.Lerp(7f, 15f, depth), 0.7f);
+                AddSplash(SplashKind.Ripple, position, Vector2.Zero, -0.3f, 0.6f, MathHelper.Lerp(7f, 13f, depth), 0.45f);
+                AddSplash(SplashKind.Droplet, position, new Vector2(0f, -RandomHelper.GetValue(80, 120) * depth), 0f, 0.22f, 0f, 0.7f);
+            }
+        }
 
-                int drops = RandomHelper.GetValue(2, 3);
+        // land: a quick bright splash with crown droplets thrown out, and only a small, short wet ring
+        private void LandImpact(Vector2 position, float depth)
+        {
+            AddSplash(SplashKind.Glint, position, Vector2.Zero, 0f, 0.08f, MathHelper.Lerp(3f, 6f, depth), 0.85f);
+            AddSplash(SplashKind.Ripple, position, Vector2.Zero, 0f, MathHelper.Lerp(0.2f, 0.3f, depth), MathHelper.Lerp(7f, 13f, depth), MathHelper.Lerp(0.45f, 0.7f, depth));
+
+            if (depth > 0.5f)
+            {
+                int drops = RandomHelper.GetValue(3, 4);
 
                 for (int i = 0; i < drops; i++)
                 {
-                    Vector2 velocity = new Vector2(RandomHelper.GetValue(-45, 45) * depth, -RandomHelper.GetValue(70, 130) * depth);
-                    AddSplash(SplashKind.Droplet, position, velocity, 0f, 0.26f, 0f, 0.6f);
+                    Vector2 velocity = new Vector2(RandomHelper.GetValue(-70, 70) * depth, -RandomHelper.GetValue(90, 160) * depth);
+                    AddSplash(SplashKind.Droplet, position, velocity, 0f, 0.3f, 0f, 0.75f);
                 }
             }
         }

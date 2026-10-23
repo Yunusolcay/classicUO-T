@@ -114,7 +114,7 @@ Kaynak: [SHADOWS_PLAN.md](SHADOWS_PLAN.md).
 ## M3 — Shader efektleri
 
 - [x] classicUO-T: nature effects; canlı çim tonları, çim kümeleri, bitki/ağaç rüzgâr salınımı. `Profile.NatureEffects`, Options bağlantısı; `src/ClassicUO.Client/Game/Data/NatureTiles.cs`, `Game/Map/ChunkMesh.cs`, `Game/Scenes/GameSceneDrawingSorting.cs` ve `src/ClassicUO.Renderer/shaders/IsometricWorld.fx` içinde mevcut.
-- [ ] W1/W2 su shader'ı (ışık deseni, parıltı, kıyı köpüğü) · H1–H4 gelişmiş yağmur/kar/fırtına/şimşek (bkz. [WATER_WEATHER_PLAN.md](WATER_WEATHER_PLAN.md)). 🔶 kod hazır (358 test), oyun içi kabul bekliyor. 2026-10-23: H1 yağmur yenilendi (parlak uçlu iz dokusu, esinti, oyuncu çevresinde seyrelme, zemin halkası + damlacık); çevrimdışı önizleme videosuyla gösterildi, oyun içi kabul bekliyor.
+- [ ] W1/W2 su shader'ı (ışık deseni, parıltı, kıyı köpüğü) · H1–H4 gelişmiş yağmur/kar/fırtına/şimşek (bkz. [WATER_WEATHER_PLAN.md](WATER_WEATHER_PLAN.md)). 🔶 kod hazır (358 test), oyun içi kabul bekliyor. 2026-10-23: H1 yağmur yenilendi (parlak uçlu iz dokusu, esinti, oyuncu çevresinde seyrelme, su/kara ayrımı: denizde halkalar, karada sıçrama); Nimloth'ta kıyıda (1445, 1807) oyun içi video kaydıyla gösterildi, kullanıcı kabulü bekliyor.
 - [ ] Claude Code: su/sis/hava shader hedeflerini mevcut efektlere göre daralt; `World.Weather` / `0x65` uyumu, aç/kapa, performans ve görsel kabul testlerini tanımla. Nature effects'in mevcut olması M3'ün tamamını kapatmaz.
 
 ## M4 — Akıcılık

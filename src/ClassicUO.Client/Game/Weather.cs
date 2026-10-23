@@ -2,6 +2,7 @@
 
 using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
+using ClassicUO.Game.GameObjects;
 using ClassicUO.Renderer;
 using ClassicUO.Resources;
 using ClassicUO.Utility;
@@ -36,7 +37,11 @@ namespace ClassicUO.Game
         public Weather(World world)
         {
             _world = world;
+            _isWater = IsWaterAt;
         }
+
+        // rain impacts look different on water and on land
+        private readonly Func<Vector2, bool> _isWater;
 
 
         public WeatherType? CurrentWeather { get; private set; }
@@ -527,7 +532,8 @@ namespace ClassicUO.Game
                 camera.Bounds.Width,
                 camera.Bounds.Height,
                 layerDepth,
-                Time.Delta
+                Time.Delta,
+                _isWater
             );
 
             // the server weather ran out and the particles faded: the next Draw resets the weather
@@ -539,6 +545,55 @@ namespace ClassicUO.Game
             _lastTick = Time.Ticks;
         }
 
+
+        // world: a pixel of the view in the scene's draw space (as GameObject.RealScreenPosition).
+        // Finds the tile drawn there, assuming the ground near the player's height, and tells
+        // whether it is water.
+        private bool IsWaterAt(Vector2 world)
+        {
+            Map.Map map = _world.Map;
+
+            if (map == null || _world.Player == null)
+            {
+                return false;
+            }
+
+            Point offset = Scenes.GameScene.DrawOffset;
+            // tile centre: x = (X - Y) * 22, y = (X + Y) * 22 - Z * 4 (minus the draw offset)
+            float diff = (world.X + offset.X) / 22f;
+            int z = _world.Player.Z;
+            int x = 0, y = 0;
+
+            for (int i = 0; i < 2; i++)
+            {
+                float sum = (world.Y + offset.Y + z * 4) / 22f;
+                x = (int)Math.Round((sum + diff) * 0.5f);
+                y = (int)Math.Round((sum - diff) * 0.5f);
+
+                if (x < 0 || y < 0)
+                {
+                    return false;
+                }
+
+                // once more with the height of the tile found
+                z = map.GetTileZ(x, y);
+
+                if (z == -125)
+                {
+                    return false;
+                }
+            }
+
+            for (GameObject obj = map.GetTile(x, y, false); obj != null; obj = obj.TNext)
+            {
+                if (obj is Land land && land.TileData.IsWet || obj is Static st && st.ItemData.IsWet)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         private struct WeatherEffect
         {
