@@ -14,11 +14,11 @@ namespace ClassicUO.Game
     // weather (0x65) stays authoritative: Weather decides what falls, how much and when it ends.
     internal sealed class WeatherRenderer
     {
-        private const int MAX_DROPS = 900;
+        private const int MAX_DROPS = 1800;
         private const int MAX_FLAKES = 450;
-        private const int MAX_SPLASHES = 480;
+        private const int MAX_SPLASHES = 1000;
         // particles per legacy 640x480 window at the server's full count (70)
-        private const float RAIN_DENSITY = 330f;
+        private const float RAIN_DENSITY = 620f;
         private const float SNOW_DENSITY = 200f;
         private const float LEGACY_AREA = 640f * 480f;
         // seconds to fade the weather in and out
@@ -52,6 +52,9 @@ namespace ClassicUO.Game
         private readonly Particle[] _particles = new Particle[Math.Max(MAX_DROPS, MAX_FLAKES)];
         private readonly Splash[] _splashes = new Splash[MAX_SPLASHES];
         private int _particleCount, _splashCount;
+        // view origin and scale of the last frame: particles follow the world when the camera moves
+        private Vector2 _lastOrigin;
+        private float _lastScale;
         private bool _snow;
         private float _intensity;
         private float _flashTime = -1f, _flashStrength;
@@ -84,8 +87,9 @@ namespace ClassicUO.Game
 
         // type: server weather, count: server particle count (0..70), active: false once the server
         // weather ran out (fades out). x/y: world pixels of the view's top left corner, scale: world
-        // pixels per screen pixel, width/height: screen pixels of the view. isWater: is the ground at
-        // this world pixel water (rain rings there, splashes on land); null means land.
+        // pixels per screen pixel, width/height: screen pixels of the view. worldOffset: added to a
+        // draw space pixel gives the absolute world pixel (the scene draw offset moves with the
+        // player). isWater: is the ground at this absolute world pixel water; null means land.
         public void Draw(
             UltimaBatcher2D batcher,
             WeatherType type,
@@ -99,6 +103,7 @@ namespace ClassicUO.Game
             int height,
             float layerDepth,
             float delta,
+            Vector2 worldOffset = default,
             Func<Vector2, bool> isWater = null
         )
         {
@@ -129,6 +134,8 @@ namespace ClassicUO.Game
 
             _particleCount = Math.Min(_particleCount, wanted);
 
+            FollowCamera(viewOrigin + worldOffset, scale, width, height);
+
             EnsureTextures(batcher.GraphicsDevice);
 
             float time = Time.Ticks / 1000f;
@@ -158,7 +165,7 @@ namespace ClassicUO.Game
             }
             else
             {
-                DrawRain(batcher, wind, storm, viewOrigin, scale, width, height, layerDepth, delta, time, isWater);
+                DrawRain(batcher, wind, storm, viewOrigin, worldOffset, scale, width, height, layerDepth, delta, time, isWater);
             }
 
             batcher.SetSampler(SamplerState.PointClamp);
@@ -168,11 +175,11 @@ namespace ClassicUO.Game
             LastParticleCount = _particleCount + _splashCount;
         }
 
-        private void DrawRain(UltimaBatcher2D batcher, sbyte wind, bool storm, Vector2 origin, float scale, int width, int height, float layerDepth, float delta, float time, Func<Vector2, bool> isWater)
+        private void DrawRain(UltimaBatcher2D batcher, sbyte wind, bool storm, Vector2 origin, Vector2 worldOffset, float scale, int width, int height, float layerDepth, float delta, float time, Func<Vector2, bool> isWater)
         {
             // slow gusts sway the slant a little so the rain never looks like a fixed pattern
             float gust = (float)Math.Sin(time * 0.37f) * 0.6f + (float)Math.Sin(time * 0.91f + 1.3f) * 0.4f;
-            float slant = -0.16f + wind * (storm ? 0.08f : 0.05f) + gust * (storm ? 0.09f : 0.045f);
+            float slant = -0.08f + wind * (storm ? 0.08f : 0.05f) + gust * (storm ? 0.09f : 0.045f);
             float fade = Math.Min(1f, _intensity * 2f);
 
             // the player stands in the middle of the view: near drops thin out there so the
@@ -188,8 +195,14 @@ namespace ClassicUO.Game
             {
                 ref Particle p = ref _particles[i];
 
-                float speed = MathHelper.Lerp(640f, 1180f, p.Depth) * (storm ? 1.2f : 1f);
-                Vector2 velocity = new Vector2(slant * speed, speed);
+                // each drop has its own speed and a slightly different angle: parallel lines of the
+                // same length read as artificial
+                float jitter = p.Phase * 2f - 1f;
+                float lean = (p.Phase * 7.31f - (float)Math.Floor(p.Phase * 7.31f)) * 2f - 1f;
+                float speed = MathHelper.Lerp(1000f, 1900f, p.Depth) * (1f + 0.15f * jitter) * (storm ? 1.2f : 1f);
+                // some lean left, some right, each wavering a little on its own
+                float dropSlant = slant + 0.15f * lean + 0.04f * (float)Math.Sin(time * 1.3f + p.Phase * 40f);
+                Vector2 velocity = new Vector2(dropSlant * speed, speed);
                 p.Position += velocity * delta;
 
                 if (p.Position.Y >= p.GroundY)
@@ -197,8 +210,10 @@ namespace ClassicUO.Game
                     // far drops vanish in the distance, the rest leave a mark where they land
                     if (p.Depth > 0.25f)
                     {
-                        Vector2 at = new Vector2(p.Position.X, p.GroundY);
-                        bool water = isWater != null && isWater(origin + at * scale);
+                        // splashes are kept in absolute world pixels: they stay on the ground when the
+                        // player and the camera move
+                        Vector2 at = origin + worldOffset + new Vector2(p.Position.X, p.GroundY) * scale;
+                        bool water = isWater != null && isWater(at);
 
                         if (water)
                         {
@@ -224,9 +239,11 @@ namespace ClassicUO.Game
                     p.Position.X -= width + 120f;
                 }
 
-                float length = MathHelper.Lerp(10f, 42f, p.Depth * p.Depth);
-                float stroke = p.Depth > 0.8f ? 2f : p.Depth > 0.5f ? 1.5f : 1f;
-                float alpha = MathHelper.Lerp(0.35f, 1f, p.Depth) * fade;
+                // the streak is the distance travelled while the eye integrates it (motion blur);
+                // drops are translucent, many faint streaks make a sheet of rain
+                float length = speed * MathHelper.Lerp(0.01f, 0.018f, p.Depth);
+                float stroke = p.Depth > 0.75f ? 1.5f : 1f;
+                float alpha = MathHelper.Lerp(0.3f, 0.8f, p.Depth) * fade;
 
                 if (p.Depth > 0.45f)
                 {
@@ -268,7 +285,7 @@ namespace ClassicUO.Game
                 }
 
                 float t = s.Age / s.Life;
-                Vector2 at = origin + s.Position * scale;
+                Vector2 at = s.Position - worldOffset;
 
                 switch (s.Kind)
                 {
@@ -292,8 +309,8 @@ namespace ClassicUO.Game
                     case SplashKind.Droplet:
                     {
                         // tiny crown droplets thrown up by the impact, falling back
-                        s.Position += s.Velocity * delta;
-                        s.Velocity.Y += 900f * delta;
+                        s.Position += s.Velocity * (delta * scale);
+                        s.Velocity.Y += 1500f * delta;
                         int size = Math.Max(1, (int)Math.Round(2f * scale));
 
                         batcher.Draw(
@@ -329,13 +346,13 @@ namespace ClassicUO.Game
         private void WaterImpact(Vector2 position, float depth)
         {
             AddSplash(SplashKind.Glint, position, Vector2.Zero, 0f, 0.06f, MathHelper.Lerp(2f, 4f, depth), 0.6f);
-            AddSplash(SplashKind.Ripple, position, Vector2.Zero, 0f, MathHelper.Lerp(0.7f, 1.05f, depth), MathHelper.Lerp(18f, 36f, depth), MathHelper.Lerp(0.55f, 0.85f, depth));
-            AddSplash(SplashKind.Ripple, position, Vector2.Zero, -0.14f, MathHelper.Lerp(0.6f, 0.9f, depth), MathHelper.Lerp(11f, 22f, depth), MathHelper.Lerp(0.4f, 0.65f, depth));
+            AddSplash(SplashKind.Ripple, position, Vector2.Zero, 0f, MathHelper.Lerp(0.5f, 0.75f, depth), MathHelper.Lerp(18f, 36f, depth), MathHelper.Lerp(0.55f, 0.85f, depth));
+            AddSplash(SplashKind.Ripple, position, Vector2.Zero, -0.1f, MathHelper.Lerp(0.42f, 0.6f, depth), MathHelper.Lerp(11f, 22f, depth), MathHelper.Lerp(0.4f, 0.65f, depth));
 
             if (depth > 0.65f)
             {
-                AddSplash(SplashKind.Ripple, position, Vector2.Zero, -0.3f, 0.6f, MathHelper.Lerp(7f, 13f, depth), 0.45f);
-                AddSplash(SplashKind.Droplet, position, new Vector2(0f, -RandomHelper.GetValue(80, 120) * depth), 0f, 0.22f, 0f, 0.7f);
+                AddSplash(SplashKind.Ripple, position, Vector2.Zero, -0.2f, 0.4f, MathHelper.Lerp(7f, 13f, depth), 0.45f);
+                AddSplash(SplashKind.Droplet, position, new Vector2(0f, -RandomHelper.GetValue(80, 120) * depth), 0f, 0.2f, 0f, 0.7f);
             }
         }
 
@@ -343,7 +360,7 @@ namespace ClassicUO.Game
         private void LandImpact(Vector2 position, float depth)
         {
             AddSplash(SplashKind.Glint, position, Vector2.Zero, 0f, 0.08f, MathHelper.Lerp(3f, 6f, depth), 0.85f);
-            AddSplash(SplashKind.Ripple, position, Vector2.Zero, 0f, MathHelper.Lerp(0.2f, 0.3f, depth), MathHelper.Lerp(7f, 13f, depth), MathHelper.Lerp(0.45f, 0.7f, depth));
+            AddSplash(SplashKind.Ripple, position, Vector2.Zero, 0f, MathHelper.Lerp(0.18f, 0.25f, depth), MathHelper.Lerp(7f, 13f, depth), MathHelper.Lerp(0.45f, 0.7f, depth));
 
             if (depth > 0.5f)
             {
@@ -352,7 +369,7 @@ namespace ClassicUO.Game
                 for (int i = 0; i < drops; i++)
                 {
                     Vector2 velocity = new Vector2(RandomHelper.GetValue(-70, 70) * depth, -RandomHelper.GetValue(90, 160) * depth);
-                    AddSplash(SplashKind.Droplet, position, velocity, 0f, 0.3f, 0f, 0.75f);
+                    AddSplash(SplashKind.Droplet, position, velocity, 0f, 0.25f, 0f, 0.75f);
                 }
             }
         }
@@ -423,6 +440,37 @@ namespace ClassicUO.Game
             }
         }
 
+        // Particles live in screen pixels; when the view scrolls they are moved back by the same
+        // world distance so the rain stays with the world instead of sliding along with the camera
+        private void FollowCamera(Vector2 origin, float scale, int width, int height)
+        {
+            if (_lastScale > 0f && Math.Abs(scale - _lastScale) < 0.0001f)
+            {
+                Vector2 shift = (origin - _lastOrigin) / scale;
+
+                if (Math.Abs(shift.X) > width || Math.Abs(shift.Y) > height)
+                {
+                    // teleport or map change: start over in the new place
+                    for (int i = 0; i < _particleCount; i++)
+                    {
+                        Spawn(ref _particles[i], width, height, true);
+                    }
+                }
+                else if (shift != Vector2.Zero)
+                {
+                    for (int i = 0; i < _particleCount; i++)
+                    {
+                        ref Particle p = ref _particles[i];
+                        p.Position -= shift;
+                        p.GroundY -= shift.Y;
+                    }
+                }
+            }
+
+            _lastOrigin = origin;
+            _lastScale = scale;
+        }
+
         // a quick double flash, then a fading glow
         private void DrawLightning(UltimaBatcher2D batcher, bool enabled, Vector2 origin, float scale, int width, int height, float layerDepth, float delta)
         {
@@ -457,7 +505,7 @@ namespace ClassicUO.Game
             p.Position.X = RandomHelper.GetValue(-40, width + 40);
             p.Position.Y = anywhere ? RandomHelper.GetValue(-20, height) : RandomHelper.GetValue(-60, -5);
             // nearer drops land lower on the screen
-            p.GroundY = MathHelper.Lerp(height * 0.15f, height * 1.05f, (p.Depth + RandomHelper.GetValue(0, 1000) / 1000f) * 0.5f);
+            p.GroundY = MathHelper.Lerp(height * 0.1f, height * 1.05f, (p.Depth * 0.3f + RandomHelper.GetValue(0, 1000) / 1000f * 0.7f));
 
             if (p.Position.Y > p.GroundY)
             {
