@@ -51,9 +51,13 @@ UV bozması dikiş ve sızma yapar); hareket yalnız renk/parlaklık deseniyle v
 pikselinde tutulur ve kameranın görünen dünya dikdörtgenine (`Camera.ScreenToWorld`, zoom ölçeği) yerleştirilir:
 zoom'da da ekranı doldurur, boyutları sabit kalır. Yoğunluk sunucu sayısıyla (0–70) orantılı, 3 sn'de açılıp kapanır.
 
-- **H1 Yağmur:** pencere alanına göre en fazla 600 damla; derinliğe göre uzunluk 9–24 px, hız, saydamlık; rüzgârla
-  eğim. Yakın damlalar rastgele "zemin" yüksekliğinde biter ve 0.3 sn'lik elips sıçrama halkası bırakır (≤ 160).
-  Gök: koyu mavi-gri katman (%14, fırtınada %24).
+- **H1 Yağmur:** pencere alanına göre en fazla 900 damla. Damla, kuyruğu saydam başı parlak, hafif soğuk beyaz
+  bir iz dokusudur (`CreateStreak`, 1 px çizgi yerine); derinliğe göre uzunluk 10–42 px, kalınlık 1/1.5/2 px, hız ve
+  saydamlık. Eğim rüzgâr + yavaş esinti salınımıyla değişir. Ekran ortasında (oyuncu) yakın damlalar seyrelir
+  (`clearRadius`, kısa kenarın %24'ü): karakter ve çevresi okunur kalır. Uzak olmayan damlalar rastgele "zemin"
+  yüksekliğinde biter: kısa parlama + genişleyen, solan elips halka; yakın damlalarda gecikmeli ikinci halka ve
+  2–3 sıçrayıp geri düşen damlacık (≤ 480). Parçacıklar doğrusal örneklemeyle çizilir (ince halkalar kesik
+  görünmesin). Gök: koyu mavi-gri katman (%14, fırtınada %24).
 - **H2 Kar:** en fazla 450 yumuşak yuvarlak tane, derinliğe göre boyut 2–5 px, sinüs salınımı + rüzgâr; %8 beyaz pus.
 - **H3 Fırtına:** gök gürültüsü sesi çalındığında (`PlayThunder`) şimşek: hızlı çift çakma + 0.6 sn sönüm. Ekrana
   beyaz katman (%30'a kadar) ve Enhanced lighting'de ortam ışığına `Flash × 0.7` eklenir (gece de aydınlatır).
